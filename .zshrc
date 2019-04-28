@@ -1,0 +1,156 @@
+# env vars
+export SAVEHIST=1000
+export HISTSIZE=1000
+export HISTFILE=~/.zhistory
+
+# aliases
+alias    v="vim"
+alias    g="gvim"
+alias   vv="sudo vim"
+
+alias    a="cd /tmp/ram"
+alias    ,="cd .."
+alias   ,,="cd ../.."
+alias    /="cd -"
+
+alias    l="ls --indicator-style=none --color=auto"
+alias   ll="ls --indicator-style=none --color=auto -aghot"
+alias grep="grep --color=auto"
+
+alias    r="rm -rf"
+alias    k="kill -9"
+
+alias    t="tmux"
+alias   ta="tmux attach"
+
+alias   ps="ps x"
+alias   pg="ps | grep"
+alias mren="md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
+
+alias   gs="git status"
+alias   gd="git diff"
+alias   gl="git log"
+alias   gp="git log -p"
+alias   gb="git blame"
+
+alias  gga="git add"
+alias  ggb="git branch"
+alias  ggc="git checkout"
+alias  ggm="git commit -m"
+alias  ggp="git pull"
+alias  ggg="git push"
+
+alias  pac="sudo pacman"
+alias pacs="sudo pacman -S"
+alias pacr="sudo pacman -Rsn"
+alias pacf="pacman -Ss"
+alias paco="pacman -Qo"
+
+alias  oac="sudo yum"
+alias oacs="sudo yum install"
+alias oacr="sudo yum remove"
+alias oacf="yum search"
+alias oaco="yum whatprovides"
+
+alias   ss="systemctl --user start"
+alias   st="systemctl --user stop"
+alias   sr="systemctl --user restart"
+
+# configs
+setopt APPEND_HISTORY
+setopt AUTO_CD
+setopt AUTO_LIST
+setopt AUTO_MENU
+setopt AUTO_PARAM_KEYS
+setopt AUTO_PARAM_SLASH
+setopt AUTO_PUSHD
+setopt BRACE_CCL
+setopt CDABLE_VARS
+setopt COMPLETE_IN_WORD
+setopt COMPLETE_ALIASES
+setopt CORRECT
+setopt GLOB_DOTS
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS
+setopt HIST_SAVE_NO_DUPS
+setopt IGNORE_EOF
+setopt INTERACTIVE_COMMENTS
+setopt KSH_TYPESET
+setopt LIST_TYPES
+setopt MENU_COMPLETE
+setopt MULTIOS
+setopt NO_HIST_BEEP
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
+setopt PUSHD_TO_HOME
+
+limit coredumpsize 0
+
+PROMPT="%{[38;5;182m%}%D{%H:%M}%{[38;5;147m%} %~ %(!.%{[38;5;203m%}.%{[38;5;68m%})>>>%{[0m%} "
+
+# keybindings
+bindkey -v
+bindkey "[A"  history-beginning-search-backward
+bindkey "[B"  history-beginning-search-forward
+bindkey "[C"  forward-char 
+bindkey "[D"  backward-char
+bindkey "[1~" beginning-of-line
+bindkey "[2~" backward-delete-word
+bindkey "[3~" delete-char
+bindkey "[4~" end-of-line
+bindkey "[5~" backward-word
+bindkey "[6~" forward-word
+bindkey "[7~" beginning-of-line
+bindkey "[8~" end-of-line
+bindkey "[H"  beginning-of-line
+bindkey "[F"  end-of-line
+
+# completions
+autoload -Uz compinit
+compinit
+
+zstyle ":completion:*" completer _complete _prefix _correct _prefix _match _approximate
+zstyle ":completion:*" expand "yes"
+zstyle ":completion:*" group-name ""
+zstyle ":completion:*" matcher-list "" "m:{a-zA-Z}={A-Za-z}"
+zstyle ":completion:*" menu select
+zstyle ":completion:*" squeeze-slashes "yes"
+zstyle ":completion:*" verbose yes
+zstyle ":completion:*:approximate:*" max-errors 1 numeric
+zstyle ":completion:*:matches" group "yes"
+zstyle ":completion:*:match:*" original only
+zstyle ":completion:*:options" auto-description "%d"
+zstyle ":completion:*:options" description "yes"
+zstyle ":completion:*:processes" command "ps -au$USER"
+zstyle ":completion:*:*:default" force-list always
+zstyle ":completion:*:*:kill:*" menu yes select
+zstyle ":completion:*:*:*:default" menu yes select
+zstyle ":completion:*:*:*:*:processes" force-list always
+zstyle ":completion::complete:*" "\\"
+zstyle ":completion::prefix-1:*" completer _complete
+zstyle ":completion:incremental:*" completer _complete _correct
+zstyle ":completion:predict:*" completer _complete
+zstyle ":completion:*:corrections" format $"[38;5;147m >>> [38;5;68m%d (%e)[0m"
+zstyle ":completion:*:descriptions" format $"[38;5;147m >>> [38;5;68m%d[0m"
+zstyle ":completion:*:messages" format $"[38;5;147m >>> [38;5;68m%d[0m"
+zstyle ":completion:*:warnings" format $"[38;5;147m >>> [38;5;68mnot found[0m"
+zstyle ":completion:*:*:kill:*:processes" list-colors "=(#b) #([0-9]#)*=0=38;5;147"
+
+# functions
+ff() {
+    if [[ $# -ge 1 ]]; then
+        find . -name "*$1*" "${@:2}"
+    fi
+}
+
+gg() {
+    if [[ $# -ge 1 ]]; then
+        grep -rin $1 "${@:2}"
+    fi
+}
+
+preexec() {
+    print -Pn "\e]0;$2:q\a"
+}

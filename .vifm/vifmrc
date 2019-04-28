@@ -1,0 +1,43 @@
+colorscheme gosh
+
+set fastrun
+set fusehome=/tmp/mnt
+set history=100
+set ignorecase
+set incsearch
+set nohlsearch
+set norunexec
+set scrolloff=1
+set slowfs=curlftpfs
+set smartcase
+set sortnumbers
+set statusline=" %A %5u:%-5g %15d"
+set timefmt=%Y-%m-%d/%H:%M
+set trash
+set trashdir=/tmp
+set undolevels=100
+set vicmd=vim
+set vifminfo=chistory,dhistory,phistory,shistory
+set wildmenu
+
+map <F2>     cw<c-u>
+map <F4>   :!urxvt256c &<cr>
+map <F10>   :mkdir<space>
+map <S-F10> :touch<space>
+map  E      :empty<cr>
+map  C      :copy!<cr>
+map  X      :move!<cr>
+map  D      :delete!<cr>
+map  S      :sort<cr>
+map ;q      :quit<cr>
+
+filetype *.jpg,*.png,*.gif,*.bmp feh       %c &
+filetype *.pdf                   mupdf     %c &
+filetype *.html,*.htm            seamonkey %c &
+
+"filetype *.mp3,*.wma,*.ape,*.flac,*.ogg,*.m3a,*.m4a deadbeef %c &
+"filetype *.avi,*.mpg,*.mkv,*.mp4,*.wmv,*.flv,*.f4v,*.webm totem %c &
+"filetype *.tar,*.bz2,*.gz,*.tgz,*.xz,*.zip,*.rar,*.7z 7z x %c &
+"filetype *.pdf,*.djvu,*.ps evince %c &
+"filetype *.html,*.htm chromium %c &
+"filetype *.odt,*.ods,*.odp,*.rtf,*.doc,*.docx,*.xls,*.xlsx,*.ppt,*.pptx libreoffice %c &

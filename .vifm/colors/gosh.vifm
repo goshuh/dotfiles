@@ -1,0 +1,17 @@
+hi Win        ctermfg=252  ctermbg=234  cterm=none
+hi Border     ctermfg=234  ctermbg=none cterm=none
+hi TopLineSel ctermfg=none ctermbg=none cterm=none
+hi TopLine    ctermfg=none ctermbg=none cterm=none
+hi CmdLine    ctermfg=252  ctermbg=none cterm=none
+hi ErrorMsg   ctermfg=210  ctermbg=none cterm=none
+hi StatusLine ctermfg=147  ctermbg=238  cterm=none
+hi WildMenu   ctermfg=234  ctermbg=147  cterm=none
+hi CurrLine   ctermfg=none ctermbg=238  cterm=none
+hi Selected   ctermfg=none ctermbg=238  cterm=none
+hi Directory  ctermfg=147  ctermbg=none cterm=none
+hi Link       ctermfg=187  ctermbg=none cterm=none
+hi BrokenLink ctermfg=210  ctermbg=none cterm=none
+hi Socket     ctermfg=150  ctermbg=none cterm=none
+hi Device     ctermfg=150  ctermbg=none cterm=none
+hi Executable ctermfg=182  ctermbg=none cterm=none
+hi Fifo       ctermfg=150  ctermbg=none cterm=none

@@ -1,0 +1,37 @@
+#!/usr/bin/zsh
+
+if [[ -z ${DISPLAY} ]]; then
+    exec xinit -- :0 -nolisten tcp vt1 > /dev/null
+fi
+
+# main
+systemctl --user import-environment DISPLAY
+dbus-update-activation-environment  DISPLAY
+
+# gnome
+export XDG_CURRENT_DESKTOP=GNOME
+export NO_AT_BRIDGE=1
+
+# fcitx
+export FCITX_NO_PRIVATE_DBUS=1
+export XMODIFIERS="@im=fcitx"
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+
+# freetype2
+export FT2_SUBPIXEL_HINTING=1
+
+# clutter
+#export CLUTTER_PAINT=disable-clipped-redraws:disable-culling
+#export CLUTTER_VBLANK=none
+
+path+=(${HOME}/.local/bin)
+
+if [[ -f /tmp/i3 ]]; then
+    # gnome with i3
+    source ${HOME}/.init.d/rc.default
+    exec gnome-session --session=i3-gnome
+else
+    # gnome orig
+    exec gnome-session --session=gnome
+fi

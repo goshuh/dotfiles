@@ -1,0 +1,48 @@
+Config { 
+    font = "xft:Inconsolata:size=11,Source Han Sans CN:size=11",
+    additionalFonts = [],
+    textOffset = -1,
+    iconOffset = -1,
+    iconRoot = ".",
+    bgColor = "#1C1C1C",
+    fgColor = "#D0D0D0",
+    alpha = 255,
+    border = NoBorder,
+    borderColor = "#1C1C1C",
+    position = Top,
+    hideOnStart = False,
+    lowerOnStart = False,
+    allDesktops = False,
+    overrideRedirect = False,
+    pickBroadest = False,
+    persistent = True,
+    sepChar =  "%"
+    alignSep = "}{",
+
+    template = "%StdinReader%}{%dynnetwork%  CPU %cpu%  MEM %memory%  %date%",
+
+    commands = [
+        Run StdinReader,
+        Run DynNetwork [
+            "-t", "<rx>",
+            "-S", "True"
+        ] 60,
+        Run Cpu [
+            "-t", "<total>%",
+            "-L", "13",
+            "-l", "#AFD7AF",
+            "-H", "25",
+            "-h", "#FF5F5F",
+            "-n", "#D7D7AF"
+        ] 60,
+        Run Memory [
+            "-t" ,"<usedratio>%",
+            "-L", "25",
+            "-l", "#AFD7AF",
+            "-H", "50",
+            "-h", "#FF5F5F",
+            "-n", "#D7D7AF"
+        ] 60,
+        Run Date "%m-%d %H:%M" "date" 600
+    ]
+}
