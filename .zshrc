@@ -81,6 +81,8 @@ setopt KSH_TYPESET
 setopt LIST_TYPES
 setopt MENU_COMPLETE
 setopt MULTIOS
+setopt NO_BEEP
+setopt NO_LIST_BEEP
 setopt NO_HIST_BEEP
 setopt PUSHD_IGNORE_DUPS
 setopt PUSHD_SILENT
