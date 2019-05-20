@@ -146,7 +146,7 @@ set updatetime    =10000
 set whichwrap     =<,>,[,],b,s,h,l,~
 set wildmenu
 
-if v:version > 800
+if v:version >= 800
     set belloff        =all
     set breakindent
     set breakindentopt =min:20,shift:2

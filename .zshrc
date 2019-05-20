@@ -13,8 +13,8 @@ alias    ,="cd .."
 alias   ,,="cd ../.."
 alias    /="cd -"
 
-alias    l="ls --indicator-style=none --color=auto"
-alias   ll="ls --indicator-style=none --color=auto -aghot"
+alias    l="ls -A --indicator-style=none --color=auto"
+alias   ll="ls -A --indicator-style=none --color=auto -aghot"
 alias grep="grep --color=auto"
 
 alias    r="rm -rf"
@@ -151,6 +151,10 @@ gg() {
     if [[ $# -ge 1 ]]; then
         grep -rin $1 "${@:2}"
     fi
+}
+
+chpwd() {
+    ls -A --indicator-style=none --color=auto
 }
 
 preexec() {

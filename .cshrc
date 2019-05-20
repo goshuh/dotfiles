@@ -11,8 +11,8 @@ alias \,   "cd .."
 alias \,\, "cd ../.."
 alias /    "cd -"
 
-alias l    "ls --indicator-style=none --color=auto"
-alias ll   "ls --indicator-style=none --color=auto -aghot"
+alias l    "ls -A --indicator-style=none --color=auto"
+alias ll   "ls -A --indicator-style=none --color=auto -aghot"
 alias grep "grep --color=auto"
 
 alias r    "rm -rf"
@@ -23,7 +23,6 @@ alias ta   "tmux attach"
 
 alias ps   "ps x"
 alias pg   "ps x | grep"
-alias mren "md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
 
 alias gg   "grep --color=auto -rn '\!:1' . \!:2*"
 alias ff   "find . -name '*\!{:1}*' \!:2*"
@@ -45,7 +44,7 @@ alias ggg  "git push"
 set history  = 65536
 set histlit
 set histdup  = erase
-set prompt   = "%{\e[38;5;182m%}%d %T%{\e[38;5;147m%} %~ %{\e[38;5;68m%}>>>%{\e[0m%} "
+set prompt   = "%{\r\e[38;5;182m%}%d %T%{\e[38;5;147m%} %~ %{\e[38;5;68m%}>>>%{\e[0m%} "
 set noding
 set symlinks = ignore
 set implicitcd
@@ -58,5 +57,11 @@ bindkey -k up   history-search-backward
 bindkey -k down history-search-forward
 
 bindkey "^[[2~" backward-delete-word
-bindkey "^[[5~" backward-work
+bindkey "^[[5~" backward-word
 bindkey "^[[6~" forward-word
+
+if ( $?0 == 0 ) then
+    # interactive only
+    alias cwdcmd  "ls -A --indicator-style=none --color=auto"
+    alias postcmd "echo -n '\e]2;\!#:q\a'"
+endif
