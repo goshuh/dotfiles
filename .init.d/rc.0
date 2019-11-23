@@ -1,37 +1,53 @@
 #!/usr/bin/zsh
 
-if [[ -z ${DISPLAY} ]]; then
-    exec xinit -- :0 -nolisten tcp vt1 > /dev/null
+if [[ -n ${USE_X11} ]]; then
+    if [[ -z ${DISPLAY} ]]; then
+        exec xinit -- :0 -nolisten tcp vt1 > /dev/null
+    fi
+
+    # main
+    systemctl --user import-environment DISPLAY
+    dbus-update-activation-environment  DISPLAY
+
+    # gnome
+    #export XDG_CURRENT_DESKTOP=GNOME
+    #export XDG_SESSION_TYPE=x11
+
+    # xfce
+    export XDG_CURRENT_DESKTOP=XFCE
+    export XDG_MENU_PREFIX=xfce-
+    export DESKTOP_SESSION=xfce
+else
+    # gnome
+    export XDG_SESSION_TYPE=wayland
+    export CLUTTER_BACKEND=wayland
+
+    # qt
+    export QT_QPA_PLATFORM=wayland-egl
 fi
 
-# main
-systemctl --user import-environment DISPLAY
-dbus-update-activation-environment  DISPLAY
+path+=(${HOME}/.local/bin)
 
 # gnome
-export XDG_CURRENT_DESKTOP=GNOME
 export NO_AT_BRIDGE=1
 
-# fcitx
-export FCITX_NO_PRIVATE_DBUS=1
-export XMODIFIERS="@im=fcitx"
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-
-# freetype2
-export FT2_SUBPIXEL_HINTING=1
+# qt
+export QT_STYLE_OVERRIDE=Kvantum
 
 # clutter
 #export CLUTTER_PAINT=disable-clipped-redraws:disable-culling
 #export CLUTTER_VBLANK=none
 
-path+=(${HOME}/.local/bin)
+# freetype
+export FT2_SUBPIXEL_HINTING=1
 
-if [[ -f /tmp/i3 ]]; then
-    # gnome with i3
-    source ${HOME}/.init.d/rc.default
-    exec gnome-session --session=i3-gnome
-else
-    # gnome orig
-    exec gnome-session --session=gnome
-fi
+# fcitx
+#export XMODIFIERS="@im=fcitx"
+export FCITX_NO_PRIVATE_DBUS=1
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+
+# gnome
+#exec gnome-session
+# xfce
+exec xfce4-session
