@@ -301,7 +301,7 @@ Plug 'ervandew/supertab'
 call plug#end()
 
 let g:delimitMate_expand_cr =1
-let g:delimitMate_quotes    =' \' " '
+let g:delimitMate_quotes    =" ' \" "
 
 map <silent> <leader>e <Plug>(EasyAlign)
 " }}}
