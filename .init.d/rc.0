@@ -32,7 +32,7 @@ path+=(${HOME}/.local/bin)
 export NO_AT_BRIDGE=1
 
 # qt
-export QT_STYLE_OVERRIDE=Kvantum
+export QT_STYLE_OVERRIDE=adwaita
 
 # clutter
 #export CLUTTER_PAINT=disable-clipped-redraws:disable-culling
