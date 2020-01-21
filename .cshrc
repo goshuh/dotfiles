@@ -40,6 +40,8 @@ alias ggm  "git commit -m"
 alias ggp  "git pull"
 alias ggg  "git push"
 
+alias xt   "echo -n '\e]2;\!#:q\a'"
+
 # configs
 set history  = 65536
 set histlit
@@ -62,6 +64,7 @@ bindkey "^[[6~" forward-word
 
 if ( $?0 == 0 ) then
     # interactive only
-    alias cwdcmd  "ls -A --indicator-style=none --color=auto"
-    alias postcmd "echo -n '\e]2;\!#:q\a'"
+    alias cwdcmd "ls -A --indicator-style=none --color=auto"
+    # single shot
+    alias precmd "alias postcmd 'xt; unalias postcmd'"
 endif
