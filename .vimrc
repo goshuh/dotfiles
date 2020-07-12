@@ -158,7 +158,7 @@ set winminheight  =4
 set winminwidth   =4
 set winwidth      =4
 
-if  v:version >= 800
+if v:version >= 800
     set belloff        =all
     set breakindent
     set breakindentopt =min:20,shift:2
@@ -167,7 +167,7 @@ endif
 " }}}
 
 " gui {{{
-if  has('gui_running')
+if has('gui_running')
     vnoremap <silent> <c-x> "+x
     vnoremap <silent> <c-c> "+y
     nnoremap <silent> <c-v> "+gp
@@ -178,23 +178,29 @@ if  has('gui_running')
     set guioptions =abeghimr
     set lines      =45
 
-    if  has('gui_win32')
+    if has('gui_win32')
         set fileencoding  =gb18030
         set fileencodings =gb18030,gb2312,gbk,cp936,utf-8
         set guifont       =Consolas:h9:cANSI
     elseif has('gui')
         set directory     =/tmp
-        set guifont       =Inconsolata\ 11.5
-        set guifontwide   =SimSun\ 11.5
+
+        if v:version >= 800
+            set guifont     =Inconsolata\ 11.5
+            set guifontwide =SimSun\ 11.5
+        else
+            set guifont     =Inconsolata\ 10.5
+            set guifontwide =SimSun\ 10.5
+        endif
     endif
 else
     nnoremap <silent> <c-q> <c-v>
 
-    if  has('win32')
-        set t_ut          =
+    if has('win32')
+        set t_ut      =
         set ttyfast
-        set ttymouse      =xterm2
-        set ttyscroll     =1
+        set ttymouse  =xterm2
+        set ttyscroll =1
     endif
 endif
 " }}}
@@ -237,7 +243,7 @@ endfunction
 function! SetCMap()
     setlocal cindent
     setlocal cinoptions =L-s,:0,=s,ls,g0,N-s,i2s,+2s,(2s,u2s,Us,ws,Ws,M0,js,Js
-    setlocal noexpandtab
+"   setlocal noexpandtab
 
     call SetVMap()
 endfunction

@@ -38,6 +38,7 @@ alias  ggb="git branch"
 alias  ggc="git checkout"
 alias  ggm="git commit -m"
 alias  ggp="git pull"
+alias  ggs="git submodule"
 alias  ggg="git push"
 
 alias  pac="sudo pacman"
@@ -93,6 +94,8 @@ PROMPT="%{[38;5;182m%}%D{%H:%M}%{[38;5;147m%} %~ %(!.%{[38;5;203m%}.%{[38;5;
 
 # keybindings
 bindkey -v
+bindkey -s "" "cd -\t"
+
 bindkey "[A"  history-beginning-search-backward
 bindkey "[B"  history-beginning-search-forward
 bindkey "[C"  forward-char 

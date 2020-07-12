@@ -9,14 +9,14 @@ if [[ -n ${USE_X11} ]]; then
     systemctl --user import-environment DISPLAY
     dbus-update-activation-environment  DISPLAY
 
-    # gnome
-    #export XDG_CURRENT_DESKTOP=GNOME
-    #export XDG_SESSION_TYPE=x11
-
     # xfce
-    export XDG_CURRENT_DESKTOP=XFCE
-    export XDG_MENU_PREFIX=xfce-
-    export DESKTOP_SESSION=xfce
+    #export XDG_CURRENT_DESKTOP=XFCE
+    #export XDG_MENU_PREFIX=xfce-
+    #export DESKTOP_SESSION=xfce
+
+    # gnome
+    export XDG_CURRENT_DESKTOP=GNOME
+    export XDG_SESSION_TYPE=x11
 else
     # gnome
     export XDG_SESSION_TYPE=wayland
@@ -32,7 +32,7 @@ path+=(${HOME}/.local/bin)
 export NO_AT_BRIDGE=1
 
 # qt
-export QT_STYLE_OVERRIDE=adwaita
+export QT_STYLE_OVERRIDE=adwaita-dark
 
 # clutter
 #export CLUTTER_PAINT=disable-clipped-redraws:disable-culling
@@ -47,7 +47,7 @@ export FCITX_NO_PRIVATE_DBUS=1
 export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 
-# gnome
-#exec gnome-session
 # xfce
-exec xfce4-session
+#exec xfce4-session
+# gnome
+exec gnome-session
