@@ -1,53 +1,5 @@
 #!/usr/bin/zsh
 
-if [[ -n ${USE_X11} ]]; then
-    if [[ -z ${DISPLAY} ]]; then
-        exec xinit -- :0 -nolisten tcp vt1 > /dev/null
-    fi
+export XDG_SESSION_TYPE=wayland
 
-    # main
-    systemctl --user import-environment DISPLAY
-    dbus-update-activation-environment  DISPLAY
-
-    # xfce
-    #export XDG_CURRENT_DESKTOP=XFCE
-    #export XDG_MENU_PREFIX=xfce-
-    #export DESKTOP_SESSION=xfce
-
-    # gnome
-    export XDG_CURRENT_DESKTOP=GNOME
-    export XDG_SESSION_TYPE=x11
-else
-    # gnome
-    export XDG_SESSION_TYPE=wayland
-    export CLUTTER_BACKEND=wayland
-
-    # qt
-    export QT_QPA_PLATFORM=wayland-egl
-fi
-
-path+=(${HOME}/.local/bin)
-
-# gnome
-export NO_AT_BRIDGE=1
-
-# qt
-export QT_STYLE_OVERRIDE=adwaita-dark
-
-# clutter
-#export CLUTTER_PAINT=disable-clipped-redraws:disable-culling
-#export CLUTTER_VBLANK=none
-
-# freetype
-export FT2_SUBPIXEL_HINTING=1
-
-# fcitx
-#export XMODIFIERS="@im=fcitx"
-export FCITX_NO_PRIVATE_DBUS=1
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-
-# xfce
-#exec xfce4-session
-# gnome
-exec gnome-session
+exec dbus-run-session gnome-session

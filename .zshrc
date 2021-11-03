@@ -1,61 +1,88 @@
 # env vars
-export SAVEHIST=1000
-export HISTSIZE=1000
+export SAVEHIST=65536
+export HISTSIZE=65536
 export HISTFILE=~/.zhistory
 
+
 # aliases
-alias    v="vim"
-alias    g="gvim"
-alias   vv="sudo vim"
+alias     v="vim"
+alias     g="gvim"
+alias    vv="sudo vim"
 
-alias    a="cd /tmp/ram"
-alias    ,="cd .."
-alias   ,,="cd ../.."
-alias    /="cd -"
+if [[ -z ${commands[gvim]} || ${EUID} -eq 0 ]]; then
+    alias g="vim"
+fi
 
-alias    l="ls -A --indicator-style=none --color=auto"
-alias   ll="ls -A --indicator-style=none --color=auto -aghot"
-alias grep="grep --color=auto"
+alias     a="cd /tmp/ram"
+alias     ,="cd .."
+alias    ,,="cd ../.."
+alias     /="cd -"
+alias    vf="vifm"
+alias    vj='cd "$(vifm --choose-dir=-)"'
 
-alias    r="rm -rf"
-alias    k="kill -9"
+alias     l="ls -A --indicator-style=none --color=auto"
+alias    ll="ls -A --indicator-style=none --color=auto -aghot"
+alias  grep="grep --color=auto"
 
-alias    t="tmux"
-alias   ta="tmux attach"
+alias     r="rm -rf"
+alias     k="kill -9"
 
-alias   ps="ps x"
-alias   pg="ps | grep"
-alias mren="md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
+alias     t="tmux"
+alias    ta="tmux attach"
 
-alias   gs="git status"
-alias   gd="git diff"
-alias   gl="git log"
-alias   gp="git log -p"
-alias   gb="git blame"
+alias    ps="ps x"
+alias    pg="ps | grep"
+alias  mren="md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
 
-alias  gga="git add"
-alias  ggb="git branch"
-alias  ggc="git checkout"
-alias  ggm="git commit -m"
-alias  ggp="git pull"
-alias  ggs="git submodule"
-alias  ggg="git push"
+alias    gs="git status"
+alias    gd="git diff"
+alias    gl="git log"
+alias    gp="git log -p"
+alias    gb="git blame"
+alias    gm="git submodule"
 
-alias  pac="sudo pacman"
-alias pacs="sudo pacman -S"
-alias pacr="sudo pacman -Rsn"
-alias pacf="pacman -Ss"
-alias paco="pacman -Qo"
+alias   gga="git add"
+alias   ggb="git branch"
+alias   ggc="git checkout --recurse-submodules"
+alias   ggm="git commit -m"
+alias   ggp="git pull"
+alias   ggg="git push"
 
-alias  oac="sudo yum"
-alias oacs="sudo yum install"
-alias oacr="sudo yum remove"
-alias oacf="yum search"
-alias oaco="yum whatprovides"
+alias    ss="systemctl --user start"
+alias    st="systemctl --user stop"
+alias    sr="systemctl --user restart"
 
-alias   ss="systemctl --user start"
-alias   st="systemctl --user stop"
-alias   sr="systemctl --user restart"
+alias    mm="machinectl"
+alias    ms="machinectl start"
+alias    ml="machinectl login"
+alias    mx="machinectl shell"
+
+if [[ -n ${commands[pacman]}  ]]; then
+    alias  pac="sudo pacman"
+    alias pacs="sudo pacman -S"
+    alias pacr="sudo pacman -Rsn"
+    alias pacf="pacman -Ss"
+    alias paco="pacman -Qo"
+fi
+if [[ -n ${commands[yum]}     ]]; then
+    alias  pac="sudo yum"
+    alias pacs="sudo yum install"
+    alias pacr="sudo yum remove"
+    alias pacf="yum search"
+    alias paco="yum whatprovides"
+fi
+if [[ -n ${commands[apt-get]} ]]; then
+    alias  pac="sudo apt-get"
+    alias pacs="sudo apt-get install"
+    alias pacr="sudo apt-get autoremove --purge"
+    alias pacf="apt-cache search"
+    alias paco="dpkg -S"
+fi
+
+if [[ -f ${HOME}/.alias ]]; then
+    source ${HOME}/.alias
+fi
+
 
 # configs
 setopt APPEND_HISTORY
@@ -90,7 +117,9 @@ setopt PUSHD_TO_HOME
 
 limit coredumpsize 0
 
+
 PROMPT="%{[38;5;182m%}%D{%H:%M}%{[38;5;147m%} %~ %(!.%{[38;5;203m%}.%{[38;5;68m%})>>>%{[0m%} "
+
 
 # keybindings
 bindkey -v
@@ -99,20 +128,36 @@ bindkey -s "" "cd -\t"
 bindkey "[A"  history-beginning-search-backward
 bindkey "[B"  history-beginning-search-forward
 bindkey "[C"  forward-char 
-bindkey "[D"  backward-char
-bindkey "[1~" beginning-of-line
-bindkey "[2~" backward-delete-word
-bindkey "[3~" delete-char
-bindkey "[4~" end-of-line
-bindkey "[5~" backward-word
 bindkey "[6~" forward-word
+bindkey "[D"  backward-char
+bindkey "[5~" backward-word
+bindkey "[3~" delete-char
+
+bindkey "[1~" beginning-of-line
 bindkey "[7~" beginning-of-line
-bindkey "[8~" end-of-line
 bindkey "[H"  beginning-of-line
+bindkey "[4~" end-of-line
+bindkey "[8~" end-of-line
 bindkey "[F"  end-of-line
+
+spawn_term () {
+    ${TERMINAL:-gnome-terminal} &!
+}
+clean_jobs () {
+    builtin kill %1
+}
+
+zle -N spawn_term
+zle -N clean_jobs
+
+# insert
+bindkey "[2~" spawn_term
+bindkey "^_"      clean_jobs
+
 
 # completions
 autoload -Uz compinit
+
 compinit
 
 zstyle ":completion:*" completer _complete _prefix _correct _prefix _match _approximate
@@ -142,19 +187,8 @@ zstyle ":completion:*:messages" format $"[38;5;147m >>> [38;5;68m%d[0m"
 zstyle ":completion:*:warnings" format $"[38;5;147m >>> [38;5;68mnot found[0m"
 zstyle ":completion:*:*:kill:*:processes" list-colors "=(#b) #([0-9]#)*=0=38;5;147"
 
+
 # functions
-ff() {
-    if [[ $# -ge 1 ]]; then
-        find . -name "*$1*" "${@:2}"
-    fi
-}
-
-gg() {
-    if [[ $# -ge 1 ]]; then
-        grep -rin $1 "${@:2}"
-    fi
-}
-
 chpwd() {
     ls -A --indicator-style=none --color=auto
 }

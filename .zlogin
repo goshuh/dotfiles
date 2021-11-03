@@ -1,6 +1,7 @@
 #!/usr/bin/zsh
 
-if [[ -z ${DISPLAY} && ${XDG_VTNR} -le 3 ]]; then
+if [[ -z ${GOSH_INITED} && ${XDG_VTNR} -ge 2 && ${XDG_VTNR} -le 3 ]]; then
+    export GOSH_INITED=1
 
     # special usage
     rc=${HOME}/.init.d/rc.$((XDG_VTNR - 1))

@@ -19,11 +19,13 @@ noremap  <silent> <s-down>            v<down>
 noremap  <silent> <s-left>            v<left>
 noremap  <silent> <s-right>           v<right>
 noremap  <silent> <space>             i
-noremap           <leader><cr>       :e 
-noremap           <leader>-          :new 
-noremap           <leader>\          :vne 
-noremap           <leader>=          :vert diffsplit 
-noremap  <silent> <leader>t          :tabe 
+noremap           <leader><cr>       :EditVifm<cr>
+noremap           <leader>-          :SplitVifm<cr>
+noremap           <leader>\          :VsplitVifm<cr>
+noremap           <leader>=          :DiffVifm<cr>
+noremap           <leader>t          :TabVifm<cr>
+noremap           <leader>[          :new 
+noremap           <leader>]          :vne 
 noremap  <silent> <leader>w          :bw<cr>
 noremap  <silent> <leader>q          :q<cr>
 noremap  <silent> <leader>c          :sp<cr>
@@ -75,7 +77,9 @@ inoremap <silent> <m-,>               <c-o>N
 inoremap <silent> <m-.>               <c-o>n
 inoremap <silent> <c-up>              <esc>ddkPa
 inoremap <silent> <c-down>            <esc>ddpa
-inoremap <silent> <leader><cr>        <end><cr>
+inoremap <silent> <c-left>            <c-o>:bp<cr>
+inoremap <silent> <c-right>           <c-o>:bn<cr>
+inoremap <silent> <leader><cr>        <end>;<cr>
 inoremap <silent> <leader><leader>    <esc>
 inoremap <silent> <m-LeftMouse>       <4-LeftMouse>
 inoremap <silent> <m-LeftDrag>        <LeftDrag>
@@ -175,7 +179,7 @@ if has('gui_running')
 
     set columns    =180
     set guicursor  =n:block-blinkon0,v-ve-o-i-c-ci-sm:ver25-blinkon0,r-cr:hor25-blinkon0
-    set guioptions =abeghimr
+    set guioptions =abeghir
     set lines      =45
 
     if has('gui_win32')
@@ -186,10 +190,11 @@ if has('gui_running')
         set directory     =/tmp
 
         if v:version >= 800
-            set guifont     =Inconsolata\ 11.5
+            set guifont     =Fira\ Code\ 10
             set guifontwide =SimSun\ 11.5
         else
-            set guifont     =Inconsolata\ 10.5
+            set linespace   =1
+            set guifont     =Fira\ Code\ 9.75
             set guifontwide =SimSun\ 10.5
         endif
     endif
@@ -209,9 +214,6 @@ endif
 filetype    indent plugin on
 syntax      enable on
 colorscheme gosh
-
-" default
-set filetype=systemverilog
 " }}}
 
 " autocmd {{{
@@ -223,7 +225,6 @@ autocmd BufRead,BufNewFile *.def,*.mac,*.ih               set filetype=xml
 autocmd BufRead,BufNewFile *.org                          set filetype=org
 
 autocmd FileType c,cpp,objc,objcpp  call SetCMap()
-autocmd FileType systemverilog      call SetVMap()
 autocmd FileType fortran            call SetFMap()
 autocmd FileType tex,latex,xml,html call SmallIndent()
 augroup end
@@ -236,16 +237,10 @@ function! SmallIndent()
     setlocal tabstop     =2
 endfunction
 
-function! SetVMap()
-    inoremap <silent> <buffer> <leader><cr> <end>;<cr>
-endfunction
-
 function! SetCMap()
     setlocal cindent
     setlocal cinoptions =L-s,:0,=s,ls,g0,N-s,i2s,+2s,(2s,u2s,Us,ws,Ws,M0,js,Js
 "   setlocal noexpandtab
-
-    call SetVMap()
 endfunction
 
 function! SetFMap()
@@ -294,7 +289,9 @@ noremap <silent> <leader><space> :call SwapWindow()<cr>
 " }}}
 
 " plugins {{{
-call plug#begin('~/.vim/plug')
+silent call plug#begin('~/.vim/plug')
+
+Plug 'vifm/vifm.vim'
 
 Plug 'Raimondi/delimitMate'
 Plug 'junegunn/vim-easy-align'
