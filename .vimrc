@@ -186,17 +186,13 @@ if has('gui_running')
         set fileencoding  =gb18030
         set fileencodings =gb18030,gb2312,gbk,cp936,utf-8
         set guifont       =Consolas:h9:cANSI
-    elseif has('gui')
-        set directory     =/tmp
-
-        if v:version >= 800
-            set guifont     =Fira\ Code\ 10
-            set guifontwide =SimSun\ 11.5
-        else
-            set linespace   =1
-            set guifont     =Fira\ Code\ 9.75
-            set guifontwide =SimSun\ 10.5
-        endif
+    elseif v:version >= 800
+        set guifont       =Fira\ Code\ 10
+        set guifontwide   =SimSun\ 11.5
+    else
+        set linespace     =1
+        set guifont       =Fira\ Code\ 9.75
+        set guifontwide   =SimSun\ 10.5
     endif
 else
     nnoremap <silent> <c-q> <c-v>
@@ -219,73 +215,35 @@ colorscheme gosh
 " autocmd {{{
 augroup init
 autocmd!
-autocmd BufRead,BufNewFile *.v,*.vp,*.vh,*.sv,*.svp,*.svh set filetype=systemverilog
-autocmd BufRead,BufNewFile *.s,*.S                        set filetype=arm64asm
-autocmd BufRead,BufNewFile *.def,*.mac,*.ih               set filetype=xml
-autocmd BufRead,BufNewFile *.org                          set filetype=org
+autocmd BufRead,BufNewFile *.v,*.vh,*.sv,*.svh set filetype=systemverilog
+autocmd BufRead,BufNewFile *.s,*.S             set filetype=riscv
+autocmd BufRead,BufNewFile *.org               set filetype=org
 
-autocmd FileType c,cpp,objc,objcpp  call SetCMap()
-autocmd FileType fortran            call SetFMap()
-autocmd FileType tex,latex,xml,html call SmallIndent()
+autocmd FileType cpp,c     call SetCMap()
+autocmd FileType tex,latex call SetTMap()
+autocmd FileType riscv     call SetIndent(8)
+autocmd FileType xml,html  call SetIndent(2)
 augroup end
 " }}}
 
 " functions {{{
-function! SmallIndent()
-    setlocal shiftwidth  =2
-    setlocal softtabstop =2
-    setlocal tabstop     =2
+function! SetIndent(n)
+    let &l:shiftwidth  =a:n
+    let &l:softtabstop =a:n
+    let &l:tabstop     =a:n
 endfunction
 
 function! SetCMap()
-    setlocal cindent
-    setlocal cinoptions =L-s,:0,=s,ls,g0,N-s,i2s,+2s,(2s,u2s,Us,ws,Ws,M0,js,Js
-"   setlocal noexpandtab
+    let &l:cindent     =1
+    let &l:cinoptions  ="L-s,:0,=s,ls,g0,N-s,i2s,+2s,(2s,u2s,Us,ws,Ws,M0,js,Js"
+"   let &l:noexpandtab
 endfunction
 
-function! SetFMap()
-    call SmallIndent()
-    setlocal colorcolumn =72
-    setlocal cursorcolumn
-
-    let b:fortran_do_enddo     =1
-    let b:fortran_indent_less  =1
-    let b:fortran_more_precise =1
+function! SetTMap()
+    call SetIndent(2)
+    let &l:textwidth   =80
+    let &l:colorcolumn =80
 endfunction
-
-function! SwapWindow()
-    let curr_tab  = tabpagenr()
-    let curr_win  = winnr()
-
-    if !exists('g:prev_tab') || !exists('g:prev_win')
-        let g:prev_tab = curr_tab
-        let g:prev_win = curr_win
-        return
-    endif
-
-    let curr_view = winsaveview()
-    let curr_buf  = bufnr('%')
-
-    execute g:prev_tab . 'tabn'
-    execute g:prev_win . 'winc w'
-
-    let prev_view = winsaveview()
-    let prev_buf  = bufnr('%')
-
-    execute 'hide buf ' . curr_buf
-    call winrestview(curr_view)
-
-    execute curr_tab . 'tabn'
-    execute curr_win . 'winc w'
-
-    execute 'hide buf ' . prev_buf
-    call winrestview(prev_view)
-
-    unlet g:prev_tab
-    unlet g:prev_win
-endfunction
-
-noremap <silent> <leader><space> :call SwapWindow()<cr>
 " }}}
 
 " plugins {{{
@@ -300,6 +258,8 @@ Plug 'tpope/vim-surround'
 
 Plug 'ap/vim-buftabline'
 Plug 'ervandew/supertab'
+
+Plug 'kylelaker/riscv.vim'
 
 call plug#end()
 
