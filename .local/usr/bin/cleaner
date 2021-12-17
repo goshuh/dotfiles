@@ -1,0 +1,300 @@
+#!/usr/bin/python
+
+import os
+import sys
+
+import subprocess
+
+
+class Cleaner(object):
+
+    # gsd garbage
+    GSD = [f'org.gnome.SettingsDaemon.{x}' for x in [
+            'A11ySettings',
+            'Color',
+            'Datetime',
+            'DiskUtilityNotify',
+            'Housekeeping',
+            'Keyboard',
+#           'MediaKeys',
+#           'Power',
+            'PrintNotifications',
+            'Rfkill',
+            'ScreensaverProxy',
+            'Sharing',
+            'Smartcard',
+#           'Sound',
+            'UsbProtection',
+            'Wacom',
+            'Wwan',
+#           'XSettings',
+    ]]
+
+    def __init__(self):
+        self.exec = []
+
+        self.exec.append('#!/bin/bash')
+        self.exec.append('')
+        self.exec.append('set -e')
+        self.exec.append('')
+
+    def search(self, *a, **kw):
+        dirs = kw.get('dirs', [])
+        exts = kw.get('exts', [])
+        dirs = dirs if isinstance(dirs, list) else [dirs]
+        exts = exts if isinstance(exts, list) else [exts]
+
+        for d in dirs:
+            if not os.path.isdir(d):
+                continue
+
+            for f in a:
+                for e in exts:
+                    if os.path.exists(fn := os.path.join(d, f'{f}.{e}' if e else f)):
+                        yield fn
+
+    def clean(self, *a, **kw):
+        self.exec.extend(map(lambda x: f'rm -rf "{x}"', self.search(*a, **kw)))
+
+    def purge(self, *a, **kw):
+        pats = kw.get('pats', [])
+        pats = pats if isinstance(pats, str) else '; '.join(pats)
+
+        self.exec.extend(map(lambda x: f'sed -i -e "{pats}" "{x}"', self.search(*a, **kw)))
+
+    def spawn(self, *a, **kw):
+        subprocess.run([*a],
+                    shell  = False,
+                    check  = False,
+                    stdout = kw.get('out', subprocess.DEVNULL),
+                    stderr = kw.get('err', subprocess.DEVNULL))
+
+    def __call__(self):
+        self.clean('org.bluez',
+                   'org.bluez.mesh',
+                   'org.freedesktop.GeoClue2',
+                    dirs = '/usr/share/dbus-1/system-services',
+                    exts = 'service')
+
+        self.clean('imsettings-daemon',
+                   'org.a11y.Bus',
+                   'org.bluez.obex',
+                   'org.freedesktop.ColorHelper',
+                   'org.freedesktop.Telepathy.AccountManager',
+                   'org.freedesktop.Telepathy.Client.Logger',
+                   'org.freedesktop.Telepathy.Client.Vino',
+                   'org.freedesktop.Telepathy.Logger',
+                   'org.freedesktop.Telepathy.MissionControl5',
+                   'org.freedesktop.Tracker1',
+                   'org.freedesktop.Tracker1.Miner.Applications',
+                   'org.freedesktop.Tracker1.Miner.Extract',
+                   'org.freedesktop.Tracker1.Miner.Files',
+                   'org.freedesktop.Tracker1.Miner.RSS',
+                   'org.freedesktop.Tracker1.Miner.Userguides',
+                   'org.freedesktop.Tracker1.Writeback',
+                   'org.gnome.Calculator.SearchProvider',
+                   'org.gnome.Camera',
+                   'org.gnome.Caribou.Antler',
+                   'org.gnome.Caribou.Daemon',
+                   'org.gnome.Cheese',
+                   'org.gnome.ControlCenter.SearchProvider',
+                   'org.gnome.Devhelp',
+                   'org.gnome.Epiphany',
+                   'org.gnome.GConf',
+                   'org.gnome.Identity',
+                   'org.gnome.OnlineAccounts',
+                   'org.gnome.Rygel1',
+                   'org.gnome.Shell.CalendarServer',
+                   'org.gnome.Shell.HotplugSniffer',
+                   'org.gnome.Shell.PortalHelper',
+                   'org.gnome.evolution.dataserver.AddressBook',
+                   'org.gnome.evolution.dataserver.Calendar',
+                   'org.gnome.evolution.dataserver.Sources',
+                   'org.gnome.evolution.dataserver.UserPrompter',
+                   'org.gtk.GLib.PACRunner',
+                    dirs = '/usr/share/dbus-1/services',
+                    exts = 'service')
+
+        self.clean('steam',
+                   'steam-native',
+                    dirs = '/usr/bin',
+                    exts = '')
+
+        self.clean('org.a11y.atspi.Registry',
+                    dirs = '/usr/share/dbus-1/accessibility-services',
+                    exts = 'service')
+
+        self.clean(*Cleaner.GSD,
+                    dirs = '/usr/lib/systemd/user',
+                    exts = ['target', 'service'])
+
+        self.clean('CMake',
+                   'assistant',
+                   'assistant-qt4',
+                   'avahi-discover',
+                   'bssh',
+                   'bvnc',
+                   'cmake-gui',
+                   'compton',
+                   'designer',
+                   'designer-qt4',
+                   'evolution-calendar',
+                   'fcitx-configtool',
+                   'fcitx-skin-installer',
+                   'fcitx5',
+                   'fcitx5-configtool',
+                   'feh',
+                   'gcm-calibrate',
+                   'gcm-import',
+                   'gcm-picker',
+                   'gcm-viewer',
+                   'gcr-prompter',
+                   'gcr-viewer',
+                   'gda-browser-5.0',
+                   'gda-control-center-5.0',
+                   'geoclue-demo-agent',
+                   'geoclue-where-am-i',
+                   'gnome-shell-extension-prefs',
+                   'gtk3-demo',
+                   'gtk3-icon-browser',
+                   'gtk3-widget-factory',
+                   'java-java-openjdk',
+                   'java-java11-openjdk',
+                   'jconsole-java-openjdk',
+                   'jconsole-java11-openjdk',
+                   'jshell-java-openjdk',
+                   'jshell-java11-openjdk',
+                   'linguist',
+                   'linguist-qt4',
+                   'lstopo',
+                   'mpv',
+                   'nm-connection-editor',
+                   'nsight',
+                   'nvvp',
+                   'org.fcitx.Fcitx5',
+                   'org.gnome.Evince-previewer',
+                   'org.gnome.Extensions',
+                   'picom',
+                   'qdbusviewer',
+                   'qdbusviewer-qt4',
+                   'qtconfig-qt4',
+                   'qv4l2',
+                   'qvidcap',
+                   'spacefm-find',
+                   'spacefm-folder-handler',
+                   'steam',
+                   'steam-native',
+                   'stoken-gui',
+                   'stoken-gui-small',
+                   'urxvt',
+                   'urxvt-tabbed',
+                   'urxvtc',
+                   'vifm',
+                   'vim',
+                   'vmware-netcfg',
+                   'vmware-player',
+                   'winetricks',
+                   'xdvi',
+                    dirs = '/usr/share/applications',
+                    exts = 'desktop')
+
+        self.clean('defaults',
+                   'mimeapps',
+                    dirs = '/usr/share/applications',
+                    exts = 'list')
+
+        self.clean('at-spi-dbus-bus',
+                   'caribou-autostart',
+                   'geoclue-demo-agent',
+                   'gnome-keyring-pkcs11',
+                   'gnome-keyring-secrets',
+                   'gnome-keyring-ssh',
+                   'gnome-shell-overrides-migration',
+                   'gsettings-data-convert',
+                   'imsettings-start',
+                   'tracker-extract',
+                   'tracker-miner-apps',
+                   'tracker-miner-fs',
+                   'tracker-miner-fs-3',
+                   'tracker-miner-rss',
+                   'tracker-miner-rss-3',
+                   'tracker-miner-user-guides',
+                   'tracker-store',
+                   *Cleaner.GSD,
+                    dirs = '/etc/xdg/autostart',
+                    exts = 'desktop')
+
+        self.clean('orca-autostart',
+                   'xbrlapi',
+                    dirs = '/usr/share/gdm/greeter/autostart',
+                    exts = 'desktop')
+
+        self.clean('gdm',
+                   'journal',
+                   'samba',
+                   'speech-dispatcher',
+                    dirs = '/var/log',
+                    exts = '')
+
+        self.clean('00-start-message-bus',
+                   '40-libcanberra-gtk-module',
+                   '50-xinput',
+                    dirs = '/etc/X11/xinit/xinitrc.d',
+                    exts = 'sh')
+
+        # https://bbs.archlinux.org/viewtopic.php?id=258297
+        self.clean('pam_systemd_home',
+                    dirs = '/usr/lib/security',
+                    exts = 'so')
+
+        # remove unnecessary gsd dependencies
+        self.purge('gnome',
+                   'gnome-login',
+                   'gnome-flashback-xmonad',
+                   'gnome-flashback-metacity',
+                    dirs = '/usr/share/gnome-session/sessions',
+                    exts = 'session',
+                    pats =  list(map(lambda x: f's/{x};//g', Cleaner.GSD)))
+
+        self.purge('gnome-session@gnome.target.d/gnome.session',
+                   'gnome-session@gnome-login.target.d/session',
+                   'gnome-session@gnome-flashback-metacity.target.d/session',
+                    dirs = '/usr/lib/systemd/user',
+                    exts = 'conf',
+                    pats =  list(map(lambda x: f'/{x}/d', Cleaner.GSD)))
+
+        # remove unnecessary gvfs mount daemons
+        self.purge('burn',
+                   'dns-sd',
+                   'http',
+                   'network',
+                   'recent',
+                   'trash',
+                    dirs = '/usr/share/gvfs/mounts',
+                    exts = 'mount',
+                    pats = 's/^AutoMount=true$/AutoMount=false/g')
+
+        # enable? nm-applet indicator support
+        self.purge('gnome-flashback-nm-applet',
+                    dirs = '/etc/xdg/autostart',
+                    exts = 'desktop',
+                    pats = 's/^Exec=nm-applet$/Exec=nm-applet --indicator/g')
+
+
+        # really do the cleaning/purging
+        log = '/tmp/cleaner.log'
+
+        with open(log, 'w') as fd:
+            fd.write('\n'.join(self.exec))
+
+        os.chmod(log, 0o755)
+
+        self.spawn(log)
+        self.spawn('pacman', '-Scc', '--noconfirm')
+
+
+if __name__ == '__main__':
+    if os.getuid():
+        sys.exit('ERROR: root priviledge requied')
+
+    Cleaner()()

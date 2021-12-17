@@ -1,0 +1,173 @@
+#!/usr/bin/python
+
+import os
+import sys
+
+import re
+import shutil
+import tempfile
+import subprocess
+
+
+class Updater(object):
+
+    def __init__(self):
+        self.curr = ''
+
+    def rmdir(self, *a):
+        for s in a:
+            shutil.rmtree(s)
+
+    def chdir(self, d):
+        os.chdir(d)
+        return d
+
+    def spawn(self, *a, **kw):
+        subprocess.run([*a],
+                       shell  = False,
+                       check  = False,
+                       stdout = kw.get('out', subprocess.DEVNULL),
+                       stderr = kw.get('err', subprocess.DEVNULL))
+
+    def untar(self, a):
+        self.spawn('tar', 'xf', a)
+
+    def unzip(self, a):
+        self.spawn('unzip', a)
+
+    def undeb(self, a):
+        self.spawn('ar', 'x', a)
+        self.untar(self.find('data.tar.'))
+
+    def find(self, p):
+        for d in os.listdir():
+            if re.search(p, d):
+                return d
+
+        return 'NOT-FOUND'
+
+    def temp(self):
+        return tempfile.mkdtemp()
+
+    def copy(self, src, dst = None):
+        dst  = dst if dst else self.curr
+        shutil.copy(src, dst)
+
+    def sync(self, src, dst = None, **kw):
+        dst  = dst if dst else self.curr
+
+        excl = kw.get('excl', [])
+        excl = excl if isinstance(excl, list) else [excl]
+
+        self.spawn('rsync',
+                   '-a',
+                   '-v',
+                   '--del',
+                   *[x for e in excl for x in ['--exclude', e]],
+                    os.path.join(src, ''),
+                    os.path.join(dst, ''))
+
+    def reg(p):
+        def dec(f):
+            f.__pat__ = p
+            return f
+        return dec
+
+    @reg(r'discord.*\.deb')
+    def upd_discord(self):
+        self.sync('usr/share/discord')
+
+    @reg(r'drawio.*\.deb')
+    def upd_drawio(self):
+        self.sync('opt/drawio')
+        self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
+
+    @reg(r'insync.*\.deb')
+    def upd_insync(self):
+        self.sync('usr/lib/insync')
+        self.copy('usr/share/icons/hicolor/scalable/apps/insync.svg')
+
+    @reg(r'.*p4v.*\.tgz')
+    def upd_p4v(self):
+        self.sync(self.find('p4v-'))
+
+    @reg(r'slack.*\.deb')
+    def upd_slack(self):
+        self.sync('usr/lib/slack')
+        self.copy('usr/share/pixmaps/slack.png')
+
+    @reg(r'spotify.*\.deb')
+    def upd_spotify(self):
+        self.sync('usr/share/spotify')
+
+    @reg(r'superProductivity.*\.deb')
+    def upd_super(self):
+        self.sync('opt/superProductivity')
+        self.copy('usr/share/icons/hicolor/256x256/apps/superproductivity.png')
+
+    @reg(r'teamviewer.*\.tar\.xz')
+    def upd_teamview(self):
+        self.sync('teamviewer')
+
+    @reg(r'tsetup\..*\.tar\.xz')
+    def upd_telegram(self):
+        self.sync('Telegram/Telegram')
+
+    @reg(r'wps-office.*\.deb')
+    def upd_wps(self):
+        self.sync('opt/kingsoft/wps-office/office6')
+        self.copy('usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-wpsmain.png',
+                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-etmain.png',
+                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-wppmain.png',
+                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-kprometheus.png',
+                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-pdfmain.png')
+
+    @reg(r'code.*\.deb')
+    def upd_vscode(self):
+        self.sync('usr/share/code')
+
+    @reg(r'zoom.*\.pkg\.tar\.xz')
+    def upd_zoom(self):
+        self.sync('opt/zoom')
+        self.copy('usr/share/pixmaps/Zoom.png')
+
+    @reg(r'Zotero.*\.tar\.bz2')
+    def upd_zotero(self):
+        self.sync('Zotero_linux-x86_64', excl = 'zotero')
+
+    def __call__(self, fn):
+        fp   = os.path.abspath(fn)
+        dp   = self.chdir(self.temp())
+        func = None
+
+        for f in map(lambda x: getattr(self, x), dir(self)):
+            if not (p := getattr(f, '__pat__', '')):
+                continue
+            if re.match(p, fn):
+                func = f
+                break
+
+        if not func:
+            sys.exit(f'ERROR: not recognized file: {fn}')
+
+        self.curr = os.path.join(os.environ['HOME'], '.local', 'opt', f.__name__.replace('upd_', ''))
+
+        if   fn.endswith(('.tgz', '.tar.gz', '.tar.xz', 'tar.bz2')):
+            self.untar(fp)
+        elif fn.endswith('.deb'):
+            self.undeb(fp)
+        elif fn.endswith('.zip'):
+            self.unzip(fp)
+        else:
+            sys.exit(f'ERROR: not recognized file: {fn}')
+
+        func()
+        self.chdir('/')
+        self.rmdir(dp)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        sys.exit()
+
+    Updater()(sys.argv[1])

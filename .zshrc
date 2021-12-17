@@ -45,7 +45,7 @@ alias   gga="git add"
 alias   ggb="git branch"
 alias   ggc="git checkout --recurse-submodules"
 alias   ggm="git commit -m"
-alias   ggp="git pull"
+alias   ggp="git pull && git submodule update --recursive"
 alias   ggg="git push"
 
 alias    ss="systemctl --user start"

@@ -251,13 +251,12 @@ silent call plug#begin('~/.vim/plug')
 
 Plug 'vifm/vifm.vim'
 
+Plug 'ervandew/supertab'
 Plug 'Raimondi/delimitMate'
+Plug 'tpope/vim-surround'
 Plug 'junegunn/vim-easy-align'
 Plug 'salsifis/vim-transpose'
-Plug 'tpope/vim-surround'
-
 Plug 'ap/vim-buftabline'
-Plug 'ervandew/supertab'
 
 Plug 'kylelaker/riscv.vim'
 
