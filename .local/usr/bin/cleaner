@@ -64,10 +64,11 @@ class Cleaner(object):
 
     def spawn(self, *a, **kw):
         subprocess.run([*a],
-                    shell  = False,
-                    check  = False,
-                    stdout = kw.get('out', subprocess.DEVNULL),
-                    stderr = kw.get('err', subprocess.DEVNULL))
+                       shell  = False,
+                       check  = False,
+                       input  = kw.get('inb', None),
+                       stdout = kw.get('out', subprocess.DEVNULL),
+                       stderr = kw.get('err', subprocess.DEVNULL))
 
     def __call__(self):
         self.clean('org.bluez',
@@ -290,7 +291,7 @@ class Cleaner(object):
         os.chmod(log, 0o755)
 
         self.spawn(log)
-        self.spawn('pacman', '-Scc', '--noconfirm')
+        self.spawn('pacman', '-Scc', inb = 'y\ny\n'.encode())
 
 
 if __name__ == '__main__':

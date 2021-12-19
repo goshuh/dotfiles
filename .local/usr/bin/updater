@@ -16,7 +16,10 @@ class Updater(object):
 
     def rmdir(self, *a):
         for s in a:
-            shutil.rmtree(s)
+            if os.path.isdir(s):
+                shutil.rmtree(s)
+            else:
+                os.remove(s)
 
     def chdir(self, d):
         os.chdir(d)
@@ -26,6 +29,7 @@ class Updater(object):
         subprocess.run([*a],
                        shell  = False,
                        check  = False,
+                       input  = kw.get('inb', None),
                        stdout = kw.get('out', subprocess.DEVNULL),
                        stderr = kw.get('err', subprocess.DEVNULL))
 
@@ -39,10 +43,10 @@ class Updater(object):
         self.spawn('ar', 'x', a)
         self.untar(self.find('data.tar.'))
 
-    def find(self, p):
-        for d in os.listdir():
+    def find(self, p, r = None):
+        for d in os.listdir(r):
             if re.search(p, d):
-                return d
+                return os.path.join(r, d) if r else d
 
         return 'NOT-FOUND'
 
@@ -81,11 +85,6 @@ class Updater(object):
     def upd_drawio(self):
         self.sync('opt/drawio')
         self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
-
-    @reg(r'insync.*\.deb')
-    def upd_insync(self):
-        self.sync('usr/lib/insync')
-        self.copy('usr/share/icons/hicolor/scalable/apps/insync.svg')
 
     @reg(r'.*p4v.*\.tgz')
     def upd_p4v(self):
