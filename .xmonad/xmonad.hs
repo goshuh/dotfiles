@@ -92,22 +92,12 @@ userHandleEventHook =
 
 userKeys conf@(XConfig {XMonad.modMask = mod}) =
     M.fromList $ [
---      ((mod1Mask, xK_Tab), cycleRecentWindows [xK_Alt_L] xK_Tab xK_Control_L),
---      ((mod, xK_q), safeSpawnProg "gmrun"),
---      ((mod, xK_a), safeSpawnProg "chromium"),
---      ((mod .|. shiftMask, xK_a), safeSpawnProg "firefox"),
---      ((mod, xK_z), safeSpawnProg "thunderbird"),
---      ((mod, xK_s), safeSpawnProg "gvim"),
---      ((mod, xK_x), safeSpawnProg "urxvt256c"),
---      ((mod, xK_e), safeSpawnProg "urxvt256c -e vifm"),
---      ((mod, xK_n), safeSpawn "feh" ["--no-fehbg", "--randomize", "--bg-fill", "/home/gosh/.wall"]),
---      ((mod, xK_r), safeSpawn "killall" ["-9", "root"]),
---      ((mod, xK_p), safeSpawn "gnome-terminal" ["-e", "python"]),
---      ((mod .|. mod1Mask, xK_p), safeSpawn "gnome-screenshot"   ["-i"]),
---      ((0, xF86XK_AudioPause      ), safeSpawn "pactl" ["set-sink-mute", "0", "toggle"]),
---      ((0, xF86XK_AudioLowerVolume), safeSpawn "pactl" ["set-sink-volume", "0", "-5%"]),
---      ((0, xF86XK_AudioRaiseVolume), safeSpawn "pactl" ["set-sink-volume", "0", "+5%"]),
---      ((mod .|. mod1Mask, xK_q        ), io (exitWith ExitSuccess))
+--      ((mod1Mask,         xK_Tab                 ), cycleRecentWindows [xK_Alt_L] xK_Tab xK_Control_L),
+--      ((0,                xF86XK_AudioPause      ), safeSpawn "pactl" ["set-sink-mute",   "0", "toggle"]),
+--      ((0,                xF86XK_AudioLowerVolume), safeSpawn "pactl" ["set-sink-volume", "0", "-5%"]),
+--      ((0,                xF86XK_AudioRaiseVolume), safeSpawn "pactl" ["set-sink-volume", "0", "+5%"]),
+--      ((mod .|. mod1Mask, xK_q                   ), io (exitWith ExitSuccess))
+
         ((mod,              xK_w        ), kill),
         ((mod,              xK_Return   ), windows W.shiftMaster),
         ((mod,              xK_comma    ), sendMessage (IncMasterN   1)),
@@ -122,6 +112,7 @@ userKeys conf@(XConfig {XMonad.modMask = mod}) =
         ((mod,              xK_Page_Down), windows W.focusDown),
         ((mod1Mask,         xK_Tab      ), windows W.focusDown),
 
+        ((mod .|. mod1Mask, xK_x        ), safeSpawnProg "gnome-terminal"),
         ((mod .|. mod1Mask, xK_Page_Up  ), windows W.swapUp),
         ((mod .|. mod1Mask, xK_Page_Down), windows W.swapDown),
         ((mod .|. mod1Mask, xK_Tab      ), shiftNextScreen),
@@ -173,8 +164,8 @@ userLogHook = return ()
 
 userStartupHook = do
     setDefaultCursor xC_left_ptr
-    setWMName "LG3D"
-    safeSpawn "wmreg" []
+    setWMName     "LG3D"
+    safeSpawnProg "wmreg"
 
 
 userClientMask =

@@ -259,6 +259,7 @@ class Cleaner(object):
 
         self.purge('gnome-session@gnome.target.d/gnome.session',
                    'gnome-session@gnome-login.target.d/session',
+                   'gnome-session@gnome-flashback-xmonad.target.d/session',
                    'gnome-session@gnome-flashback-metacity.target.d/session',
                     dirs = '/usr/lib/systemd/user',
                     exts = 'conf',

@@ -11,6 +11,17 @@ import subprocess
 
 class Updater(object):
 
+    snap_excl = ['data-dir',
+                 'gnome-platform',
+                 'lib',
+                 'meta',
+                 'scripts',
+                 'usr',
+                 'command.sh',
+                 'desktop-common.sh',
+                 'desktop-gnome-specific.sh',
+                 'desktop-init.sh']
+
     def __init__(self):
         self.curr = ''
 
@@ -20,6 +31,9 @@ class Updater(object):
                 shutil.rmtree(s)
             else:
                 os.remove(s)
+
+    def chmod(self, f, m = 0o644):
+        os.chmod(f, m)
 
     def chdir(self, d):
         os.chdir(d)
@@ -43,6 +57,10 @@ class Updater(object):
         self.spawn('ar', 'x', a)
         self.untar(self.find('data.tar.'))
 
+    def unsnp(self, a):
+        self.spawn('unsquashfs', '-d', 'extracted', a)
+        self.chmod('extracted', 0o755)
+
     def find(self, p, r = None):
         for d in os.listdir(r):
             if re.search(p, d):
@@ -53,13 +71,13 @@ class Updater(object):
     def temp(self):
         return tempfile.mkdtemp()
 
-    def copy(self, src, dst = None):
-        dst  = dst if dst else self.curr
-        shutil.copy(src, dst)
+    def copy(self, *a, **kw):
+        func = kw.get('func', lambda x: x)
+        for s in a:
+            shutil.copy(s, os.path.join(self.curr, func(os.path.basename(s))))
 
-    def sync(self, src, dst = None, **kw):
-        dst  = dst if dst else self.curr
-
+    def sync(self, src, **kw):
+        dst  = kw.get('func', lambda x: x)(self.curr)
         excl = kw.get('excl', [])
         excl = excl if isinstance(excl, list) else [excl]
 
@@ -85,6 +103,18 @@ class Updater(object):
     def upd_drawio(self):
         self.sync('opt/drawio')
         self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
+
+    @reg(r'lx-music.*\.deb')
+    def upd_luoxue(self):
+        self.sync('opt/lx-music-desktop')
+        self.copy('usr/share/icons/hicolor/256x256/apps/lx-music-desktop.png')
+
+    @reg(r'obsidian.*\.snap')
+    def upd_obsidian(self):
+        self.sync('extracted',
+                   excl = Updater.snap_excl)
+        self.copy('extracted/meta/gui/icon.png',
+                   func = lambda x: x.replace('icon', 'obsidian'))
 
     @reg(r'.*p4v.*\.tgz')
     def upd_p4v(self):
@@ -112,6 +142,12 @@ class Updater(object):
     def upd_telegram(self):
         self.sync('Telegram/Telegram')
 
+    @reg(r'tradingview\.snap')
+    def upd_tradingview(self):
+        self.sync('extracted', excl = Updater.snap_excl)
+        self.copy('extracted/meta/gui/icon.png',
+                   func = lambda x: x.replace('icon', 'tradingview'))
+
     @reg(r'wps-office.*\.deb')
     def upd_wps(self):
         self.sync('opt/kingsoft/wps-office/office6')
@@ -119,7 +155,8 @@ class Updater(object):
                   'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-etmain.png',
                   'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-wppmain.png',
                   'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-kprometheus.png',
-                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-pdfmain.png')
+                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-pdfmain.png',
+                   func = lambda x: x.replace('office2019-', '').replace('main', '').replace('kpro', 'pro'))
 
     @reg(r'code.*\.deb')
     def upd_vscode(self):
@@ -128,11 +165,13 @@ class Updater(object):
     @reg(r'zoom.*\.pkg\.tar\.xz')
     def upd_zoom(self):
         self.sync('opt/zoom')
-        self.copy('usr/share/pixmaps/Zoom.png')
+        self.copy('usr/share/pixmaps/Zoom.png',
+                   func = lambda x: x.replace('Zoom', 'zoom'))
 
     @reg(r'Zotero.*\.tar\.bz2')
     def upd_zotero(self):
-        self.sync('Zotero_linux-x86_64', excl = 'zotero')
+        self.sync('Zotero_linux-x86_64',
+                   excl = 'zotero')
 
     def __call__(self, fn):
         fp   = os.path.abspath(fn)
@@ -157,6 +196,8 @@ class Updater(object):
             self.undeb(fp)
         elif fn.endswith('.zip'):
             self.unzip(fp)
+        elif fn.endswith('.snap'):
+            self.unsnp(fp)
         else:
             sys.exit(f'ERROR: not recognized file: {fn}')
 
