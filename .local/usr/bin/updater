@@ -11,16 +11,30 @@ import subprocess
 
 class Updater(object):
 
-    snap_excl = ['data-dir',
-                 'gnome-platform',
-                 'lib',
-                 'meta',
-                 'scripts',
-                 'usr',
-                 'command.sh',
-                 'desktop-common.sh',
-                 'desktop-gnome-specific.sh',
-                 'desktop-init.sh']
+    SNAP     = set(['data-dir',
+                    'gnome-platform',
+                    'lib',
+                    'meta',
+                    'scripts',
+                    'usr',
+                    'command.sh',
+                    'desktop-common.sh',
+                    'desktop-gnome-specific.sh',
+                    'desktop-init.sh'])
+
+    ELECTRON = set(['LICENSE.electron.txt',
+                    'LICENSE.txt',
+                    'LICENSES.chromium.html',
+                    'NOTICE.txt',
+                    'README.md',
+                    'app_icon.png',
+                    'chromium_100_percent.pak',
+                    'chromium_200_percent.pak',
+                    'icudtl.dat',
+                    'resources.pak',
+                    'snapshot_blob.bin',
+                    'v8_context_snapshot.bin',
+                    'vk_swiftshader_icd.json'])
 
     def __init__(self):
         self.curr = ''
@@ -74,12 +88,19 @@ class Updater(object):
     def copy(self, *a, **kw):
         func = kw.get('func', lambda x: x)
         for s in a:
-            shutil.copy(s, os.path.join(self.curr, func(os.path.basename(s))))
+            if (d := os.path.join(self.curr, func(os.path.basename(s)))) != s:
+                shutil.copy(s, d)
+
+    def move(self, *a, **kw):
+        func = kw.get('func', lambda x: x)
+        for s in a:
+            if (d := os.path.join(self.curr, func(os.path.basename(s)))) != s:
+                os.rename(s, d)
 
     def sync(self, src, **kw):
         dst  = kw.get('func', lambda x: x)(self.curr)
-        excl = kw.get('excl', [])
-        excl = excl if isinstance(excl, list) else [excl]
+        excl = kw.get('excl', set())
+        excl = set(excl) if isinstance(excl, str) else excl
 
         self.spawn('rsync',
                    '-a',
@@ -88,6 +109,22 @@ class Updater(object):
                    *[x for e in excl for x in ['--exclude', e]],
                     os.path.join(src, ''),
                     os.path.join(dst, ''))
+
+        if (post := kw.get('post', None)):
+            for r, ds, fs in os.walk(dst):
+                p = os.path.relpath(r, dst)
+                for d in ds:
+                    post(p, d)
+                for f in fs:
+                    post(p, f)
+
+    def post_electron(d, f):
+        fn = os.path.join(self.curr, d, f)
+        if (d == 'locales'   or
+            d == 'resources' or
+            d == '.'         and f in Updater.ELECTRON):
+            self.chmod(fn)
+        return fn
 
     def reg(p):
         def dec(f):
@@ -104,17 +141,33 @@ class Updater(object):
         self.sync('opt/drawio')
         self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
 
-    @reg(r'lx-music.*\.deb')
-    def upd_luoxue(self):
-        self.sync('opt/lx-music-desktop')
-        self.copy('usr/share/icons/hicolor/256x256/apps/lx-music-desktop.png')
+    @reg(r'microsoft-edge-stable.*\.deb')
+    def upd_msedge(self):
+        self.sync('opt/microsoft/msedge',
+                   excl = ['cron',
+                           'microsoft-edge',
+                           'product_logo_16.png',
+                           'product_logo_24.png',
+                           'product_logo_32.png',
+                           'product_logo_32.xpm',
+                           'product_logo_48.png',
+                           'product_logo_64.png',
+                           'product_logo_128.png',
+                           'product_logo_256.png'])
+        self.copy('opt/microsoft/msedge/product_logo_256.png',
+                   func = lambda x: 'msedge.png')
+
+    @reg(r'yesplaymusic.*\.tar\.xz')
+    def upd_netease(self):
+        self.sync('opt/YesPlayMusic')
+        self.copy('usr/share/icons/hicolor/256x256/apps/yesplaymusic.png')
 
     @reg(r'obsidian.*\.snap')
     def upd_obsidian(self):
         self.sync('extracted',
-                   excl = Updater.snap_excl)
+                   excl = Updater.SNAP)
         self.copy('extracted/meta/gui/icon.png',
-                   func = lambda x: x.replace('icon', 'obsidian'))
+                   func = lambda x: 'obsidian.png')
 
     @reg(r'.*p4v.*\.tgz')
     def upd_p4v(self):
@@ -142,11 +195,19 @@ class Updater(object):
     def upd_telegram(self):
         self.sync('Telegram/Telegram')
 
+    @reg(r'cn\.com\.10jqka.*\.deb')
+    def upd_tonghuashun(self):
+        self.sync('opt/apps/cn.com.10jqka/files',
+                   excl = 'doc')
+        self.copy('opt/apps/cn.com.10jqka/entries/icons/hicolor/scalable/apps/HevoIcon.svg',
+                   func = lambda x: 'Hevo.svg')
+
     @reg(r'tradingview\.snap')
     def upd_tradingview(self):
-        self.sync('extracted', excl = Updater.snap_excl)
+        self.sync('extracted',
+                   excl = Updater.SNAP)
         self.copy('extracted/meta/gui/icon.png',
-                   func = lambda x: x.replace('icon', 'tradingview'))
+                   func = lambda x: 'tradingview.png')
 
     @reg(r'wps-office.*\.deb')
     def upd_wps(self):
@@ -166,7 +227,7 @@ class Updater(object):
     def upd_zoom(self):
         self.sync('opt/zoom')
         self.copy('usr/share/pixmaps/Zoom.png',
-                   func = lambda x: x.replace('Zoom', 'zoom'))
+                   func = lambda x: 'zoom.png')
 
     @reg(r'Zotero.*\.tar\.bz2')
     def upd_zotero(self):
