@@ -25,6 +25,8 @@ Xft.hintstyle:              0
 Xft.antialias:              1
 Xft.rgba:                   5
 
+Xcursor.size:               24
+
 URxvt.foreground:           #d0d0d0
 URxvt.background:           #1c1c1c
 URxvt.cursorColor:          #a8a8a8
@@ -35,6 +37,7 @@ URxvt.inheritPixmap:        False
 
 URxvt.title:                URxvt
 URxvt.geometry:             180x45
+URxvt.internalBorder:       4
 URxvt.borderLess:           False
 URxvt.cursorBlink:          False
 URxvt.multichar_encoding:   utf-8

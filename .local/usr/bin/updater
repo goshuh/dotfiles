@@ -173,6 +173,16 @@ class Updater(object):
     def upd_p4v(self):
         self.sync(self.find('p4v-'))
 
+    @reg(r'master-pdf-editor-.*\.deb')
+    def upd_pdfeditor(self):
+        self.sync('opt/master-pdf-editor-5',
+                   excl = ['masterpdfeditor5',
+                           'masterpdfeditor5.png'])
+        self.copy('opt/master-pdf-editor-5/masterpdfeditor5',
+                   func = lambda x: 'pdfeditor')
+        self.copy('opt/master-pdf-editor-5/masterpdfeditor5.png',
+                   func = lambda x: 'pdfeditor.png')
+
     @reg(r'slack.*\.deb')
     def upd_slack(self):
         self.sync('usr/lib/slack')
