@@ -197,6 +197,11 @@ class Updater(object):
         self.sync('opt/superProductivity')
         self.copy('usr/share/icons/hicolor/256x256/apps/superproductivity.png')
 
+    @reg(r'teams_.*\.deb')
+    def upd_teams(self):
+        self.sync('usr/share/teams')
+        self.copy('usr/share/pixmaps/teams.png')
+
     @reg(r'teamviewer.*\.tar\.xz')
     def upd_teamview(self):
         self.sync('teamviewer')
