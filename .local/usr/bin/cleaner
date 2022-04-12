@@ -21,7 +21,7 @@ class Cleaner(object):
             'PrintNotifications',
             'Rfkill',
             'ScreensaverProxy',
-            'Sharing',
+#           'Sharing',
             'Smartcard',
 #           'Sound',
             'UsbProtection',

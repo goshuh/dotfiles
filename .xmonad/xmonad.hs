@@ -112,6 +112,7 @@ userKeys conf@(XConfig {XMonad.modMask = mod}) =
         ((mod,              xK_Page_Down), windows W.focusDown),
         ((mod1Mask,         xK_Tab      ), windows W.focusDown),
 
+        ((0,                xK_Print    ), safeSpawn     "gnome-screenshot" ["-i"]),
         ((mod .|. mod1Mask, xK_x        ), safeSpawnProg "gnome-terminal"),
         ((mod .|. mod1Mask, xK_Page_Up  ), windows W.swapUp),
         ((mod .|. mod1Mask, xK_Page_Down), windows W.swapDown),
