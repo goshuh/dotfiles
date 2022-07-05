@@ -28,6 +28,7 @@ import XMonad.Util.Run
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 import qualified Data.List       as L
+import qualified Data.Monoid     as D
 
 -- import System.Environment
 -- import System.Exit
@@ -86,8 +87,7 @@ userManageHook =
             doFloatDep (\ (W.RationalRect _ _ w h) -> W.RationalRect (0.5 - w/2) (0.62 - h/2) w h)
 
 
-userHandleEventHook =
-    docksEventHook <+> fullscreenEventHook
+userHandleEventHook _ = return (D.All True)
 
 
 userKeys conf@(XConfig {XMonad.modMask = mod}) =
@@ -193,7 +193,7 @@ main = do
 --  h <- spawnPipe "dzen2"
     n <- countScreens
 
-    xmonad $ docks $ ewmh XConfig {
+    xmonad $ docks . ewmhFullscreen . ewmh $ XConfig {
         normalBorderColor  = "#1c1c1c",
         focusedBorderColor = "#303030",
         terminal           = "gnome-terminal",
@@ -211,7 +211,8 @@ main = do
         clickJustFocuses   =  False,
         clientMask         =  userClientMask,
         rootMask           =  userRootMask,
-        handleExtraArgs    =  userHandleExtraArgs
+        handleExtraArgs    =  userHandleExtraArgs,
+        extensibleConf     =  M.empty
     }
 
     where
