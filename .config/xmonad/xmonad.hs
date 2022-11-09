@@ -15,7 +15,7 @@ import XMonad.Hooks.SetWMName
 -- import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.Gaps
 import XMonad.Layout.Grid
-import XMonad.Layout.IndependentScreens
+-- import XMonad.Layout.IndependentScreens
 import XMonad.Layout.MultiColumns
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.MouseResizableTile
@@ -124,15 +124,18 @@ userKeys conf@(XConfig {XMonad.modMask = mod}) =
         ((mod .|. mod1Mask, xK_r        ), safeSpawn "gnome-session-quit" ["--force", "--no-prompt", "--reboot"])
 
     ] ++ [
-        ((mod .|. m, k), windows $ onCurrentScreen f i) |
-            (i, k) <- zip (workspaces' conf) $ [xK_1 .. xK_9] ++ [xK_0],
-            (f, m) <- [(W.view, 0), (W.shift, mod1Mask)]
+        ((mod .|. m, k), windows $ f i) |
+            (i, k) <- zip (workspaces conf) num,
+            (f, m) <- [(W.greedyView, 0), (W.shift, mod1Mask)]
     ]
 --  ++ [
 --      ((mod .|. m, k), screenWorkspace s >>= flip whenJust (windows . f)) |
---          (k, s) <- zip [xK_F1 .. xK_F6] [0 ..],
+--          (k, s) <- zip fn [0 ..],
 --          (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]
 --  ]
+    where
+        num = [xK_1  .. xK_9]  ++ [xK_0]
+        fn  = [xK_F1 .. xK_F9] ++ [xK_F10]
 
 
 userMouses (XConfig {XMonad.modMask = mod}) =
@@ -192,7 +195,7 @@ userHandleExtraArgs xs conf =
 
 main = do
 --  h <- spawnPipe "dzen2"
-    n <- countScreens
+--  n <- countScreens
 
     xmonad $ docks . ewmhFullscreen . ewmh $ XConfig {
         normalBorderColor  = "#1c1c1c",
@@ -201,7 +204,8 @@ main = do
         layoutHook         =  userLayoutHook,
         manageHook         =  userManageHook,
         handleEventHook    =  userHandleEventHook,
-        workspaces         =  workspaces n $ [1 .. 9] ++ [0],
+--      workspaces         =  workspaces n $ [1 .. 9] ++ [0],
+        workspaces         =  map show $ [1 .. 9] ++ [0],
         modMask            =  mod4Mask,
         keys               =  userKeys,
         mouseBindings      =  userMouses,
@@ -215,6 +219,5 @@ main = do
         handleExtraArgs    =  userHandleExtraArgs,
         extensibleConf     =  M.empty
     }
-
-    where
-        workspaces n a = [marshall s w | s <- [0 .. (n - 1)], w <- map show a]
+--  where
+--      workspaces n a = [marshall s w | s <- [0 .. (n - 1)], w <- map show a]
