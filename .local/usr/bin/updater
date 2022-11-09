@@ -157,7 +157,7 @@ class Updater(object):
         self.copy('opt/microsoft/msedge/product_logo_256.png',
                    func = lambda x: 'msedge.png')
 
-    @reg(r'yesplaymusic.*\.tar\.xz')
+    @reg(r'yesplaymusic.*\.deb')
     def upd_netease(self):
         self.sync('opt/YesPlayMusic')
         self.copy('usr/share/icons/hicolor/256x256/apps/yesplaymusic.png')
