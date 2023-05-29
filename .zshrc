@@ -5,12 +5,12 @@ export HISTFILE=~/.zhistory
 
 
 # aliases
-alias     v="vim"
-alias     g="gvim"
-alias    vv="sudo vim"
+alias     v="nvim"
+alias     g="nvim"
+alias    vv="sudo nvim"
 
 if [[ -z ${commands[gvim]} || ${EUID} -eq 0 ]]; then
-    alias g="vim"
+    alias g="nvim"
 fi
 
 alias     a="cd /tmp/ram"
@@ -20,8 +20,8 @@ alias     /="cd -"
 alias    vf="vifm"
 alias    vj='cd "$(vifm --choose-dir=-)"'
 
-alias     l="ls -A --indicator-style=none --color=auto"
-alias    ll="ls -A --indicator-style=none --color=auto -aghot"
+alias     l="exa"
+alias    ll="exa -alr --time=accessed --sort=accessed"
 alias  grep="grep --color=auto"
 
 alias     r="rm -rf"
@@ -190,7 +190,7 @@ zstyle ":completion:*:*:kill:*:processes" list-colors "=(#b) #([0-9]#)*=0=38;5;1
 
 # functions
 chpwd() {
-    ls -A --indicator-style=none --color=auto
+     exa
 }
 
 preexec() {
