@@ -2,78 +2,90 @@
 vim.g.mapleader = ';'
 
 local init_keys = {
-    { 'n',  '<f2>',                ':cw<cr>'            },
-    { 'n',  '<f3>',                ':cp<cr>'            },
-    { 'n',  '<f4>',                ':cn<cr>'            },
-    { 'n',  '<f5>',                ':up<cr>'            },
-    { 'n',  '<f12>',               ':cal '              },
-    { 'n',  '<c-left>',            ':bp<cr>'            },
-    { 'n',  '<c-right>',           ':bn<cr>'            },
-    { 'n',  '<c-pageup>',          ':tabp<cr>'          },
-    { 'n',  '<c-pagedown>',        ':tabn<cr>'          },
-    { 'n',  '<s-up>',              'v<up>'              },
-    { 'n',  '<s-down>',            'v<down>'            },
-    { 'n',  '<s-left>',            'v<left>'            },
-    { 'n',  '<s-right>',           'v<right>'           },
-    { 'n',  '<space>',             'i'                  },
-    { 'n',  '<leader>w',           ':bw<cr>'            },
-    { 'n',  '<leader>q',           ':q<cr>'             },
-    { 'n',  '<leader>c',           ':sp<cr>'            },
-    { 'n',  '<leader>v',           ':vs<cr>'            },
-    { 'n',  '<leader>d',           '<c-w>f'             },
-    { 'n',  '<leader>1',           '<c-w>H'             },
-    { 'n',  '<leader>2',           '<c-w>K'             },
-    { 'n',  '<leader>3',           '<c-w>J'             },
-    { 'n',  '<leader>4',           '<c-w>L'             },
-    { 'n',  '<leader>a',           'ggvG'               },
-    { 'n',  '<leader>a',           'ggvG'               },
-    { 'n',  '<leader>s',           ':set wrap!<cr>'     },
-    { 'n',  '<leader>l',           ':set cuc!<cr>'      },
-    { 'n',  '<leader><leader>',    ':set rnu!<cr>'      },
-    { 'n',  'ZA',                  ':set fen!<cr>'      },
-    { 'n',  '<m-leftmouse>',       '<4-leftmouse>'      },
-    { 'n',  '<m-leftdrag>',        '<leftdrag>'         },
-    { 'n',  '<s-scrollwheelup>',   '<scrollwheelleft>'  },
-    { 'n',  '<s-scrollwhelldown>', '<scrollwheelright>' },
-    { 'n',  '<c-q>',               '<c-v>'              },
+    { 'n', '<f2>',                ':cwindow<cr>'             },
+    { 'n', '<f3>',                ':cprevious<cr>'           },
+    { 'n', '<f4>',                ':cnext<cr>'               },
+    { 'n', '<f5>',                ':update<cr>'              },
+    { 'n', '<f12>',               ':call '                   },
+    { 'n', '<c-left>',            ':bprevious<cr>'           },
+    { 'n', '<c-right>',           ':bnext<cr>'               },
+    { 'n', '<c-pageup>',          ':tabprevious<cr>'         },
+    { 'n', '<c-pagedown>',        ':tabnext<cr>'             },
+    { 'n', '<s-up>',              'v<up>'                    },
+    { 'n', '<s-down>',            'v<down>'                  },
+    { 'n', '<s-left>',            'v<left>'                  },
+    { 'n', '<s-right>',           'v<right>'                 },
+    { 'n', '<space>',             'i'                        },
+    { 'n', '<leader>w',           ':bwipeout<cr>'            },
+    { 'n', '<leader>q',           ':quit<cr>'                },
+    { 'n', '<leader>c',           ':split<cr>'               },
+    { 'n', '<leader>v',           ':vsplit<cr>'              },
+    { 'n', '<leader>d',           '<c-w>f'                   },
+    { 'n', '<leader>1',           '<c-w>H'                   },
+    { 'n', '<leader>2',           '<c-w>K'                   },
+    { 'n', '<leader>3',           '<c-w>J'                   },
+    { 'n', '<leader>4',           '<c-w>L'                   },
+    { 'n', '<leader>a',           'ggvG'                     },
+    { 'n', '<leader>s',           ':set wrap!<cr>'           },
+    { 'n', '<leader>l',           ':set cursorcolumn!<cr>'   },
+    { 'n', '<leader><leader>',    ':set relativenumber!<cr>' },
+    { 'n', 'ZA',                  ':set foldenable!<cr>'     },
+    { 'n', '<m-leftmouse>',       '<4-leftmouse>'            },
+    { 'n', '<m-leftdrag>',        '<leftdrag>'               },
+    { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'        },
+    { 'n', '<s-scrollwhelldown>', '<scrollwheelright>'       },
+    { 'n', '<c-q>',               '<c-v>'                    },
 
-    { 'v',  '<s-up>',              '<up>'               },
-    { 'v',  '<s-down>',            '<down>'             },
-    { 'v',  '<s-left>',            '<left>'             },
-    { 'v',  '<s-right>',           '<right>'            },
-    { 'v',  '<leader><leader>',    '<esc>'              },
+    { 'v', '<s-up>',              '<up>'                     },
+    { 'v', '<s-down>',            '<down>'                   },
+    { 'v', '<s-left>',            '<left>'                   },
+    { 'v', '<s-right>',           '<right>'                  },
+    { 'v', '<leader><leader>',    '<esc>'                    },
 
-    { 'i',  '<f2>',                '<c-o>:cw<cr>'       },
-    { 'i',  '<f3>',                '<c-o>:cp<cr>'       },
-    { 'i',  '<f4>',                '<c-o>:cn<cr>'       },
-    { 'i',  '<f5>',                '<c-o>:up<cr>'       },
-    { 'i',  '<leader>\'',          '<c-o>])'            },
-    { 'i',  '<leader>[',           '<right>'            },
-    { 'i',  '<leader>]',           '<end><cr>'          },
-    { 'i',  '<leader>\\',          '<end>'              },
-    { 'i',  '<m-a>',               '<c-o>za'            },
-    { 'i',  '<m-c>',               '<c-o>cc'            },
-    { 'i',  '<m-d>',               '<c-o>dd'            },
-    { 'i',  '<m-y>',               '<c-o>yy'            },
-    { 'i',  '<m-p>',               '<c-o>p'             },
-    { 'i',  '<m-u>',               '<c-o>u'             },
-    { 'i',  '<m-r>',               '<c-o><c-r>'         },
-    { 'i',  '<m-, >',              '<c-o>N'             },
-    { 'i',  '<m-.>',               '<c-o>n'             },
-    { 'i',  '<c-left>',            '<c-o>:bp<cr>'       },
-    { 'i',  '<c-right>',           '<c-o>:bn<cr>'       },
-    { 'i',  '<leader><cr>',        '<end>;<cr>'         },
-    { 'i',  '<leader><leader>',    '<esc>'              },
-    { 'i',  '<m-LeftMouse>',       '<4-LeftMouse>'      },
-    { 'i',  '<m-LeftDrag>',        '<LeftDrag>'         },
-    { 'i',  '<s-scrollwheelup>',   '<scrollwheelleft>'  },
-    { 'i',  '<s-scrollwhelldown>', '<scrollwheelright>' }
+    { 'i', '<f2>',                '<c-o>:cwindow<cr>'        },
+    { 'i', '<f3>',                '<c-o>:cprevious<cr>'      },
+    { 'i', '<f4>',                '<c-o>:cnext<cr>'          },
+    { 'i', '<f5>',                '<c-o>:update<cr>'         },
+    { 'i', '<leader>\'',          '<c-o>])'                  },
+    { 'i', '<leader>[',           '<right>'                  },
+    { 'i', '<leader>]',           '<end><cr>'                },
+    { 'i', '<leader>\\',          '<end>'                    },
+    { 'i', '<m-a>',               '<c-o>za'                  },
+    { 'i', '<m-c>',               '<c-o>cc'                  },
+    { 'i', '<m-d>',               '<c-o>dd'                  },
+    { 'i', '<m-y>',               '<c-o>yy'                  },
+    { 'i', '<m-p>',               '<c-o>p'                   },
+    { 'i', '<m-u>',               '<c-o>u'                   },
+    { 'i', '<m-r>',               '<c-o><c-r>'               },
+    { 'i', '<m-, >',              '<c-o>N'                   },
+    { 'i', '<m-.>',               '<c-o>n'                   },
+    { 'i', '<c-left>',            '<c-o>:bprevious<cr>'      },
+    { 'i', '<c-right>',           '<c-o>:bnext<cr>'          },
+    { 'i', '<leader><cr>',        '<end>;<cr>'               },
+    { 'i', '<leader><leader>',    '<esc>'                    },
+    { 'i', '<m-LeftMouse>',       '<4-leftmouse>'            },
+    { 'i', '<m-LeftDrag>',        '<leftdrag>'               },
+    { 'i', '<s-scrollwheelup>',   '<scrollwheelleft>'        },
+    { 'i', '<s-scrollwhelldown>', '<scrollwheelright>'       }
 }
 
+local init_keys_verbose = {
+    { 'n', '<leader><cr>',        ':edit '                   },
+    { 'n', '<leader>-',           ':new '                    },
+    { 'n', '<leader>[',           ':new '                    },
+    { 'n', '<leader>/',           ':vnew '                   },
+    { 'n', '<leader>]',           ':vnew '                   },
+    { 'n', '<leader>=',           ':vertical diffsplit '     }
+}
+
+-- lua 5.1
 for _, v in pairs(init_keys) do
     table.insert(v, { silent = true })
 
-    -- lua 5.1
+    vim.keymap.set(unpack(v))
+end
+
+for _, v in pairs(init_keys_verbose) do
     vim.keymap.set(unpack(v))
 end
 
@@ -108,6 +120,7 @@ local init_opts = {
     foldlevel      =   0,
     foldmethod     =  'marker',
     formatoptions  =  'tcroqan2mB1j',
+    guifont        =  'FiraCode Nerd Font:h10',
     helpheight     =   12,
     hidden         =   true,
     history        =   100,
@@ -128,6 +141,7 @@ local init_opts = {
     number         =   true,
     ruler          =   true,
     selection      =  'exclusive',
+    sessionoptions =  '',
     shiftround     =   true,
     shiftwidth     =   4,
     shortmess      =  'acqstAW',
@@ -151,10 +165,10 @@ local init_opts = {
     visualbell     =   true,
     whichwrap      =  '<>[]bshl~',
     wildmenu       =   true,
-    winheight      =   4,
-    winminheight   =   4,
-    winminwidth    =   4,
-    winwidth       =   4,
+    winheight      =   2,
+    winminheight   =   0,
+    winminwidth    =   0,
+    winwidth       =   2,
     wrap           =   false,
     writebackup    =   false
 }
@@ -176,7 +190,7 @@ end
 local lazy_path = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 
 if not vim.loop.fs_stat(lazy_path) then
-    vim.fn.system("git", "clone", "https://github.com/folke/lazy.nvim.git", lazy_path)
+    vim.fn.system({ "git", "clone", "https://github.com/folke/lazy.nvim.git", lazy_path })
 end
 
 vim.opt.runtimepath:prepend(lazy_path)
@@ -281,5 +295,10 @@ require('lazy').setup({
             require('mini.surround'  ).setup()
             require('mini.trailspace').setup()
         end
+    },
+
+    { 'folke/which-key.nvim',
+        event  = 'VeryLazy',
+        config =  true
     }
 })

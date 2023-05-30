@@ -6,7 +6,7 @@ export HISTFILE=~/.zhistory
 
 # aliases
 alias     v="nvim"
-alias     g="nvim"
+alias     g="nvim-qt"
 alias    vv="sudo nvim"
 
 if [[ -z ${commands[gvim]} || ${EUID} -eq 0 ]]; then
