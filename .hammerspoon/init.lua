@@ -1,5 +1,6 @@
 local Application = require 'hs.application'
 local EventTap    = require 'hs.eventtap'
+local Host        = require 'hs.host'
 local Hotkey      = require 'hs.hotkey'
 local Socket      = require 'hs.socket'
 local Spaces      = require 'hs.spaces'
@@ -17,15 +18,29 @@ function launch(app, ...)
     Task.new('/usr/bin/open', nil, {'-a', app, '--args', ...}):start()
 end
 
+function launchWithRoot(...)
+    Task.new('/usr/bin/osascript', nil, {'-e', string.format('do shell script "%s" with administrator privileges', table.concat({...}, ' '))}):start()
+end
+
 Hotkey.bind('alt', 'e', function() Application.launchOrFocus('Finder'           ) end)
 Hotkey.bind('alt', 'a', function() Application.launchOrFocus('Firefox'          ) end)
 Hotkey.bind('alt', 'z', function() Application.launchOrFocus('Microsoft Outlook') end)
 Hotkey.bind('alt', 's', function() Application.launchOrFocus('CotEditor'        ) end)
 Hotkey.bind('alt', 'x', function() Application.launchOrFocus('iTerm'            ) end)
 
-Hotkey.bind('alt', 't', function() launch('TradingView',
-    '--proxy-server=192.168.192.1:3168'
-) end)
+-- mount tmpfs
+function createTmpFS(dir, mb)
+    local info = Host.volumeInformation()
+
+    if info[dir] then
+        return
+    end
+
+    -- really mount
+    launchWithRoot('mount_tmpfs', '-s' .. tostring(mb) .. 'M', dir)
+end
+
+Hotkey.bind('ctrl-alt', 'r', function() createTmpFS('/tmp/ram', 8192) end)
 
 
 -- alt-tab
@@ -93,7 +108,7 @@ filter:subscribe({
             return
         end
 
-        Timer.doAfter(1, function ()
+        Timer.doAfter(1, function()
             local app = win:application()
 
             if app and app:isRunning() then
@@ -124,7 +139,7 @@ function sendToYabai(...)
 
     local sock = Socket.new()
 
-    sock:connect(yabai):write(mesg, function ()
+    sock:connect(yabai):write(mesg, function()
         sock:disconnect()
     end)
 end
@@ -145,6 +160,7 @@ function yabaiInit()
 end
 
 Hotkey.bind('ctrl-alt', 'y', yabaiInit)
+Hotkey.bind('ctrl-alt', 'z', function() sendToYabai('config',   'layout', 'float') end)
 Hotkey.bind('ctrl-alt', 't', function() sendToYabai('window', '--toggle', 'split') end)
 Hotkey.bind('ctrl-alt', 'f', function() sendToYabai('window', '--toggle', 'float') end)
 
@@ -158,6 +174,8 @@ Hotkey.bind('ctrl-alt', '3', function() sendToYabai('window', '--space',  '3'   
 Hotkey.bind('ctrl-alt', '4', function() sendToYabai('window', '--space',  '4'    ) end)
 Hotkey.bind('ctrl-alt', '5', function() sendToYabai('window', '--space',  '5'    ) end)
 Hotkey.bind('ctrl-alt', '6', function() sendToYabai('window', '--space',  '6'    ) end)
+
+yabaiInit()
 
 
 -- mouse wheel

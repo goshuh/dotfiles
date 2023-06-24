@@ -16,7 +16,7 @@ set timefmt=%Y-%m-%d/%H:%M
 set trash
 set trashdir=/tmp
 set undolevels=100
-set vicmd=vim
+set vicmd=nvim
 set vifminfo=chistory,dhistory,phistory,shistory
 set wildmenu
 
