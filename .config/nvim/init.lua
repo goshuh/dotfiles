@@ -89,6 +89,11 @@ for _, v in pairs(init_keys_verbose) do
     vim.keymap.set(unpack(v))
 end
 
+-- tab
+vim.keymap.set('i', '<tab>', function()
+    return vim.fn.pumvisible() == 1 and '<c-n>' or '<tab>'
+end, { silent = true, expr = true })
+
 
 -- settings
 local init_opts = {
@@ -120,7 +125,7 @@ local init_opts = {
     foldlevel      =   0,
     foldmethod     =  'marker',
     formatoptions  =  'tcroqn2mB1j',
-    guifont        =  'FiraCode Nerd Font:h10',
+    guifont        =  'FiraCode Nerd Font:h11',
     helpheight     =   12,
     hidden         =   true,
     history        =   100,
@@ -131,6 +136,7 @@ local init_opts = {
     joinspaces     =   false,
     laststatus     =   2,
     lazyredraw     =   true,
+    linespace      =   2,
     list           =   true,
     listchars      = { tab = '. ' },
     magic          =   true,
