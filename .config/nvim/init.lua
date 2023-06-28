@@ -90,8 +90,12 @@ for _, v in pairs(init_keys_verbose) do
 end
 
 -- tab
-vim.keymap.set('i', '<tab>', function()
+vim.keymap.set('i', '<tab>',   function()
     return vim.fn.pumvisible() == 1 and '<c-n>' or '<tab>'
+end, { silent = true, expr = true })
+
+vim.keymap.set('i', '<s-tab>', function()
+    return vim.fn.pumvisible() == 1 and '<c-p>' or '<s-tab>'
 end, { silent = true, expr = true })
 
 
