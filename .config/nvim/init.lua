@@ -26,6 +26,7 @@ local init_keys = {
     { 'n', '<leader>3',           '<c-w>J'                   },
     { 'n', '<leader>4',           '<c-w>L'                   },
     { 'n', '<leader>a',           'ggvG'                     },
+    { 'n', '<leader>t',           ':new +term<cr>'           },
     { 'n', '<leader>s',           ':set wrap!<cr>'           },
     { 'n', '<leader>l',           ':set cursorcolumn!<cr>'   },
     { 'n', '<leader><leader>',    ':set relativenumber!<cr>' },
