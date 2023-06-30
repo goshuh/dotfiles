@@ -27,6 +27,7 @@ Hotkey.bind('alt', 'a', function() Application.launchOrFocus('Firefox'          
 Hotkey.bind('alt', 'z', function() Application.launchOrFocus('Microsoft Outlook') end)
 Hotkey.bind('alt', 's', function() Application.launchOrFocus('CotEditor'        ) end)
 Hotkey.bind('alt', 'x', function() Application.launchOrFocus('iTerm'            ) end)
+Hotkey.bind('alt', 'c', function() Application.launchOrFocus('Code'             ) end)
 
 -- mount tmpfs
 function createTmpFS(dir, mb)
