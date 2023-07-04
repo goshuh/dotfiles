@@ -196,6 +196,23 @@ function SetIndent(n)
     vim.opt_local.tabstop     = n
 end
 
+function GetGitRoot()
+    local root = ''
+
+    -- vim.system is not ready
+    vim.fn.jobwait({ vim.fn.jobstart({ 'git', 'rev-parse', '--show-toplevel' }, {
+        stdin     = 'null',
+        on_stdout =  function(_, data, _)
+            for _, d in ipairs(data) do
+                root = root .. d
+            end
+        end,
+        on_stderr =  function() end
+    })})
+
+    return root and { cwd = root } or { }
+end
+
 
 -- plugins
 local lazy_path = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
@@ -239,6 +256,17 @@ require('lazy').setup({
 
             telescope.setup({
                 defaults = {
+                    layout_strategy = 'bottom_pane',
+                    layout_config = {
+                        height = 25,
+                        prompt_position = 'bottom'
+                    },
+                    border = true,
+                    borderchars = {
+                        prompt =  {'?', ' ', '─', ' ', '?', '?', '─', '─'},
+                        results = {'─', ' ', '?', ' ', '─', '─', '?', '?'},
+                        preview = {'─', ' ', ' ', ' ', '─', '─', ' ', ' '}
+                    },
                     mappings = {
                         i = {
                             ['<cr>'] = actions.select_vertical
@@ -247,9 +275,9 @@ require('lazy').setup({
                 }
             })
         end,
-        keys   = {
-            { '<leader>f', ':Telescope find_files<cr>', mode = { 'n' } },
-            { '<leader>g', ':Telescope live_grep <cr>', mode = { 'n' } }
+        keys = {
+            { '<leader>f', function() require('telescope.builtin').find_files(GetGitRoot()) end, mode = { 'n' } },
+            { '<leader>g', function() require('telescope.builtin').live_grep (GetGitRoot()) end, mode = { 'n' } }
         }
     },
 
@@ -258,6 +286,7 @@ require('lazy').setup({
         opts   = {
             highlights = {
                 buffer_selected = {
+                    bold   = false,
                     italic = false
                 }
             },
@@ -274,7 +303,8 @@ require('lazy').setup({
                 sort_by  = 'insert_after_current',
                 diagnostics       =  false,
                 show_buffer_icons =  false,
-                separator_style   = 'slant'
+                buffer_close_icon = '×',
+                separator_style   = 'thin'
             }
         }
     },
@@ -282,11 +312,18 @@ require('lazy').setup({
     { 'nvim-lualine/lualine.nvim',
         config = true,
         opts   = {
+            options = {
+                component_separators = '',
+                section_separators = {
+                    left  = '',
+                    right = ''
+                }
+            },
             sections = {
                 lualine_a = { 'mode' },
                 lualine_b = { },
                 lualine_c = { 'filename' },
-                lualine_x = { 'encoding', 'fileformat',  'filetype' },
+                lualine_x = { 'encoding', 'filetype' },
                 lualine_y = { 'progress', 'searchcount', 'selectioncount' },
                 lualine_z = { 'location' }
             }
