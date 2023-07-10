@@ -164,6 +164,25 @@ class Updater(object):
 
     @reg(r'obsidian.*\.snap')
     def upd_obsidian(self):
+        # enlarge autosave interval
+        import mmap
+
+        pats = [
+            b'o.requestSave=xt((function(){return o.save(o.text,!0)}),2e3)',
+            b'i=xt(n.save.bind(n),2e3);return n.requestSave=function()'
+        ]
+
+        with open('extracted/resources/obsidian.asar', 'r+b') as fd:
+            with mmap.mmap(fd.fileno(), 0) as mm:
+                for p in pats:
+                    mm.seek(0)
+
+                    if (pos := mm.find(p)) >= 0:
+                        print(f'INFO: patching at {pos}')
+
+                        mm.seek (pos)
+                        mm.write(p.decode().replace('2e3', '9e9').encode())
+
         self.sync('extracted',
                    excl = Updater.SNAP)
         self.copy('extracted/meta/gui/icon.png',
