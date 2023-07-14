@@ -18,7 +18,7 @@ else
     alias  g="nvim-qt"
     alias vv="sudo nvim"
 
-    if [[ -z ${commands[gvim]} || ${EUID} -eq 0 ]]; then
+    if [[ -z ${commands[nvim-qt]} || ${EUID} -eq 0 ]]; then
         alias g="nvim"
     fi
 fi
@@ -134,7 +134,7 @@ setopt PUSHD_TO_HOME
 limit coredumpsize 0
 
 
-PROMPT="%{[38;5;182m%}%D{%H:%M}%{[38;5;147m%} %~ %(!.%{[38;5;203m%}.%{[38;5;68m%})>>>%{[0m%} "
+PROMPT="%(!.%{[1m%}.)%{[38;2;226;184;107m%}%D{%H:%M}%{[38;2;142;189;107m%} %~ %{[38;2;79;166;237m%}>>>%{[0m%} "
 
 
 # keybindings

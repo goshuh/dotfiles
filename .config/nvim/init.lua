@@ -2,81 +2,83 @@
 vim.g.mapleader = ';'
 
 local init_keys = {
-    { 'n', '<f2>',                ':cwindow<cr>'             },
-    { 'n', '<f3>',                ':cprevious<cr>'           },
-    { 'n', '<f4>',                ':cnext<cr>'               },
-    { 'n', '<f5>',                ':update<cr>'              },
-    { 'n', '<f12>',               ':call '                   },
-    { 'n', '<c-left>',            ':bprevious<cr>'           },
-    { 'n', '<c-right>',           ':bnext<cr>'               },
-    { 'n', '<c-pageup>',          ':tabprevious<cr>'         },
-    { 'n', '<c-pagedown>',        ':tabnext<cr>'             },
-    { 'n', '<s-up>',              'v<up>'                    },
-    { 'n', '<s-down>',            'v<down>'                  },
-    { 'n', '<s-left>',            'v<left>'                  },
-    { 'n', '<s-right>',           'v<right>'                 },
-    { 'n', '<space>',             'i'                        },
-    { 'n', '<leader>w',           ':bwipeout<cr>'            },
-    { 'n', '<leader>q',           ':quit<cr>'                },
-    { 'n', '<leader>c',           ':split<cr>'               },
-    { 'n', '<leader>v',           ':vsplit<cr>'              },
-    { 'n', '<leader>d',           '<c-w>f'                   },
-    { 'n', '<leader>1',           '<c-w>H'                   },
-    { 'n', '<leader>2',           '<c-w>K'                   },
-    { 'n', '<leader>3',           '<c-w>J'                   },
-    { 'n', '<leader>4',           '<c-w>L'                   },
-    { 'n', '<leader>a',           'ggvG'                     },
-    { 'n', '<leader>t',           ':new +term<cr>'           },
-    { 'n', '<leader>s',           ':set wrap!<cr>'           },
-    { 'n', '<leader>l',           ':set cursorcolumn!<cr>'   },
-    { 'n', '<leader><leader>',    ':set relativenumber!<cr>' },
-    { 'n', 'ZA',                  ':set foldenable!<cr>'     },
-    { 'n', '<m-leftmouse>',       '<4-leftmouse>'            },
-    { 'n', '<m-leftdrag>',        '<leftdrag>'               },
-    { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'        },
-    { 'n', '<s-scrollwhelldown>', '<scrollwheelright>'       },
-    { 'n', '<c-q>',               '<c-v>'                    },
+    { 'n', '<f2>',                ':cwindow<cr>'              },
+    { 'n', '<f3>',                ':cprevious<cr>'            },
+    { 'n', '<f4>',                ':cnext<cr>'                },
+    { 'n', '<f5>',                ':update<cr>'               },
+    { 'n', '<f12>',               ':call '                    },
+    { 'n', '<c-left>',            ':bprevious<cr>'            },
+    { 'n', '<c-right>',           ':bnext<cr>'                },
+    { 'n', '<c-pageup>',          ':tabprevious<cr>'          },
+    { 'n', '<c-pagedown>',        ':tabnext<cr>'              },
+    { 'n', '<s-up>',              'v<up>'                     },
+    { 'n', '<s-down>',            'v<down>'                   },
+    { 'n', '<s-left>',            'v<left>'                   },
+    { 'n', '<s-right>',           'v<right>'                  },
+    { 'n', '<space>',             'i'                         },
+    { 'n', '<leader>w',           ':bwipeout<cr>'             },
+    { 'n', '<leader>q',           ':quit<cr>'                 },
+    { 'n', '<leader>c',           ':split<cr>'                },
+    { 'n', '<leader>v',           ':vsplit<cr>'               },
+    { 'n', '<leader>d',           '<c-w>f'                    },
+    { 'n', '<leader>1',           '<c-w>H'                    },
+    { 'n', '<leader>2',           '<c-w>K'                    },
+    { 'n', '<leader>3',           '<c-w>J'                    },
+    { 'n', '<leader>4',           '<c-w>L'                    },
+    { 'n', '<leader>a',           'ggvG'                      },
+    { 'n', '<leader>t',           ':new +term<cr>'            },
+    { 'n', '<leader>s',           ':set wrap!<cr>'            },
+    { 'n', '<leader>l',           ':set cursorcolumn!<cr>'    },
+    { 'n', '<leader><leader>',    ':set relativenumber!<cr>'  },
+    { 'n', 'ZA',                  ':set foldenable!<cr>'      },
+    { 'n', '<m-leftmouse>',       '<4-leftmouse>'             },
+    { 'n', '<m-leftdrag>',        '<leftdrag>'                },
+    { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
+    { 'n', '<s-scrollwhelldown>', '<scrollwheelright>'        },
+    { 'n', '<c-q>',               '<c-v>'                     },
 
-    { 'v', '<s-up>',              '<up>'                     },
-    { 'v', '<s-down>',            '<down>'                   },
-    { 'v', '<s-left>',            '<left>'                   },
-    { 'v', '<s-right>',           '<right>'                  },
-    { 'v', '<leader><leader>',    '<esc>'                    },
+    { 'v', '<s-up>',              '<up>'                      },
+    { 'v', '<s-down>',            '<down>'                    },
+    { 'v', '<s-left>',            '<left>'                    },
+    { 'v', '<s-right>',           '<right>'                   },
+    { 'v', '<leader><leader>',    '<esc>'                     },
 
-    { 'i', '<f2>',                '<c-o>:cwindow<cr>'        },
-    { 'i', '<f3>',                '<c-o>:cprevious<cr>'      },
-    { 'i', '<f4>',                '<c-o>:cnext<cr>'          },
-    { 'i', '<f5>',                '<c-o>:update<cr>'         },
-    { 'i', '<leader>\'',          '<c-o>])'                  },
-    { 'i', '<leader>[',           '<right>'                  },
-    { 'i', '<leader>]',           '<end><cr>'                },
-    { 'i', '<leader>\\',          '<end>'                    },
-    { 'i', '<m-a>',               '<c-o>za'                  },
-    { 'i', '<m-c>',               '<c-o>cc'                  },
-    { 'i', '<m-d>',               '<c-o>dd'                  },
-    { 'i', '<m-y>',               '<c-o>yy'                  },
-    { 'i', '<m-p>',               '<c-o>p'                   },
-    { 'i', '<m-u>',               '<c-o>u'                   },
-    { 'i', '<m-r>',               '<c-o><c-r>'               },
-    { 'i', '<m-, >',              '<c-o>N'                   },
-    { 'i', '<m-.>',               '<c-o>n'                   },
-    { 'i', '<c-left>',            '<c-o>:bprevious<cr>'      },
-    { 'i', '<c-right>',           '<c-o>:bnext<cr>'          },
-    { 'i', '<leader><cr>',        '<end>;<cr>'               },
-    { 'i', '<leader><leader>',    '<esc>'                    },
-    { 'i', '<m-LeftMouse>',       '<4-leftmouse>'            },
-    { 'i', '<m-LeftDrag>',        '<leftdrag>'               },
-    { 'i', '<s-scrollwheelup>',   '<scrollwheelleft>'        },
-    { 'i', '<s-scrollwhelldown>', '<scrollwheelright>'       }
+    { 'i', '<f2>',                '<c-o>:cwindow<cr>'         },
+    { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
+    { 'i', '<f4>',                '<c-o>:cnext<cr>'           },
+    { 'i', '<f5>',                '<c-o>:update<cr>'          },
+    { 'i', '<leader>\'',          '<c-o>])'                   },
+    { 'i', '<leader>[',           '<right>'                   },
+    { 'i', '<leader>]',           '<end><cr>'                 },
+    { 'i', '<leader>\\',          '<end>'                     },
+    { 'i', '<m-a>',               '<c-o>za'                   },
+    { 'i', '<m-c>',               '<c-o>cc'                   },
+    { 'i', '<m-d>',               '<c-o>dd'                   },
+    { 'i', '<m-y>',               '<c-o>yy'                   },
+    { 'i', '<m-p>',               '<c-o>p'                    },
+    { 'i', '<m-u>',               '<c-o>u'                    },
+    { 'i', '<m-r>',               '<c-o><c-r>'                },
+    { 'i', '<m-, >',              '<c-o>N'                    },
+    { 'i', '<m-.>',               '<c-o>n'                    },
+    { 'i', '<c-left>',            '<c-o>:bprevious<cr>'       },
+    { 'i', '<c-right>',           '<c-o>:bnext<cr>'           },
+    { 'i', '<leader><cr>',        '<end>;<cr>'                },
+    { 'i', '<leader><leader>',    '<esc>'                     },
+    { 'i', '<m-LeftMouse>',       '<4-leftmouse>'             },
+    { 'i', '<m-LeftDrag>',        '<leftdrag>'                },
+    { 'i', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
+    { 'i', '<s-scrollwhelldown>', '<scrollwheelright>'        },
+
+    { 't', '<c-\\><c-\\>',        '<c-\\><c-o>:bwipeout!<cr>' }
 }
 
 local init_keys_verbose = {
-    { 'n', '<leader><cr>',        ':edit '                   },
-    { 'n', '<leader>-',           ':new '                    },
-    { 'n', '<leader>[',           ':new '                    },
-    { 'n', '<leader>/',           ':vnew '                   },
-    { 'n', '<leader>]',           ':vnew '                   },
-    { 'n', '<leader>=',           ':vertical diffsplit '     }
+    { 'n', '<leader><cr>',        ':edit '                    },
+    { 'n', '<leader>-',           ':new '                     },
+    { 'n', '<leader>[',           ':new '                     },
+    { 'n', '<leader>/',           ':vnew '                    },
+    { 'n', '<leader>]',           ':vnew '                    },
+    { 'n', '<leader>=',           ':vertical diffsplit '      }
 }
 
 -- lua 5.1
@@ -214,6 +216,18 @@ function GetGitRoot()
 end
 
 
+-- autocmds
+vim.api.nvim_create_autocmd({ 'TermOpen' }, {
+    pattern  = { '*' },
+    callback = function ()
+        vim.cmd.startinsert()
+
+        vim.opt_local.number   = false
+        vim.opt_local.modified = false
+    end
+})
+
+
 -- plugins
 local lazy_path = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 
@@ -230,7 +244,24 @@ require('lazy').setup({
             vim.cmd('colorscheme onedark')
         end,
         opts   = {
-            style = 'darker'
+            style = 'darker',
+            highlights = {
+                TelescopeNormal            = {                bg = '$bg1' },
+                TelescopePromptTitle       = { fg = '$bg1',   bg = '$bg1' },
+                TelescopePromptBorder      = { fg = '$bg1',   bg = '$bg1' },
+                TelescopePromptNormal      = {                bg = '$bg1' },
+                TelescopePromptPrefix      = { fg = '$green', bg = '$bg1' },
+                TelescopeResultsTitle      = { fg = '$bg1',   bg = '$bg1' },
+                TelescopeResultsBorder     = { fg = '$bg1',   bg = '$bg1' },
+                TelescopeResultsDiffAdd    = { fg = '$diff_add'           },
+                TelescopeResultsDiffChange = { fg = '$diff_change'        },
+                TelescopeResultsDiffDelete = { fg = '$diff_delete'        },
+                TelescopePreviewTitle      = { fg = '$bg1',   bg = '$bg1' },
+                TelescopePreviewBorder     = { fg = '$bg1',   bg = '$bg1' },
+                TelescopeSelection         = { fg = '$fg',    bg = '$bg2' },
+
+                WinSeparator               = {                bg = '$bg1' }
+            }
         },
 
         lazy     = false,
@@ -256,16 +287,11 @@ require('lazy').setup({
 
             telescope.setup({
                 defaults = {
-                    layout_strategy = 'bottom_pane',
-                    layout_config = {
+                    sorting_strategy = 'ascending',
+                    layout_strategy  = 'bottom_pane',
+                    layout_config    = {
                         height = 25,
                         prompt_position = 'bottom'
-                    },
-                    border = true,
-                    borderchars = {
-                        prompt =  {'?', ' ', '─', ' ', '?', '?', '─', '─'},
-                        results = {'─', ' ', '?', ' ', '─', '─', '?', '?'},
-                        preview = {'─', ' ', ' ', ' ', '─', '─', ' ', ' '}
                     },
                     mappings = {
                         i = {
@@ -278,6 +304,13 @@ require('lazy').setup({
         keys = {
             { '<leader>f', function() require('telescope.builtin').find_files(GetGitRoot()) end, mode = { 'n' } },
             { '<leader>g', function() require('telescope.builtin').live_grep (GetGitRoot()) end, mode = { 'n' } }
+        }
+    },
+
+    { "nvim-telescope/telescope-file-browser.nvim",
+        dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
+        keys = {
+            { '<leader>e', function() require('telescope').extensions.file_browser.file_browser() end, mode = { 'n' } }
         }
     },
 
