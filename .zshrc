@@ -156,6 +156,10 @@ bindkey "[4~" end-of-line
 bindkey "[8~" end-of-line
 bindkey "[F"  end-of-line
 
+# nvim hack (#6134)
+bindkey "OH"  beginning-of-line
+bindkey "OF"  end-of-line
+
 spawn_term () {
     ${TERMINAL:-gnome-terminal} &!
 }
