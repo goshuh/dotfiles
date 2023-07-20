@@ -40,7 +40,7 @@ class Cleaner(object):
 
     def search(self, *a, **kw):
         dirs = kw.get('dirs', [])
-        exts = kw.get('exts', [])
+        exts = kw.get('exts', [''])
         dirs = dirs if isinstance(dirs, list) else [dirs]
         exts = exts if isinstance(exts, list) else [exts]
 
@@ -125,8 +125,7 @@ class Cleaner(object):
 
         self.clean('steam',
                    'steam-native',
-                    dirs = '/usr/bin',
-                    exts = '')
+                    dirs = '/usr/bin')
 
         self.clean('org.a11y.atspi.Registry',
                     dirs = '/usr/share/dbus-1/accessibility-services',
@@ -244,8 +243,7 @@ class Cleaner(object):
                    'journal',
                    'samba',
                    'speech-dispatcher',
-                    dirs = '/var/log',
-                    exts = '')
+                    dirs = '/var/log')
 
         self.clean('00-start-message-bus',
                    '40-libcanberra-gtk-module',
@@ -257,6 +255,10 @@ class Cleaner(object):
         self.clean('pam_systemd_home',
                     dirs = '/usr/lib/security',
                     exts = 'so')
+
+        # https://bbs.archlinux.org/viewtopic.php?id=286788
+        self.clean('EXTERNALLY-MANAGED',
+                    dirs = '/usr/lib/python3.11')
 
         # remove unnecessary gsd dependencies
         self.purge('gnome',

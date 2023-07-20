@@ -88,10 +88,10 @@ if [[ -n ${commands[yum]}     ]]; then
     alias paco="yum whatprovides"
 fi
 if [[ -n ${commands[apt-get]} ]]; then
-    alias  pac="sudo apt-get"
-    alias pacs="sudo apt-get install"
-    alias pacr="sudo apt-get autoremove --purge"
-    alias pacf="apt-cache search"
+    alias  pac="sudo apt"
+    alias pacs="sudo apt install"
+    alias pacr="sudo apt autoremove --purge"
+    alias pacf="apt search"
     alias paco="dpkg -S"
 fi
 
@@ -157,6 +157,8 @@ bindkey "[8~" end-of-line
 bindkey "[F"  end-of-line
 
 # nvim hack (#6134)
+bindkey "OA"  history-beginning-search-backward
+bindkey "OB"  history-beginning-search-forward
 bindkey "OH"  beginning-of-line
 bindkey "OF"  end-of-line
 

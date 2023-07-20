@@ -87,6 +87,18 @@ inoremap <silent> <s-scrollwheelup>   <scrollwheelleft>
 inoremap <silent> <s-scrollwhelldown> <scrollwheelright>
 " }}}
 
+" nvim hack (#6134) {{{
+if v:version >= 800
+    noremap  <esc>OH <home>
+    cnoremap <esc>OH <home>
+    inoremap <esc>OH <home>
+
+    noremap  <esc>OF <end>
+    cnoremap <esc>OF <end>
+    inoremap <esc>OF <end>
+endif
+" }}}
+
 " settings {{{
 set autochdir
 set autoindent
