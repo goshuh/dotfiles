@@ -244,7 +244,10 @@ require('lazy').setup({
             vim.cmd('colorscheme onedark')
         end,
         opts   = {
-            style = 'darker',
+            colors     = {
+                bg0  = '#23272e',
+                bg_d = '#1e2227'
+            },
             highlights = {
                 TelescopeNormal            = {                bg = '$bg1' },
                 TelescopePromptTitle       = { fg = '$bg1',   bg = '$bg1' },
