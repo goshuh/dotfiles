@@ -22,12 +22,12 @@ function launchWithRoot(...)
     Task.new('/usr/bin/osascript', nil, {'-e', string.format('do shell script "%s" with administrator privileges', table.concat({...}, ' '))}):start()
 end
 
-Hotkey.bind('alt', 'e', function() Application.launchOrFocus('Finder'           ) end)
-Hotkey.bind('alt', 'a', function() Application.launchOrFocus('Firefox'          ) end)
-Hotkey.bind('alt', 'z', function() Application.launchOrFocus('Microsoft Outlook') end)
-Hotkey.bind('alt', 's', function() Application.launchOrFocus('CotEditor'        ) end)
-Hotkey.bind('alt', 'x', function() Application.launchOrFocus('iTerm'            ) end)
-Hotkey.bind('alt', 'c', function() Application.launchOrFocus('Code'             ) end)
+Hotkey.bind('alt', 'e', function() Application.launchOrFocus('Finder'            ) end)
+Hotkey.bind('alt', 'a', function() Application.launchOrFocus('Firefox'           ) end)
+Hotkey.bind('alt', 'z', function() Application.launchOrFocus('Microsoft Outlook' ) end)
+Hotkey.bind('alt', 's', function() Application.launchOrFocus('CotEditor'         ) end)
+Hotkey.bind('alt', 'x', function() Application.launchOrFocus('iTerm'             ) end)
+Hotkey.bind('alt', 'c', function() Application.launchOrFocus('Visual Studio Code') end)
 
 -- mount tmpfs
 function createTmpFS(dir, mb)
@@ -90,7 +90,9 @@ local whitelist = {
     -- no suiside after closing the console
     ['Hammerspoon'] = true,
     -- unstable after killed and restarted multiple times
-    ['Finder'     ] = true
+    ['Finder'     ] = true,
+    -- weak client
+    ['owncloud'   ] = true
 }
 
 local filter = Window.filter.new():setDefaultFilter({})
@@ -175,6 +177,10 @@ Hotkey.bind('ctrl-alt', '3', function() sendToYabai('window', '--space',  '3'   
 Hotkey.bind('ctrl-alt', '4', function() sendToYabai('window', '--space',  '4'    ) end)
 Hotkey.bind('ctrl-alt', '5', function() sendToYabai('window', '--space',  '5'    ) end)
 Hotkey.bind('ctrl-alt', '6', function() sendToYabai('window', '--space',  '6'    ) end)
+Hotkey.bind('ctrl-alt', '7', function() sendToYabai('window', '--space',  '7'    ) end)
+Hotkey.bind('ctrl-alt', '8', function() sendToYabai('window', '--space',  '8'    ) end)
+Hotkey.bind('ctrl-alt', '9', function() sendToYabai('window', '--space',  '9'    ) end)
+Hotkey.bind('ctrl-alt', '0', function() sendToYabai('window', '--space',  '10'   ) end)
 
 yabaiInit()
 
