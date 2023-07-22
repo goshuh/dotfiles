@@ -1,4 +1,4 @@
-colorscheme gosh
+colorscheme onedark
 
 set fastrun
 set fusehome=/tmp/mnt

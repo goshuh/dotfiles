@@ -1,0 +1,17 @@
+hi Win        gui=none    guifg=#abb2bf guibg=#23272e
+hi Border     gui=none    guifg=#23272e guibg=none
+hi TopLineSel gui=bold    guifg=none    guibg=none
+hi TopLine    gui=none    guifg=none    guibg=none
+hi CmdLine    gui=none    guifg=none    guibg=none
+hi ErrorMsg   gui=none    guifg=#e86671 guibg=none
+hi StatusLine gui=bold    guifg=#98c379 guibg=#393f4a
+hi WildMenu   gui=none    guifg=#23272e guibg=#c678dd
+hi CurrLine   gui=combine guifg=none    guibg=#393f4a
+hi Selected   gui=none    guifg=none    guibg=#393f4a
+hi Directory  gui=none    guifg=#61afef guibg=none
+hi Link       gui=italic  guifg=#e5c07b guibg=none
+hi BrokenLink gui=italic  guifg=#e86671 guibg=none
+hi Socket     gui=none    guifg=#98c379 guibg=none
+hi Device     gui=none    guifg=#d19a66 guibg=none
+hi Executable gui=none    guifg=#e86671 guibg=none
+hi Fifo       gui=none    guifg=#98c379 guibg=none

@@ -3,6 +3,10 @@ export SAVEHIST=65536
 export HISTSIZE=65536
 export HISTFILE=~/.zhistory
 
+if [[ -n ${TERM} ]]; then
+    export TERM=xterm-direct
+fi
+
 
 # aliases
 if [[ -z ${commands[nvim]} ]]; then
