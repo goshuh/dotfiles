@@ -1,6 +1,6 @@
 hi Win        gui=none    guifg=#abb2bf guibg=#23272e
 hi Border     gui=none    guifg=#23272e guibg=none
-hi TopLineSel gui=bold    guifg=none    guibg=none
+hi TopLineSel gui=none    guifg=none    guibg=none
 hi TopLine    gui=none    guifg=none    guibg=none
 hi CmdLine    gui=none    guifg=none    guibg=none
 hi ErrorMsg   gui=none    guifg=#e86671 guibg=none
