@@ -199,20 +199,16 @@ function SetIndent(n)
 end
 
 function GetGitRoot()
-    local root = ''
+    local dirs = vim.fs.find('.git', {
+        upward = true,
+        path   = vim.loop.cwd()
+    })
 
-    -- vim.system is not ready
-    vim.fn.jobwait({ vim.fn.jobstart({ 'git', 'rev-parse', '--show-toplevel' }, {
-        stdin     = 'null',
-        on_stdout =  function(_, data, _)
-            for _, d in ipairs(data) do
-                root = root .. d
-            end
-        end,
-        on_stderr =  function() end
-    })})
+    for _, dir in ipairs(dirs) do
+        return { cwd = vim.fs.dirname(dir) }
+    end
 
-    return root and { cwd = root } or { }
+    return { cwd = vim.loop.cwd() }
 end
 
 
