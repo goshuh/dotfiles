@@ -274,7 +274,7 @@ require('lazy').setup({
         opts   = {
             indent    = { enable = true },
             highlight = { enable = true },
-            ensure_installed = { 'c', 'cpp', 'lua', 'python', 'scala', 'verilog' }
+            ensure_installed = { 'c', 'cpp', 'java', 'lua', 'python', 'rust', 'scala', 'verilog' }
         },
     },
 
