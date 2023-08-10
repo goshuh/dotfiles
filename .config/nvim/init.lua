@@ -114,7 +114,7 @@ local init_opts = {
     breakindentopt = { min = 20, shift = 2 },
     browsedir      =  'current',
     bufhidden      =  'hide',
-    clipboard      =  {},
+    clipboard      = {'unnamedplus'},
     colorcolumn    =  {108},
     compatible     =   false,
     confirm        =   true,
