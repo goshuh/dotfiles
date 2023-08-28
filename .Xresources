@@ -15,9 +15,9 @@
 *color7:                    #d3d7cf
 *color15:                   #eeeeec
 
-*colorBD:                   #d0d0d0
-*colorUL:                   #d0d0d0
-*colorIT:                   #d0d0d0
+*colorBD:                   #abb2bf
+*colorUL:                   #abb2bf
+*colorIT:                   #abb2bf
 
 Xft.dpi:                    96
 Xft.hinting:                1
@@ -27,9 +27,9 @@ Xft.rgba:                   5
 
 Xcursor.size:               24
 
-URxvt.foreground:           #d0d0d0
-URxvt.background:           #1c1c1c
-URxvt.cursorColor:          #a8a8a8
+URxvt.foreground:           #abb2bf
+URxvt.background:           #23272e
+URxvt.cursorColor:          #abb2bf
 
 URxvt.depth:                32
 URxvt.transparent:          False
@@ -52,7 +52,9 @@ URxvt.secondaryScroll:      True
 URxvt.scrollWithBuffer:     False
 URxvt.scrollTtyKeypress:    True
 URxvt.scrollTtyOutput:      False
-URxvt.saveLines:            8192
+URxvt.saveLines:            65536
 
-URxvt.font:                 xft:Fira Code:size=9.8
-URxvt.boldFont:             xft:Fira Code:size=9.8:Bold
+URxvt.font:                 xft:Fira Code:size=10
+URxvt.boldFont:             xft:Fira Code:size=10:Bold
+URxvt.lineSpace:            1
+URxvt.letterSpace:         -1
