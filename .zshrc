@@ -4,7 +4,11 @@ export HISTSIZE=65536
 export HISTFILE=~/.zhistory
 
 if [[ -n ${TERM} ]]; then
-    export TERM=xterm-direct
+    if [[ -f /usr/share/terminfo/x/xterm-direct ]]; then
+        export TERM=xterm-direct
+    else
+        export TERM=xterm-256color
+    fi
 fi
 
 
