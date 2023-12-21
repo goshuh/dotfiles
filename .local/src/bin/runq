@@ -1,0 +1,140 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+
+
+import os
+import sys
+
+import shlex
+import functools
+
+
+def find(fn):
+    dn = os.path.dirname(fn)
+    if not dn:
+        dn = '.'
+
+    if not os.path.isdir(dn):
+        return None
+
+    for root, ds, fs in os.walk(os.path.abspath(dn), followlinks = True):
+        for f in fs:
+            if f.startswith(fn):
+                return os.path.join(root, f)
+
+    return None
+
+
+def norm(fn):
+    fn  = os.path.expandvars(fn)
+
+    if fn.find(os.sep) < 0:
+        return fn
+
+    old = fn.split(os.sep)
+    ret = []
+
+    # explicit root
+    if fn.startswith(os.sep):
+        ret.append('')
+
+    for i in old:
+        if i == '.':
+            continue
+        elif i == '..':
+            if ret:
+                ret.pop()
+        elif i:
+            ret.append(i)
+
+    return os.sep.join(ret)
+
+
+def test(cs, opts):
+    last = cs[-1] if cs else True
+    cond = False
+
+    for op in opts:
+        if op == 'OR':
+            continue
+
+        cond = cond or op in os.environ
+
+    cs.append(cond and last)
+
+
+def main(*opts):
+    real = []
+
+    for op in opts:
+        if op.startswith('+'):
+            sp = op[1:].split('=')
+            if sp:
+                os.environ[sp[0]] = sp[1] if len(sp) > 1 else '1'
+        else:
+            real.append(op)
+
+    emu  = not real or real[0].startswith('-')
+
+    qemu = find('qemu')
+    conf = find('emu' if emu else real[0])
+
+    if not conf or not qemu:
+        return
+
+    # always provided
+    os.environ['root'] = os.path.dirname(os.path.abspath(conf))
+
+    args = [qemu]
+    curr = []
+    cond = []
+
+    with open(conf) as fd:
+        for cs in fd:
+            if cs.startswith(('#', '//')):
+                continue
+
+            if cs.startswith('IF '):
+                test(cond, cs.split()[1:])
+                continue
+
+            if cs.startswith('ENDIF'):
+                if cond:
+                    cond.pop()
+                continue
+
+            if cond and not cond[-1]:
+                continue
+
+            sp = shlex.split(cs)
+            if not sp:
+                continue
+
+            if cs.startswith((' ', '\t')):
+                curr.append('='.join(list(map(lambda x: norm(x), sp[:2]))))
+
+            else:
+                if curr:
+                    args.append(','.join(curr))
+                    curr = []
+
+                args.append('-{}'.format(sp[0]))
+
+        if curr:
+            args.append(','.join(curr))
+
+    # especially for -S -s or -d ...
+    args.extend(real[0 if emu else 1:])
+
+    if 'dbg' in os.environ:
+        args = ['gdb', '--args'] + args
+
+    if 'dry' in os.environ:
+        print(' '.join(args))
+    else:
+        os.execvp(args[0], args)
+
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])
