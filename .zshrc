@@ -38,12 +38,12 @@ alias     /="cd -"
 alias    vf="vifm"
 alias    vj='cd "$(vifm --choose-dir=-)"'
 
-if [[ -z ${commands[exa]} ]]; then
+if [[ -z ${commands[eza]} ]]; then
     alias  l="ls -A --indicator-style=none --color=auto"
     alias ll="ls -A --indicator-style=none --color=auto -aghot"
 else
-    alias  l="exa"
-    alias ll="exa -alr --time=accessed --sort=accessed"
+    alias  l="eza"
+    alias ll="eza -alr --time=accessed --sort=accessed"
 fi
 
 alias  grep="grep --color=auto"
@@ -62,6 +62,7 @@ alias    gs="git status"
 alias    gd="git diff"
 alias    gl="git log"
 alias    gp="git log -p"
+alias    gg="git log --graph --oneline"
 alias    gb="git blame"
 alias    gm="git submodule"
 
@@ -220,10 +221,10 @@ zstyle ":completion:*:*:kill:*:processes" list-colors "=(#b) #([0-9]#)*=0=38;5;1
 
 # functions
 chpwd() {
-    if [[ -z ${commands[exa]} ]]; then
+    if [[ -z ${commands[eza]} ]]; then
         ls -A --indicator-style=none --color=auto
     else
-        exa
+        eza
     fi
 }
 

@@ -1,18 +1,16 @@
+-- local EventTap    = require 'hs.eventtap'
+-- local Host        = require 'hs.host'
+-- local Socket      = require 'hs.socket'
+-- local Spaces      = require 'hs.spaces'
+-- local Task        = require 'hs.task'
+-- local Timer       = require 'hs.timer'
+-- local Window      = require 'hs.window'
+
 local Application = require 'hs.application'
-local EventTap    = require 'hs.eventtap'
-local Host        = require 'hs.host'
 local Hotkey      = require 'hs.hotkey'
-local Socket      = require 'hs.socket'
-local Spaces      = require 'hs.spaces'
-local Task        = require 'hs.task'
-local Timer       = require 'hs.timer'
-local Window      = require 'hs.window'
 
 
-Hotkey.alertDuration     = 0
-Window.animationDuration = 0
-
-
+--[[
 -- launchers
 function launch(app, ...)
     Task.new('/usr/bin/open', nil, {'-a', app, '--args', ...}):start()
@@ -21,14 +19,18 @@ end
 function launchWithRoot(...)
     Task.new('/usr/bin/osascript', nil, {'-e', string.format('do shell script "%s" with administrator privileges', table.concat({...}, ' '))}):start()
 end
+--]]
+
+Hotkey.alertDuration = 0
 
 Hotkey.bind('alt', 'e', function() Application.launchOrFocus('Finder'            ) end)
 Hotkey.bind('alt', 'a', function() Application.launchOrFocus('Firefox'           ) end)
 Hotkey.bind('alt', 'z', function() Application.launchOrFocus('Microsoft Outlook' ) end)
-Hotkey.bind('alt', 's', function() Application.launchOrFocus('CotEditor'         ) end)
+Hotkey.bind('alt', 's', function() Application.launchOrFocus('Sublime Text'      ) end)
 Hotkey.bind('alt', 'x', function() Application.launchOrFocus('iTerm'             ) end)
 Hotkey.bind('alt', 'c', function() Application.launchOrFocus('Visual Studio Code') end)
 
+--[[
 -- mount tmpfs
 function createTmpFS(dir, mb)
     local info = Host.volumeInformation()
@@ -42,8 +44,10 @@ function createTmpFS(dir, mb)
 end
 
 Hotkey.bind('ctrl-alt', 'r', function() createTmpFS('/tmp/ram', 8192) end)
+--]]
 
 
+--[[
 -- alt-tab
 Window.switcher.ui.highlightColor        = {0.4, 0.4, 0.4}
 Window.switcher.ui.backgroundColor       = {0.9, 0.9, 0.9}
@@ -56,6 +60,7 @@ local switcher = Window.switcher.new(Window.filter.new():setCurrentSpace(true):s
 
 Hotkey.bind('alt',       'tab', function() switcher:next()     end)
 Hotkey.bind('alt-shift', 'tab', function() switcher:previous() end)
+--]]
 
 
 --[[
@@ -85,49 +90,56 @@ Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSp
 Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(7) end)
 --]]
 
+
+--[[
 -- maximize when creating and quit when closing the last Window
 local whitelist = {
     -- no suiside after closing the console
-    ['Hammerspoon'] = true,
+    ['org.hammerspoon.Hammerspoon'] = true,
     -- unstable after killed and restarted multiple times
-    ['Finder'     ] = true,
-    -- weak client
-    ['owncloud'   ] = true
+    ['com.apple.finder'           ] = true,
+    -- long-running stuff
+    ['com.cisco.anyconnect.gui'   ] = true,
+    ['com.owncloud.desktopclient' ] = true,
+    ['com.tinyspeck.slackmacgap'  ] = true
 }
 
 local filter = Window.filter.new():setDefaultFilter({})
 
 filter:subscribe({
---[[
     [Window.filter.windowCreated  ] = function(win, name, evt)
         if win:isMaximizable() then
             win:maximize()
         end
     end,
---]]
 
     [Window.filter.windowDestroyed] = function(win, name, evt)
-        if whitelist[name] then
+        local app = win:application()
+        local bid = app:bundleID()
+
+        if whitelist[bid] then
             return
         end
 
-        Timer.doAfter(1, function()
-            local app = win:application()
-
+        Timer.doAfter(3, function()
             if app and app:isRunning() then
                 -- not only in the current space
-                local tmp = Window.filter.new(name)
-
-                -- the only window from all desktops
-                if not next(tmp:getWindows()) then
-                    app:kill()
+                for _, w in ipairs(filter:getWindows()) do
+                    if w:application():bundleID() == bid then
+                        return
+                    end
                 end
+
+                -- no windows, kill
+                app:kill()
             end
         end)
     end
 })
+--]]
 
 
+--[[
 -- interface with yabai
 local yabai = string.format("/tmp/yabai_%s.socket", os.getenv("USER"))
 
@@ -163,7 +175,7 @@ function yabaiInit()
 end
 
 Hotkey.bind('ctrl-alt', 'y', yabaiInit)
-Hotkey.bind('ctrl-alt', 'z', function() sendToYabai('config',   'layout', 'float') end)
+Hotkey.bind('ctrl-alt', 'e', function() sendToYabai('config',   'layout', 'float') end)
 Hotkey.bind('ctrl-alt', 't', function() sendToYabai('window', '--toggle', 'split') end)
 Hotkey.bind('ctrl-alt', 'f', function() sendToYabai('window', '--toggle', 'float') end)
 
@@ -181,13 +193,32 @@ Hotkey.bind('ctrl-alt', '7', function() sendToYabai('window', '--space',  '7'   
 Hotkey.bind('ctrl-alt', '8', function() sendToYabai('window', '--space',  '8'    ) end)
 Hotkey.bind('ctrl-alt', '9', function() sendToYabai('window', '--space',  '9'    ) end)
 Hotkey.bind('ctrl-alt', '0', function() sendToYabai('window', '--space',  '10'   ) end)
+--]]
 
-yabaiInit()
+
+-- xwm
+hs.loadSpoon('XWM'):start():bindHotkeys({
+    toggle      = { { 'ctrl', 'alt' }, 'e'      },
+    tile        = { { 'ctrl', 'alt' }, 'q'      },
+
+    swap_prev   = { { 'ctrl', 'alt' }, 'up'     },
+    swap_next   = { { 'ctrl', 'alt' }, 'down'   },
+    swap_master = { { 'ctrl', 'alt' }, 'return' },
+
+    skid        = { { 'ctrl', 'alt' }, 'tab'    },
+
+    jump_1      = { { 'ctrl', 'alt' }, '1'      },
+    jump_2      = { { 'ctrl', 'alt' }, '2'      },
+    jump_3      = { { 'ctrl', 'alt' }, '3'      },
+    jump_4      = { { 'ctrl', 'alt' }, '4'      },
+    jump_5      = { { 'ctrl', 'alt' }, '5'      },
+    jump_6      = { { 'ctrl', 'alt' }, '6'      }
+})
 
 
+--[[
 -- mouse wheel
 -- this stuff works, but it also makes the scroll lagging
---[[
 local continuous = EventTap.event.properties.scrollWheelEventIsContinuous
 local delta      = EventTap.event.properties.scrollWheelEventDeltaAxis1
 
