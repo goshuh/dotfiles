@@ -285,6 +285,7 @@ local whitelist = {
     ['com.cisco.anyconnect.gui'   ] = true,
     ['com.owncloud.desktopclient' ] = true,
     ['com.tencent.xinWeChat'      ] = true,
+    ['com.microsoft.Outlook'      ] = true,
     ['com.tinyspeck.slackmacgap'  ] = true
 }
 
