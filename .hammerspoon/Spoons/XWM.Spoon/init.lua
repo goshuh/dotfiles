@@ -353,7 +353,7 @@ function _M:delete(window, space, skip)
         if app and app:isRunning() then
             -- not only in the current space
             for _, win in ipairs(self.filter:getWindows()) do
-                if app == win:application() then
+                if win:application():bundleID() == bid then
                     return
                 end
             end

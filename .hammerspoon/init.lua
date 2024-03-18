@@ -3,11 +3,11 @@
 -- local Socket      = require 'hs.socket'
 -- local Spaces      = require 'hs.spaces'
 -- local Task        = require 'hs.task'
--- local Timer       = require 'hs.timer'
--- local Window      = require 'hs.window'
 
 local Application = require 'hs.application'
 local Hotkey      = require 'hs.hotkey'
+local Timer       = require 'hs.timer'
+local Window      = require 'hs.window'
 
 
 --[[
@@ -91,33 +91,42 @@ Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSp
 --]]
 
 
---[[
 -- maximize when creating and quit when closing the last Window
 local whitelist = {
     -- no suiside after closing the console
     ['org.hammerspoon.Hammerspoon'] = true,
+    ['com.amethyst.Amethyst'      ] = true,
     -- unstable after killed and restarted multiple times
     ['com.apple.finder'           ] = true,
     -- long-running stuff
     ['com.cisco.anyconnect.gui'   ] = true,
     ['com.owncloud.desktopclient' ] = true,
+    ['com.tencent.xinWeChat'      ] = true,
+    ['com.microsoft.Outlook'      ] = true,
     ['com.tinyspeck.slackmacgap'  ] = true
 }
 
 local filter = Window.filter.new():setDefaultFilter({})
 
 filter:subscribe({
+    --[[
     [Window.filter.windowCreated  ] = function(win, name, evt)
         if win:isMaximizable() then
             win:maximize()
         end
     end,
+    --]]
 
     [Window.filter.windowDestroyed] = function(win, name, evt)
         local app = win:application()
+
+        if not app then
+            return
+        end
+
         local bid = app:bundleID()
 
-        if whitelist[bid] then
+        if not bid or whitelist[bid] then
             return
         end
 
@@ -136,7 +145,6 @@ filter:subscribe({
         end)
     end
 })
---]]
 
 
 --[[
@@ -196,6 +204,7 @@ Hotkey.bind('ctrl-alt', '0', function() sendToYabai('window', '--space',  '10'  
 --]]
 
 
+--[[
 -- xwm
 hs.loadSpoon('XWM'):start():bindHotkeys({
     toggle      = { { 'ctrl', 'alt' }, 'e'      },
@@ -214,6 +223,7 @@ hs.loadSpoon('XWM'):start():bindHotkeys({
     jump_5      = { { 'ctrl', 'alt' }, '5'      },
     jump_6      = { { 'ctrl', 'alt' }, '6'      }
 })
+--]]
 
 
 --[[
