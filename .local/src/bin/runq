@@ -67,6 +67,9 @@ def test(cs, opts):
 def main(*opts):
     real = []
 
+    # defaults
+    os.environ['smp'] = '1'
+
     for op in opts:
         if op.startswith('+'):
             sp = op[1:].split('=')
