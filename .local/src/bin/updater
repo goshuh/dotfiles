@@ -255,7 +255,8 @@ class Updater(object):
 
     @reg(r'code.*\.deb')
     def upd_vscode(self):
-        self.sync('usr/share/code')
+        self.sync('usr/share/code',
+                   excl = 'cli')
 
     @reg(r'zoom.*\.pkg\.tar\.xz')
     def upd_zoom(self):
