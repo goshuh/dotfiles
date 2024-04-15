@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -64,15 +64,56 @@ def test(cs, opts):
     cs.append(cond and last)
 
 
+def kick(args):
+    out = os.environ.get('stdout', '')
+    err = os.environ.get('stderr', '')
+    fdo = 0
+    fde = 0
+
+    if out:
+        fdo = os.open(out, os.O_RDWR | os.O_CREAT)
+    if err == out or err == '-':
+        fde = fdo
+    elif err:
+        fde = os.open(err, os.O_RDWR | os.O_CREAT)
+
+    if fdo:
+        os.dup2(fdo, 1)
+    if fde:
+        os.dup2(fde, 2)
+
+    if 'daemon' in os.environ:
+        pid = os.fork()
+
+        if pid < 0:
+            sys.exit(f'ERROR: 1st fork failed')
+        if pid > 0:
+            return
+
+        os.setsid()
+
+        pid = os.fork()
+
+        if pid < 0:
+            sys.exit(f'ERROR: 2nd fork failed')
+        if pid > 0:
+            return
+
+    os.execvp(args[0], args)
+
+
 def main(*opts):
     real = []
+
+    # defaults
+    os.environ['smp'] = '1'
 
     for op in opts:
         if op.startswith('+'):
             sp = op[1:].split('=')
             if sp:
                 os.environ[sp[0]] = sp[1] if len(sp) > 1 else '1'
-        else:
+        elif op:
             real.append(op)
 
     emu  = not real or real[0].startswith('-')
@@ -133,7 +174,7 @@ def main(*opts):
     if 'dry' in os.environ:
         print(' '.join(args))
     else:
-        os.execvp(args[0], args)
+        kick(args)
 
 
 if __name__ == '__main__':
