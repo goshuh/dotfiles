@@ -258,7 +258,7 @@ class Cleaner(object):
 
         # https://bbs.archlinux.org/viewtopic.php?id=286788
         self.clean('EXTERNALLY-MANAGED',
-                    dirs = '/usr/lib/python3.11')
+                    dirs = '/usr/lib/python3.12')
 
         # remove unnecessary gsd dependencies
         self.purge('gnome',

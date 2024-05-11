@@ -36,12 +36,14 @@ local init_keys = {
     { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
     { 'n', '<s-scrollwhelldown>', '<scrollwheelright>'        },
     { 'n', '<c-q>',               '<c-v>'                     },
+    { 'n', '<c-v>',               '"+p'                       },
 
     { 'v', '<s-up>',              '<up>'                      },
     { 'v', '<s-down>',            '<down>'                    },
     { 'v', '<s-left>',            '<left>'                    },
     { 'v', '<s-right>',           '<right>'                   },
     { 'v', '<leader><leader>',    '<esc>'                     },
+    { 'v', '<c-c>',               '"+y'                       },
 
     { 'i', '<f2>',                '<c-o>:cwindow<cr>'         },
     { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
@@ -68,6 +70,7 @@ local init_keys = {
     { 'i', '<m-LeftDrag>',        '<leftdrag>'                },
     { 'i', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
     { 'i', '<s-scrollwhelldown>', '<scrollwheelright>'        },
+    { 'i', '<c-v>',               '<c-o>"+p'                  },
 
     { 't', '<c-\\><c-\\>',        '<c-\\><c-o>:bwipeout!<cr>' }
 }
@@ -83,12 +86,14 @@ local init_keys_verbose = {
 
 -- lua 5.1
 for _, v in pairs(init_keys) do
-    table.insert(v, { silent = true })
+    table.insert(v, { remap = true, silent = true })
 
     vim.keymap.set(unpack(v))
 end
 
 for _, v in pairs(init_keys_verbose) do
+    table.insert(v, { remap = true })
+
     vim.keymap.set(unpack(v))
 end
 
@@ -114,7 +119,6 @@ local init_opts = {
     breakindentopt = { min = 20, shift = 2 },
     browsedir      =  'current',
     bufhidden      =  'hide',
-    clipboard      = {'unnamedplus'},
     colorcolumn    =  {108},
     compatible     =   false,
     confirm        =   true,
