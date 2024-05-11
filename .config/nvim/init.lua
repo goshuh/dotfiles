@@ -36,14 +36,14 @@ local init_keys = {
     { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
     { 'n', '<s-scrollwhelldown>', '<scrollwheelright>'        },
     { 'n', '<c-q>',               '<c-v>'                     },
-    { 'n', '<c-v>',               '"+p'                       },
+    { 'n', '<c-p>',               '"+p'                       },
 
     { 'v', '<s-up>',              '<up>'                      },
     { 'v', '<s-down>',            '<down>'                    },
     { 'v', '<s-left>',            '<left>'                    },
     { 'v', '<s-right>',           '<right>'                   },
     { 'v', '<leader><leader>',    '<esc>'                     },
-    { 'v', '<c-c>',               '"+y'                       },
+    { 'v', '<c-y>',               '"+y'                       },
 
     { 'i', '<f2>',                '<c-o>:cwindow<cr>'         },
     { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
@@ -70,7 +70,7 @@ local init_keys = {
     { 'i', '<m-LeftDrag>',        '<leftdrag>'                },
     { 'i', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
     { 'i', '<s-scrollwhelldown>', '<scrollwheelright>'        },
-    { 'i', '<c-v>',               '<c-o>"+p'                  },
+    { 'i', '<c-p>',               '<c-o>"+p'                  },
 
     { 't', '<c-\\><c-\\>',        '<c-\\><c-o>:bwipeout!<cr>' }
 }
