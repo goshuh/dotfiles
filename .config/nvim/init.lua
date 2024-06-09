@@ -117,7 +117,6 @@ local init_opts = {
     belloff        =  'all',
     breakindent    =   true,
     breakindentopt = { min = 20, shift = 2 },
-    browsedir      =  'current',
     bufhidden      =  'hide',
     colorcolumn    =  {108},
     compatible     =   false,
