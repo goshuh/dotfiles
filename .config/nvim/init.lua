@@ -20,6 +20,7 @@ local init_keys = {
     { 'n', '<leader>q',           ':quit<cr>'                 },
     { 'n', '<leader>c',           ':split<cr>'                },
     { 'n', '<leader>v',           ':vsplit<cr>'               },
+    { 'n', '<leader>h',           ':vsplit <cfile><cr>'       },
     { 'n', '<leader>d',           '<c-w>f'                    },
     { 'n', '<leader>1',           '<c-w>H'                    },
     { 'n', '<leader>2',           '<c-w>K'                    },

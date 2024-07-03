@@ -11,30 +11,30 @@ import subprocess
 
 class Updater(object):
 
-    SNAP     = set(['data-dir',
-                    'gnome-platform',
-                    'lib',
-                    'meta',
-                    'scripts',
-                    'usr',
-                    'command.sh',
-                    'desktop-common.sh',
-                    'desktop-gnome-specific.sh',
-                    'desktop-init.sh'])
+    SNAP     = ['data-dir',
+                'gnome-platform',
+                'lib',
+                'meta',
+                'scripts',
+                'usr',
+                'command.sh',
+                'desktop-common.sh',
+                'desktop-gnome-specific.sh',
+                'desktop-init.sh']
 
-    ELECTRON = set(['LICENSE.electron.txt',
-                    'LICENSE.txt',
-                    'LICENSES.chromium.html',
-                    'NOTICE.txt',
-                    'README.md',
-                    'app_icon.png',
-                    'chromium_100_percent.pak',
-                    'chromium_200_percent.pak',
-                    'icudtl.dat',
-                    'resources.pak',
-                    'snapshot_blob.bin',
-                    'v8_context_snapshot.bin',
-                    'vk_swiftshader_icd.json'])
+    ELECTRON = ['LICENSE.electron.txt',
+                'LICENSE.txt',
+                'LICENSES.chromium.html',
+                'NOTICE.txt',
+                'README.md',
+                'app_icon.png',
+                'chromium_100_percent.pak',
+                'chromium_200_percent.pak',
+                'icudtl.dat',
+                'resources.pak',
+                'snapshot_blob.bin',
+                'v8_context_snapshot.bin',
+                'vk_swiftshader_icd.json']
 
     def __init__(self):
         self.curr = ''
@@ -99,8 +99,8 @@ class Updater(object):
 
     def sync(self, src, **kw):
         dst  = kw.get('func', lambda x: x)(self.curr)
-        excl = kw.get('excl', set())
-        excl = set(excl) if isinstance(excl, str) else excl
+        excl = kw.get('excl', [])
+        excl = [excl] if isinstance(excl, str) else excl
 
         self.spawn('rsync',
                    '-a',
@@ -201,6 +201,13 @@ class Updater(object):
                    func = lambda x: 'pdfeditor')
         self.copy('opt/master-pdf-editor-5/masterpdfeditor5.png',
                    func = lambda x: 'pdfeditor.png')
+
+    @reg(r'rstudio-.*-amd64\.deb')
+    def upd_rstudio(self):
+        self.sync('usr/lib/rstudio',
+                   excl = 'hehe')
+        self.copy('usr/share/icons/hicolor/256x256/apps/rstudio.png',
+                   func = lambda x: 'rstudio.png')
 
     @reg(r'slack.*\.deb')
     def upd_slack(self):
