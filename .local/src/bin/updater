@@ -243,11 +243,11 @@ class Updater(object):
         self.copy('opt/apps/cn.com.10jqka/entries/icons/hicolor/scalable/apps/HevoIcon.svg',
                    func = lambda x: 'Hevo.svg')
 
-    @reg(r'tradingview\.snap')
+    @reg(r'tradingview.*\.deb')
     def upd_tradingview(self):
-        self.sync('extracted',
+        self.sync('opt/TradingView',
                    excl = Updater.SNAP)
-        self.copy('extracted/meta/gui/icon.png',
+        self.copy('usr/share/icons/hicolor/512x512/apps/tradingview.png',
                    func = lambda x: 'tradingview.png')
 
     @reg(r'wps-office.*\.deb')
