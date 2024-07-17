@@ -170,6 +170,7 @@ local init_opts = {
     smartcase      =   true,
     softtabstop    =   4,
     splitbelow     =   true,
+    splitkeep      =  'screen',
     splitright     =   true,
     startofline    =   false,
     swapfile       =   false,
@@ -197,13 +198,13 @@ end
 
 
 -- functions
-function SetIndent(n)
+function set_indent(n)
     vim.opt_local.shiftwidth  = n
     vim.opt_local.softtabstop = n
     vim.opt_local.tabstop     = n
 end
 
-function GetGitRoot()
+function get_git_root()
     local dirs = vim.fs.find('.git', {
         upward = true,
         path   = vim.loop.cwd()
@@ -214,6 +215,106 @@ function GetGitRoot()
     end
 
     return { cwd = vim.loop.cwd() }
+end
+
+function tele_find()
+    require('telescope.builtin').find_files(get_git_root())
+end
+
+function tele_grep()
+    require('telescope.builtin').live_grep (get_git_root())
+end
+
+function tele_file()
+    require('telescope').extensions.file_browser.file_browser()
+end
+
+function status_pos()
+    local cur = vim.fn.line('.')
+    local tot = vim.fn.line('$')
+
+    if cur == 1 then
+        return 'Top'
+    elseif cur == tot then
+        return 'Bot'
+    else
+        return string.format('%2d%%%%', math.floor(cur / tot * 100))
+    end
+end
+
+function status_cnt()
+    local dic = vim.fn.searchcount({ recompute = true })
+
+    if not dic then
+        return ''
+    end
+
+    if dic.incomplete == 1 then
+        return '?/?'
+    end
+
+    return string.format('%d/%d', dic.current, dic.total)
+end
+
+function status_sel()
+    local mod = vim.fn.mode(true)
+    local row = math.abs(vim.fn.line('v') - vim.fn.line('.')) + 1
+    local col = math.abs(vim.fn.col ('v') - vim.fn.col ('.')) + 1
+
+    if mod:match('') then
+        return string.format('%dx%d', row, col)
+    elseif mod:match('V') then
+        return string.format('%d', row)
+    elseif mod:match('v') then
+        return string.format('%d', col)
+    else
+        return ''
+    end
+end
+
+function status_act()
+    local status = require('mini.statusline')
+
+    local mode, hl = status.section_mode({})
+    local name     = vim.bo.buftype == 'terminal' and '%t' or '%f %m%r'
+    local enc      = vim.bo.fileencoding
+    local type     = vim.bo.filetype
+    local pos      = status_pos()
+    local cnt      = status_cnt()
+    local sel      = status_sel()
+    local loc      = '%l:%v'
+
+    return status.combine_groups({
+        { hl =  hl,                      strings = { mode          } },
+         '%<',
+        { hl = 'MiniStatuslineFilename', strings = { name          } },
+         '%=',
+        { hl = 'MiniStatuslineFilename', strings = { enc, type     } },
+        { hl = 'MiniStatuslineFileinfo', strings = { pos, cnt, sel } },
+        { hl =  hl,                      strings = { loc           } }
+    })
+end
+
+function status_inact()
+    local status = require('mini.statusline')
+
+    local name = vim.bo.buftype == 'terminal' and '%t' or '%f %m%r'
+    local loc  = '%l:%v'
+
+    return status.combine_groups({
+        { hl = 'MiniStatuslineInactive', strings = { name } },
+         '%=',
+         '%<',
+        { hl = 'MiniStatuslineInactive', strings = { loc  } }
+    })
+end
+
+function format_tab(buf, label)
+    if string.len(label) > 30 then
+        return string.format(" %-27s... ", string.sub(label, 1, 27))
+    else
+        return string.format(" %-30s ", label)
+    end
 end
 
 
@@ -233,7 +334,12 @@ vim.api.nvim_create_autocmd({ 'TermOpen' }, {
 local lazy_path = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 
 if not vim.loop.fs_stat(lazy_path) then
-    vim.fn.system({ "git", "clone", "https://github.com/folke/lazy.nvim.git", lazy_path })
+    vim.fn.system({
+        "git",
+        "clone",
+        "https://github.com/folke/lazy.nvim.git",
+         lazy_path
+    })
 end
 
 vim.opt.runtimepath:prepend(lazy_path)
@@ -246,8 +352,8 @@ require('lazy').setup({
         end,
         opts   = {
             colors     = {
-                bg0  = '#23272e',
-                bg_d = '#1e2227'
+                bg0 = '#23272e',
+                bgd = '#1e2227'
             },
             highlights = {
                 TelescopeNormal            = {                bg = '$bg1' },
@@ -264,7 +370,18 @@ require('lazy').setup({
                 TelescopePreviewBorder     = { fg = '$bg1',   bg = '$bg1' },
                 TelescopeSelection         = { fg = '$fg',    bg = '$bg2' },
 
-                WinSeparator               = {                bg = '$bg1' }
+                WinSeparator               = {                bg = '$bg1' },
+
+                MiniStatuslineFilename     = { fg = '$fg',    bg = '$bg1' },
+                MiniStatuslineInactive     = { fg = '$grey',  bg = '$bg1' },
+
+                MiniTablineCurrent         = { fg = '$fg',    bg = '$bg2' },
+                MiniTablineVisible         = { fg = '$grey',  bg = '$bg1' },
+                MiniTablineHidden          = { fg = '$grey',  bg = '$bg1' },
+                MiniTablineModifiedCurrent = { fg = '$fg',    bg = '$bg2' },
+                MiniTablineModifiedVisible = { fg = '$grey',  bg = '$bg1' },
+                MiniTablineModifiedHidden  = { fg = '$grey',  bg = '$bg1' },
+                MiniTablineFill            = {                bg = 'none' }
             }
         },
 
@@ -279,7 +396,16 @@ require('lazy').setup({
         opts   = {
             indent    = { enable = true },
             highlight = { enable = true },
-            ensure_installed = { 'c', 'cpp', 'java', 'lua', 'python', 'rust', 'scala', 'verilog' }
+            ensure_installed = {
+                'c',
+                'cpp',
+                'java',
+                'lua',
+                'python',
+                'rust',
+                'scala',
+                'verilog'
+            }
         },
     },
 
@@ -306,64 +432,17 @@ require('lazy').setup({
             })
         end,
         keys = {
-            { '<leader>f', function() require('telescope.builtin').find_files(GetGitRoot()) end, mode = { 'n' } },
-            { '<leader>g', function() require('telescope.builtin').live_grep (GetGitRoot()) end, mode = { 'n' } }
+            { '<leader>f', tele_find, mode = { 'n' } },
+            { '<leader>g', tele_grep, mode = { 'n' } }
         }
     },
 
     { "nvim-telescope/telescope-file-browser.nvim",
-        dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
+        dependencies = {
+            "nvim-telescope/telescope.nvim",
+            "nvim-lua/plenary.nvim" },
         keys = {
-            { '<leader>e', function() require('telescope').extensions.file_browser.file_browser() end, mode = { 'n' } }
-        }
-    },
-
-    { 'akinsho/bufferline.nvim',
-        config = true,
-        opts   = {
-            highlights = {
-                buffer_selected = {
-                    bold   = false,
-                    italic = false
-                }
-            },
-            options = {
-                left_mouse_command  = nil,
-                right_mouse_command = nil,
-                hover = {
-                    enabled = false
-                },
-                indicator = {
-                    style = 'none'
-                },
-                tab_size =  32,
-                sort_by  = 'insert_after_current',
-                diagnostics       =  false,
-                show_buffer_icons =  false,
-                buffer_close_icon = '×',
-                separator_style   = 'thin'
-            }
-        }
-    },
-
-    { 'nvim-lualine/lualine.nvim',
-        config = true,
-        opts   = {
-            options = {
-                component_separators = '',
-                section_separators = {
-                    left  = '',
-                    right = ''
-                }
-            },
-            sections = {
-                lualine_a = { 'mode' },
-                lualine_b = { },
-                lualine_c = { 'filename' },
-                lualine_x = { 'encoding', 'filetype' },
-                lualine_y = { 'progress', 'searchcount', 'selectioncount' },
-                lualine_z = { 'location' }
-            }
+            { '<leader>e', tele_file, mode = { 'n' } }
         }
     },
 
@@ -373,12 +452,53 @@ require('lazy').setup({
             require('mini.bracketed' ).setup()
             require('mini.comment'   ).setup()
             require('mini.completion').setup()
+            require('mini.cursorword').setup({
+                delay            = 500
+            })
+            require('mini.diff'      ).setup()
+            require('mini.hipatterns').setup({
+                highlighters     = {
+                    fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
+                    hack  = { pattern = '%f[%w]()HACK()%f[%W]',  group = 'MiniHipatternsHack'  },
+                    todo  = { pattern = '%f[%w]()TODO()%f[%W]',  group = 'MiniHipatternsTodo'  },
+                    note  = { pattern = '%f[%w]()NOTE()%f[%W]',  group = 'MiniHipatternsNote'  },
+
+                    hex   = require('mini.hipatterns').gen_highlighter.hex_color(),
+                }
+            })
             require('mini.jump'      ).setup()
             require('mini.move'      ).setup()
             require('mini.pairs'     ).setup()
             require('mini.splitjoin' ).setup()
+            require('mini.statusline').setup({
+                content          = {
+                    active   = status_act,
+                    inactive = status_inact
+                },
+                use_icons        = false,
+                set_vim_settings = true
+            })
             require('mini.surround'  ).setup()
+            require('mini.tabline'   ).setup({
+                show_icons       = false,
+                format           = format_tab
+            })
             require('mini.trailspace').setup()
+        end
+    },
+
+    { 'nvim-focus/focus.nvim',
+        config = function ()
+            require('focus').setup({
+                autoresize = {
+                    minwidth  = 12,
+                    minheight = 4
+                },
+                ui = {
+                    cursorline = false,
+                    signcolumn = false
+                }
+            })
         end
     },
 
