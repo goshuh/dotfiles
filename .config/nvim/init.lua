@@ -217,12 +217,28 @@ function get_git_root()
     return { cwd = vim.loop.cwd() }
 end
 
+function tele_list()
+    require('telescope.builtin').grep_string({
+        search_dirs = { vim.fn.expand('%:p') }
+    })
+end
+
 function tele_find()
     require('telescope.builtin').find_files(get_git_root())
 end
 
 function tele_grep()
     require('telescope.builtin').live_grep (get_git_root())
+end
+
+function tele_def()
+    require('telescope.builtin').lsp_definitions({
+        jump_type = "vsplit"
+    })
+end
+
+function tele_sym()
+    require('telescope.builtin').lsp_dynamic_workspace_symbols()
 end
 
 function tele_file()
@@ -409,6 +425,14 @@ require('lazy').setup({
         },
     },
 
+    { 'neovim/nvim-lspconfig',
+        config = function ()
+            require('lspconfig').clangd.setup({})
+
+            vim.diagnostic.disable()
+        end
+    },
+
     { 'nvim-telescope/telescope.nvim',
         dependencies = { 'nvim-lua/plenary.nvim' },
         config = function ()
@@ -432,8 +456,11 @@ require('lazy').setup({
             })
         end,
         keys = {
+            { '*',         tele_list, mode = { 'n' } },
             { '<leader>f', tele_find, mode = { 'n' } },
-            { '<leader>g', tele_grep, mode = { 'n' } }
+            { '<leader>g', tele_grep, mode = { 'n' } },
+            { '<leader>r', tele_def,  mode = { 'n' } },
+            { '<leader>p', tele_sym,  mode = { 'n' } }
         }
     },
 
@@ -500,10 +527,5 @@ require('lazy').setup({
                 }
             })
         end
-    },
-
-    { 'folke/which-key.nvim',
-        event  = 'VeryLazy',
-        config =  true
     }
 })
