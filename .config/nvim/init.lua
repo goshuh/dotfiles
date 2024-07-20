@@ -77,7 +77,7 @@ local init_keys = {
 }
 
 local init_keys_verbose = {
-    { 'n', '<leader><cr>',        ':edit '                    },
+    { 'n', '<leader>\'',          ':edit '                    },
     { 'n', '<leader>-',           ':new '                     },
     { 'n', '<leader>[',           ':new '                     },
     { 'n', '<leader>/',           ':vnew '                    },
@@ -232,9 +232,11 @@ function tele_grep()
 end
 
 function tele_def()
-    require('telescope.builtin').lsp_definitions({
-        jump_type = "vsplit"
-    })
+    require('telescope.builtin').lsp_definitions()
+end
+
+function tele_ref()
+    require('telescope.builtin').lsp_references()
 end
 
 function tele_sym()
@@ -456,11 +458,12 @@ require('lazy').setup({
             })
         end,
         keys = {
-            { '*',         tele_list, mode = { 'n' } },
-            { '<leader>f', tele_find, mode = { 'n' } },
-            { '<leader>g', tele_grep, mode = { 'n' } },
-            { '<leader>r', tele_def,  mode = { 'n' } },
-            { '<leader>p', tele_sym,  mode = { 'n' } }
+            { '*',            tele_list, mode = { 'n' } },
+            { '<leader>f',    tele_find, mode = { 'n' } },
+            { '<leader>g',    tele_grep, mode = { 'n' } },
+            { '<leader><cr>', tele_def,  mode = { 'n' } },
+            { '<leader>r',    tele_ref,  mode = { 'n' } },
+            { '<leader>p',    tele_sym,  mode = { 'n' } }
         }
     },
 
