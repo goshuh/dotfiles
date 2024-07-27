@@ -1,0 +1,15 @@
+#!/usr/bin/zsh
+
+# make symlinks
+src=${HOME}/.config/cache
+dst=${HOME}/.cache
+
+for i in $(ls ${src}); do
+    if [[ ! -e ${dst}/${i} ]]; then
+        ln -sf ${src}/${i} ${dst}/${i}
+    fi
+done
+
+for i in Code Slack; do
+    mkdir -p /dev/shm/${i}
+done
