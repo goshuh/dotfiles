@@ -422,7 +422,7 @@ require('lazy').setup({
                 'python',
                 'rust',
                 'scala',
-                'verilog'
+                'systemverilog'
             }
         },
     },

@@ -260,6 +260,10 @@ class Updater(object):
                   'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-pdfmain.png',
                    func = lambda x: x.replace('office2019-', '').replace('main', '').replace('kpro', 'pro'))
 
+    @reg(r'vivaldi-stable_.*\.deb')
+    def upd_vivaldi(self):
+        self.sync('opt/vivaldi')
+
     @reg(r'code.*\.deb')
     def upd_vscode(self):
         self.sync('usr/share/code',
