@@ -82,6 +82,7 @@ local init_keys_verbose = {
     { 'n', '<leader>[',           ':new '                     },
     { 'n', '<leader>/',           ':vnew '                    },
     { 'n', '<leader>]',           ':vnew '                    },
+    { 'n', '<leader>\\',          ':tabnew '                  },
     { 'n', '<leader>=',           ':vertical diffsplit '      }
 }
 
@@ -164,7 +165,7 @@ local init_opts = {
     shortmess      =  'acqstAW',
     showbreak      =  '> ',
     showcmd        =   true,
-    showtabline    =   0,
+    showtabline    =   2,
     smartindent    =   true,
     smarttab       =   true,
     smartcase      =   true,
@@ -245,6 +246,10 @@ end
 
 function tele_file()
     require('telescope').extensions.file_browser.file_browser()
+end
+
+function tele_buf()
+    require('telescope').extensions.scope.buffers()
 end
 
 function status_pos()
@@ -399,7 +404,8 @@ require('lazy').setup({
                 MiniTablineModifiedCurrent = { fg = '$fg',    bg = '$bg2' },
                 MiniTablineModifiedVisible = { fg = '$grey',  bg = '$bg1' },
                 MiniTablineModifiedHidden  = { fg = '$grey',  bg = '$bg1' },
-                MiniTablineFill            = {                bg = 'none' }
+                MiniTablineFill            = {                bg = 'none' },
+                MiniTablineTabpagesection  = { fg = '$fg',    bg = '$bg2' }
             }
         },
 
@@ -437,6 +443,14 @@ require('lazy').setup({
 
     { 'nvim-telescope/telescope.nvim',
         dependencies = { 'nvim-lua/plenary.nvim' },
+        keys = {
+            { '*',            tele_list, mode = { 'n' } },
+            { '<leader>f',    tele_find, mode = { 'n' } },
+            { '<leader>g',    tele_grep, mode = { 'n' } },
+            { '<leader><cr>', tele_def,  mode = { 'n' } },
+            { '<leader>r',    tele_ref,  mode = { 'n' } },
+            { '<leader>p',    tele_sym,  mode = { 'n' } }
+        },
         config = function ()
             local telescope = require('telescope')
             local actions   = require('telescope.actions')
@@ -456,21 +470,14 @@ require('lazy').setup({
                     }
                 }
             })
-        end,
-        keys = {
-            { '*',            tele_list, mode = { 'n' } },
-            { '<leader>f',    tele_find, mode = { 'n' } },
-            { '<leader>g',    tele_grep, mode = { 'n' } },
-            { '<leader><cr>', tele_def,  mode = { 'n' } },
-            { '<leader>r',    tele_ref,  mode = { 'n' } },
-            { '<leader>p',    tele_sym,  mode = { 'n' } }
-        }
+        end
     },
 
     { "nvim-telescope/telescope-file-browser.nvim",
         dependencies = {
             "nvim-telescope/telescope.nvim",
-            "nvim-lua/plenary.nvim" },
+            "nvim-lua/plenary.nvim"
+        },
         keys = {
             { '<leader>e', tele_file, mode = { 'n' } }
         }
@@ -505,30 +512,27 @@ require('lazy').setup({
                     active   = status_act,
                     inactive = status_inact
                 },
-                use_icons        = false,
-                set_vim_settings = true
+                use_icons        =  false,
+                set_vim_settings =  true
             })
             require('mini.surround'  ).setup()
             require('mini.tabline'   ).setup({
-                show_icons       = false,
-                format           = format_tab
+                show_icons       =  false,
+                format           =  format_tab,
+                tabpage_section  = 'right'
             })
             require('mini.trailspace').setup()
         end
     },
 
-    { 'nvim-focus/focus.nvim',
+    { 'tiagovla/scope.nvim',
+        dependencies = { "nvim-telescope/telescope.nvim" },
+        keys = {
+            { '<leader>b', tele_buf, mode = { 'n' } }
+        },
         config = function ()
-            require('focus').setup({
-                autoresize = {
-                    minwidth  = 12,
-                    minheight = 4
-                },
-                ui = {
-                    cursorline = false,
-                    signcolumn = false
-                }
-            })
+            require('scope').setup()
+            require('telescope').load_extension('scope')
         end
     }
 })
