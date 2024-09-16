@@ -141,57 +141,6 @@ class Updater(object):
         self.sync('opt/drawio')
         self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
 
-    @reg(r'microsoft-edge-stable.*\.deb')
-    def upd_msedge(self):
-        self.sync('opt/microsoft/msedge',
-                   excl = ['cron',
-                           'microsoft-edge',
-                           'product_logo_16.png',
-                           'product_logo_24.png',
-                           'product_logo_32.png',
-                           'product_logo_32.xpm',
-                           'product_logo_48.png',
-                           'product_logo_64.png',
-                           'product_logo_128.png',
-                           'product_logo_256.png'])
-        self.copy('opt/microsoft/msedge/product_logo_256.png',
-                   func = lambda x: 'msedge.png')
-
-    @reg(r'yesplaymusic.*\.deb')
-    def upd_netease(self):
-        self.sync('opt/YesPlayMusic')
-        self.copy('usr/share/icons/hicolor/256x256/apps/yesplaymusic.png')
-
-    @reg(r'obsidian.*\.snap')
-    def upd_obsidian(self):
-        # enlarge autosave interval
-        import mmap
-
-        pats = [
-            b'o.requestSave=xt((function(){return o.save(o.text,!0)}),2e3)',
-            b'i=xt(n.save.bind(n),2e3);return n.requestSave=function()'
-        ]
-
-        with open('extracted/resources/obsidian.asar', 'r+b') as fd:
-            with mmap.mmap(fd.fileno(), 0) as mm:
-                for p in pats:
-                    mm.seek(0)
-
-                    if (pos := mm.find(p)) >= 0:
-                        print(f'INFO: patching at {pos}')
-
-                        mm.seek (pos)
-                        mm.write(p.decode().replace('2e3', '9e9').encode())
-
-        self.sync('extracted',
-                   excl = Updater.SNAP)
-        self.copy('extracted/meta/gui/icon.png',
-                   func = lambda x: 'obsidian.png')
-
-    @reg(r'.*p4v.*\.tgz')
-    def upd_p4v(self):
-        self.sync(self.find('p4v-'))
-
     @reg(r'master-pdf-editor-.*\.deb')
     def upd_pdfeditor(self):
         self.sync('opt/master-pdf-editor-5',
@@ -202,13 +151,6 @@ class Updater(object):
         self.copy('opt/master-pdf-editor-5/masterpdfeditor5.png',
                    func = lambda x: 'pdfeditor.png')
 
-    @reg(r'rstudio-.*-amd64\.deb')
-    def upd_rstudio(self):
-        self.sync('usr/lib/rstudio',
-                   excl = 'hehe')
-        self.copy('usr/share/icons/hicolor/256x256/apps/rstudio.png',
-                   func = lambda x: 'rstudio.png')
-
     @reg(r'slack.*\.deb')
     def upd_slack(self):
         self.sync('usr/lib/slack')
@@ -217,11 +159,6 @@ class Updater(object):
     @reg(r'spotify.*\.deb')
     def upd_spotify(self):
         self.sync('usr/share/spotify')
-
-    @reg(r'superProductivity.*\.deb')
-    def upd_super(self):
-        self.sync('opt/superProductivity')
-        self.copy('usr/share/icons/hicolor/256x256/apps/superproductivity.png')
 
     @reg(r'teams_.*\.deb')
     def upd_teams(self):
@@ -232,16 +169,13 @@ class Updater(object):
     def upd_teamview(self):
         self.sync('teamviewer')
 
+    @reg(r'tor-browser-linux-x86_64.*\.tar.xz')
+    def upd_tor(self):
+        self.sync('tor-browser/Browser')
+
     @reg(r'tsetup\..*\.tar\.xz')
     def upd_telegram(self):
         self.sync('Telegram/Telegram')
-
-    @reg(r'cn\.com\.10jqka.*\.deb')
-    def upd_tonghuashun(self):
-        self.sync('opt/apps/cn.com.10jqka/files',
-                   excl = 'doc')
-        self.copy('opt/apps/cn.com.10jqka/entries/icons/hicolor/scalable/apps/HevoIcon.svg',
-                   func = lambda x: 'Hevo.svg')
 
     @reg(r'tradingview.*\.deb')
     def upd_tradingview(self):

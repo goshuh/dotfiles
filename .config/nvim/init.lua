@@ -7,8 +7,8 @@ local init_keys = {
     { 'n', '<f4>',                ':cnext<cr>'                },
     { 'n', '<f5>',                ':update<cr>'               },
     { 'n', '<f12>',               ':call '                    },
-    { 'n', '<c-left>',            ':bprevious<cr>'            },
-    { 'n', '<c-right>',           ':bnext<cr>'                },
+    { 'n', '<c-left>',            ':BufferNav -1<cr>'         },
+    { 'n', '<c-right>',           ':BufferNav  1<cr>'         },
     { 'n', '<c-pageup>',          ':tabprevious<cr>'          },
     { 'n', '<c-pagedown>',        ':tabnext<cr>'              },
     { 'n', '<s-up>',              'v<up>'                     },
@@ -340,6 +340,49 @@ function format_tab(buf, label)
     end
 end
 
+function buffer_nav(args)
+    local core = require('scope.core')
+
+    core.revalidate()
+
+    local tab  = vim.api.nvim_get_current_tabpage()
+    local buf  = vim.api.nvim_get_current_buf()
+
+    local curr = core.cache[tab]
+    local dir  = tonumber(args.fargs[1])
+    local idx  = nil
+
+    if not curr then
+        return
+    end
+
+    for i, b in ipairs(curr) do
+        if b == buf then
+            local j = i + dir
+
+            if j > #curr then
+                j = 1
+            elseif j < 1 then
+                j = #curr
+            end
+
+            idx = curr[j]
+            break
+        end
+    end
+
+    if idx and idx ~= buf then
+        local wins = vim.api.nvim_list_wins()
+
+        for _, w in ipairs(wins) do
+            if idx == vim.api.nvim_win_get_buf(w) then
+                vim.api.nvim_set_current_win(w)
+                break
+            end
+        end
+    end
+end
+
 
 -- autocmds
 vim.api.nvim_create_autocmd({ 'TermOpen' }, {
@@ -351,6 +394,10 @@ vim.api.nvim_create_autocmd({ 'TermOpen' }, {
         vim.opt_local.modified = false
     end
 })
+
+
+-- commands
+vim.api.nvim_create_user_command('BufferNav', buffer_nav, { nargs = 1 })
 
 
 -- plugins
