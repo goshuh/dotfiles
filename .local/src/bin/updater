@@ -184,6 +184,11 @@ class Updater(object):
         self.copy('usr/share/icons/hicolor/512x512/apps/tradingview.png',
                    func = lambda x: 'tradingview.png')
 
+    @reg(r'typora.*\.deb')
+    def upd_typora(self):
+        self.sync('usr/share/typora')
+        self.copy('usr/share/icons/hicolor/256x256/apps/typora.png')
+
     @reg(r'wps-office.*\.deb')
     def upd_wps(self):
         self.sync('opt/kingsoft/wps-office/office6')
