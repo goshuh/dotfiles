@@ -31,12 +31,16 @@ else
     fi
 fi
 
-alias     a="cd /tmp/ram"
-alias     ,="cd .."
-alias    ,,="cd ../.."
-alias     /="cd -"
-alias    vf="vifm"
-alias    vj='cd "$(vifm --choose-dir=-)"'
+if [[ -n ${commands[helix]} ]]; then
+    alias h="helix"
+fi
+
+alias  a="cd /tmp/ram"
+alias  ,="cd .."
+alias ,,="cd ../.."
+alias  /="cd -"
+alias vf="vifm"
+alias vj='cd "$(vifm --choose-dir=-)"'
 
 if [[ -z ${commands[eza]} ]]; then
     alias  l="ls -A --indicator-style=none --color=auto"
@@ -46,41 +50,41 @@ else
     alias ll="eza -alr --time=accessed --sort=accessed"
 fi
 
-alias  grep="grep --color=auto"
+alias grep="grep --color=auto"
 
-alias     r="rm -rf"
-alias     k="kill -9"
+alias    r="rm -rf"
+alias    k="kill -9"
 
-alias     t="tmux"
-alias    ta="tmux attach"
+alias    t="tmux"
+alias   ta="tmux attach"
 
-alias    ps="ps x"
-alias    pg="ps | grep"
-alias  mren="md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
+alias   ps="ps x"
+alias   pg="ps | grep"
+alias mren="md5sum * | sed -e 's/\([^ ]*\) \(.*\(\..*\)\)$/mv -v \2 \1\3/e'"
 
-alias    gs="git status"
-alias    gd="git diff"
-alias    gl="git log"
-alias    gp="git log -p"
-alias    gg="git log --graph --oneline"
-alias    gb="git blame"
-alias    gm="git submodule"
+alias   gs="git status"
+alias   gd="git diff"
+alias   gl="git log"
+alias   gp="git log -p"
+alias   gg="git log --graph --oneline"
+alias   gb="git blame"
+alias   gm="git submodule"
 
-alias   gga="git add"
-alias   ggb="git branch"
-alias   ggc="git checkout --recurse-submodules"
-alias   ggm="git commit -m"
-alias   ggp="git pull && git submodule update --recursive"
-alias   ggg="git push"
+alias  gga="git add"
+alias  ggb="git branch"
+alias  ggc="git checkout --recurse-submodules"
+alias  ggm="git commit -m"
+alias  ggp="git pull && git submodule update --recursive"
+alias  ggg="git push"
 
-alias    ss="systemctl --user start"
-alias    st="systemctl --user stop"
-alias    sr="systemctl --user restart"
+alias   ss="systemctl --user start"
+alias   st="systemctl --user stop"
+alias   sr="systemctl --user restart"
 
-alias    mm="machinectl"
-alias    ms="machinectl start"
-alias    ml="machinectl login"
-alias    mx="machinectl shell"
+alias   mm="machinectl"
+alias   ms="machinectl start"
+alias   ml="machinectl login"
+alias   mx="machinectl shell"
 
 if [[ -n ${commands[pacman]}  ]]; then
     alias  pac="sudo pacman"

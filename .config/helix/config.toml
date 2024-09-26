@@ -1,0 +1,117 @@
+theme                     =  "onedark"
+
+[editor]
+scrolloff                 =   0
+cursorline                =   true
+auto-format               =   false
+preview-completion-insert =   false
+auto-info                 =   false
+bufferline                =  "always"
+color-modes               =   true
+popup-border              =  "none"
+
+[editor.statusline]
+left                      = ["mode"]
+center                    = ["file-name", "read-only-indicator", "file-modification-indicator"]
+right                     = ["file-encoding", "file-type", "position-percentage", "primary-selection-length", "position"]
+separator                 =  " "
+mode.normal               =  "Normal"
+mode.insert               =  "Insert"
+mode.select               =  "Select"
+
+[editor.cursor-shape]
+normal                    =  "underline"
+insert                    =  "underline"
+select                    =  "underline"
+
+[editor.file-picker]
+hidden                    =   false
+
+[keys.normal]
+"G"                       =  "goto_file_end"
+"0"                       =  "goto_line_start"
+"$"                       =  "goto_line_end"
+
+"C"                       = ["extend_to_line_end", "yank_main_selection_to_clipboard", "delete_selection", "insert_mode"]
+"D"                       = ["extend_to_line_end", "yank_main_selection_to_clipboard", "delete_selection"]
+"Y"                       = ["extend_to_line_end", "yank_main_selection_to_clipboard", "collapse_selection"]
+"p"                       = ["paste_clipboard_after",  "collapse_selection"]
+"P"                       = ["paste_clipboard_before", "collapse_selection"]
+"x"                       =  "delete_selection"
+
+"V"                       = ["select_mode", "extend_to_line_bounds"]
+"i"                       = ["insert_mode", "collapse_selection"]
+"a"                       = ["append_mode", "collapse_selection"]
+"u"                       = ["undo",        "collapse_selection"]
+"Z"                       =  "no_op"
+
+"*"                       = ["move_char_right", "move_prev_word_start", "move_next_word_end", "search_selection", "search_next"]
+
+"esc"                     = ["collapse_selection", "keep_primary_selection"]
+
+"C-left"                  =  ":buffer-previous"
+"C-right"                 =  ":buffer-next"
+
+# non-standard
+"space"                   = ["insert_mode", "collapse_selection"]
+
+[keys.normal.c]
+"w"                       = ["move_next_word_start",  "yank_main_selection_to_clipboard", "change_selection"]
+"c"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "change_selection"]
+"$"                       = ["extend_to_line_end",    "yank_main_selection_to_clipboard", "delete_selection", "insert_mode"]
+
+[keys.normal.d]
+"w"                       = ["move_next_word_start",  "yank_main_selection_to_clipboard", "delete_selection"]
+"d"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "delete_selection"]
+"$"                       = ["extend_to_line_end",    "yank_main_selection_to_clipboard", "delete_selection"]
+
+[keys.normal.y]
+"w"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
+"y"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
+
+[keys.normal.";"]
+"w"                       = [":buffer-close"]
+"q"                       = [":quit"]
+"c"                       =  "vsplit"
+"v"                       =  "hsplit"
+"d"                       =  "goto_file"
+"a"                       =  "select_all"
+"s"                       =  ":toggle-option soft-wrap.enable"
+";"                       =  ":toggle-option line-number relative absolute"
+
+"'"                       =  "file_picker"
+"minus"                   =  ":hsplit-new"
+"["                       =  ":hsplit-new"
+"]"                       =  ":vsplit-new"
+"/"                       =  ":vsplit-new"
+"\\"                      =  "file_picker"
+
+[keys.insert]
+"esc"                     = ["collapse_selection", "normal_mode"]
+
+"C-left"                  =  ":buffer-previous"
+"C-right"                 =  ":buffer-next"
+
+[keys.insert.";"]
+"["                       =  "move_char_right"
+"]"                       =  "goto_line_end"
+"\\"                      = ["open_below"]
+";"                       = ["collapse_selection", "normal_mode"]
+
+[keys.select]
+"0"                       =  "goto_line_start"
+"$"                       =  "goto_line_end"
+"u"                       = ["switch_to_lowercase", "collapse_selection", "normal_mode"]
+"U"                       = ["switch_to_uppercase", "collapse_selection", "normal_mode"]
+
+"d"                       = ["yank_main_selection_to_clipboard", "delete_selection"]
+"x"                       = ["yank_main_selection_to_clipboard", "delete_selection"]
+"y"                       = ["yank_main_selection_to_clipboard", "normal_mode", "flip_selections", "collapse_selection"]
+
+"esc"                     = ["collapse_selection", "keep_primary_selection", "normal_mode"]
+
+"C-left"                  =  ":buffer-previous"
+"C-right"                 =  ":buffer-next"
+
+[keys.select.";"]
+";"                       = ["collapse_selection", "normal_mode"]
