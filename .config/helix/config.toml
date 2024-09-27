@@ -56,18 +56,22 @@ hidden                    =   false
 "space"                   = ["insert_mode", "collapse_selection"]
 
 [keys.normal.c]
+"e"                       = ["move_next_word_end",    "yank_main_selection_to_clipboard", "change_selection"]
 "w"                       = ["move_next_word_start",  "yank_main_selection_to_clipboard", "change_selection"]
 "c"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "change_selection"]
 "$"                       = ["extend_to_line_end",    "yank_main_selection_to_clipboard", "delete_selection", "insert_mode"]
 
 [keys.normal.d]
+"e"                       = ["move_next_word_end",    "yank_main_selection_to_clipboard", "delete_selection"]
 "w"                       = ["move_next_word_start",  "yank_main_selection_to_clipboard", "delete_selection"]
 "d"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "delete_selection"]
 "$"                       = ["extend_to_line_end",    "yank_main_selection_to_clipboard", "delete_selection"]
 
 [keys.normal.y]
-"w"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
+"e"                       = ["move_next_word_end",    "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
+"w"                       = ["move_next_word_start",  "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
 "y"                       = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
+"$"                       = ["extend_to_line_end",    "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
 
 [keys.normal.";"]
 "w"                       = [":buffer-close"]
