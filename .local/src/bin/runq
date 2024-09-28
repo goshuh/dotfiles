@@ -53,16 +53,63 @@ def norm(env, fn):
 
 
 def test(env, cs, opts):
+    class Test:
+        PRIO = {'IS':  60,
+                'NOT': 50,
+                'AND': 40,
+                'OR':  30};
+
+        def __init__(self, env, opt):
+            self.env = env
+            self.opt = opt + ['']
+            self.pos = 0
+
+        def prio(self, opt):
+            return Test.PRIO.get(opt, 0)
+
+        def cons(self, cmp = ''):
+            opt = self.opt[self.pos]
+            self.pos += 1
+
+            if self.pos >= len(self.opt) or cmp and opt != cmp:
+                raise Exception()
+
+        def expr(self, rbp = 0):
+            opt = self.opt[self.pos]
+            self.cons()
+
+            if opt == '(':
+                val = self.expr()
+                self.cons(')')
+            elif opt == 'NOT':
+                val = not self.expr(self.prio(opt))
+            else:
+                val = opt in self.env
+
+            while rbp < self.prio(self.opt[self.pos]):
+                mid = self.opt[self.pos]
+                self.cons()
+
+                if mid == 'IS':
+                    val = self.env.get(opt, '') == self.opt[self.pos]
+                    self.cons()
+                elif mid == 'AND':
+                    new = self.expr(self.prio(mid))
+                    val = val and new
+                elif mid == 'OR':
+                    new = self.expr(self.prio(mid))
+                    val = val or  new
+                else:
+                    raise Exception()
+
+            return val
+
     last = cs[-1] if cs else True
-    cond = False
 
-    for op in opts:
-        if op == 'OR':
-            continue
-
-        cond = cond or op in env
-
-    cs.append(cond and last)
+    try:
+        cs.append(Test(env, opts).expr() and last)
+    except:
+        cs.append(False)
 
 
 def kick(env, args):
@@ -145,8 +192,19 @@ def runq(env, *opts):
             if cs.startswith(('#', '//')):
                 continue
 
+            if cs.startswith('DEF '):
+                if sp := cs.split()[1:]:
+                    if sp[0] not in env:
+                        env[sp[0]] = ' '.join(sp[1:])
+                continue
+
             if cs.startswith('IF '):
                 test(env, cond, cs.split()[1:])
+                continue
+
+            if cs.startswith('ELSE'):
+                if cond and (len(cond) < 2 or cond[-2]):
+                    cond[-1] = not cond[-1]
                 continue
 
             if cs.startswith('ENDIF'):
