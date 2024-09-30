@@ -15,6 +15,7 @@ fi
 # aliases
 if [[ -z ${commands[nvim]} ]]; then
     alias  v="vim"
+    alias  b="vim --noplugin"
     alias  g="gvim"
     alias vv="sudo vim"
 
@@ -23,16 +24,13 @@ if [[ -z ${commands[nvim]} ]]; then
     fi
 else
     alias  v="nvim"
+    alias  b="nvim --noplugin"
     alias  g="nvim-qt"
     alias vv="sudo nvim"
 
     if [[ -z ${commands[nvim-qt]} || ${EUID} -eq 0 ]]; then
         alias g="nvim"
     fi
-fi
-
-if [[ -n ${commands[helix]} ]]; then
-    alias h="helix"
 fi
 
 alias  a="cd /tmp/ram"
