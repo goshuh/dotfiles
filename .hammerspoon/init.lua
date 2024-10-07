@@ -87,15 +87,15 @@ function moveWindowToSpace(n)
         y = geo.y + 5
     }
 
-    local lmd = EventTap.event.newMouseEvent(
-                EventTap.event.types.leftMouseUp,   mov)
-    local lmu = EventTap.event.newMouseEvent(
-                EventTap.event.types.leftMouseDown, mov)
-
     -- good (for gc) to bind a name
+    local lmd = EventTap.event.newMouseEvent(
+                EventTap.event.types.leftMouseDown, mov)
+    local lmu = EventTap.event.newMouseEvent(
+                EventTap.event.types.leftMouseUp,   mov)
+
     lmd:post()
 
-    -- there must be something good happening
+    -- there must be something good that we can exploit
     EventTap.keyStroke({ 'ctrl' }, tostring(n))
 
     lmu:post()
