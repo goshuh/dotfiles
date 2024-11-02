@@ -266,9 +266,9 @@ function status_pos()
 end
 
 function status_cnt()
-    local dic = vim.fn.searchcount({ recompute = true })
+    local ok, dic = pcall(vim.fn.searchcount, { recompute = true })
 
-    if not dic then
+    if not ok or not dic.current or dic.total == 0 then
         return ''
     end
 
