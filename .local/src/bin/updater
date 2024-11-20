@@ -189,6 +189,20 @@ class Updater(object):
         self.sync('usr/share/typora')
         self.copy('usr/share/icons/hicolor/256x256/apps/typora.png')
 
+    @reg(r'WeChatLinux_x86_64.deb')
+    def upd_wechat(self):
+        self.spawn('patchelf', '--set-rpath', '$ORIGIN',
+                   'opt/wechat/libwxtrans.so')
+
+        for r, _, fs in os.walk('opt/wechat/vlc_plugins'):
+            for f in fs:
+                if f.endswith('.so'):
+                    swlf.spawn('patchelf', '--set-rpath', '$ORIGIN:$ORIGIN/../..',
+                                os.path.join(r, f))
+
+        self.sync('opt/wechat')
+        self.copy('usr/share/icons/hicolor/256x256/apps/wechat.png')
+
     @reg(r'wps-office.*\.deb')
     def upd_wps(self):
         self.sync('opt/kingsoft/wps-office/office6')
@@ -207,6 +221,10 @@ class Updater(object):
     def upd_vscode(self):
         self.sync('usr/share/code',
                    excl = 'cli')
+
+    @reg(r'zen.linux-specific.tar.bz2')
+    def upd_zen(self):
+        self.sync('zen')
 
     @reg(r'zoom.*\.pkg\.tar\.xz')
     def upd_zoom(self):
