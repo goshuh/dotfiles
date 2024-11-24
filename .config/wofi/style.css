@@ -1,0 +1,49 @@
+@define-color fg rgba(171, 178, 191, 1.0);
+@define-color bg rgba( 35,  39,  46, 0.8);
+
+@define-color hv rgba( 63,  70,  83, 0.6);
+
+window {
+    margin:        0px;
+    background:    @bg;
+}
+
+#input {
+    margin:        6px;
+    border:        none;
+    border-radius: 0px;
+    color:         @fg;
+    background:    @hv;
+}
+
+#inner-box {
+    margin:        6px;
+    border:        none;
+    background:    transparent;
+}
+
+#outer-box {
+    margin:        6px;
+    border:        none;
+    background:    transparent;
+}
+
+#scroll {
+    margin:        0px;
+    border:        none;
+}
+
+#text {
+    margin:        6px;
+    border:        none;
+    color:         @fg;
+}
+
+#entry {
+    background:    transparent;
+}
+
+#entry:selected {
+    outline:       none;
+    background:    @hv;
+}

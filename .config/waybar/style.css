@@ -1,0 +1,102 @@
+@define-color fg rgba(171, 178, 191, 1.0);
+@define-color bg rgba( 35,  39,  46, 0.8);
+
+@define-color iv rgba( 92,  99, 112, 1.0);
+@define-color hv rgba( 63,  70,  83, 0.6);
+
+@define-color ug rgba(232, 102, 113, 0.6);
+
+* {
+    box-shadow:    none;
+    text-shadow:   none;
+
+    border:        none;
+    border-radius: 0;
+
+    font-family:  "Cantarell";
+    font-size:     15px;
+}
+
+window#waybar {
+    color:         @fg;
+    background:    @bg;
+}
+
+tooltip {
+    background:    @bg;
+}
+tooltip label {
+    color:         @fg;
+}
+
+#window {
+    padding-left:  8px;
+    padding-right: 8px;
+}
+
+#workspaces {
+    color:         transparent;
+    padding-left:  8px;
+    padding-right: 8px;
+}
+#workspaces button {
+    padding-left:  6px;
+    padding-right: 6px;
+    color:         @iv;
+    transition:    all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+#workspaces button.active {
+    font-weight:   bold;
+    color:         @fg;
+}
+#workspaces button.urgent {
+    font-weight:   bold;
+    color:         @ug;
+}
+#workspaces button:hover {
+    font-weight:   bold;
+    color:         @fg;
+    background:    @hv;
+}
+
+#tray{
+    padding-left:  8px;
+    padding-right: 8px;
+}
+#tray > widget {
+    padding-left:  8px;
+    padding-right: 8px;
+    transition:    all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+#tray > widget:hover {
+    background:    @hv;
+}
+
+#network {
+    font-family:  "Symbols Nerd Font";
+    padding-left:  8px;
+    padding-right: 8px;
+    transition:    all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+#network:hover {
+    background:    @hv;
+}
+
+#pulseaudio {
+    font-family:  "Symbols Nerd Font";
+    padding-left:  8px;
+    padding-right: 8px;
+    transition:    all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+#pulseaudio:hover {
+    background:    @hv;
+}
+
+#clock {
+    padding-left:  8px;
+    padding-right: 8px;
+    transition:    all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+#clock:hover {
+    background:    @hv;
+}
