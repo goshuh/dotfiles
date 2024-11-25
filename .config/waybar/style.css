@@ -73,6 +73,7 @@ tooltip label {
 }
 
 #network {
+    color:         white;
     font-family:  "Symbols Nerd Font";
     padding-left:  8px;
     padding-right: 8px;
@@ -83,6 +84,7 @@ tooltip label {
 }
 
 #pulseaudio {
+    color:         white;
     font-family:  "Symbols Nerd Font";
     padding-left:  8px;
     padding-right: 8px;
