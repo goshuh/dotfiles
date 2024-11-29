@@ -17,7 +17,7 @@
     ],
     "hyprland/workspaces": {
         "active-only": false,
-        "all-outputs": true
+        "all-outputs": false
     },
     "tray": {
         "icon-size": 18,
