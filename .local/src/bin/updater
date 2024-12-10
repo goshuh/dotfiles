@@ -206,12 +206,12 @@ class Updater(object):
     @reg(r'wps-office.*\.deb')
     def upd_wps(self):
         self.sync('opt/kingsoft/wps-office/office6')
-        self.copy('usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-wpsmain.png',
-                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-etmain.png',
-                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-wppmain.png',
-                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-kprometheus.png',
-                  'usr/share/icons/hicolor/256x256/mimetypes/wps-office2019-pdfmain.png',
-                   func = lambda x: x.replace('office2019-', '').replace('main', '').replace('kpro', 'pro'))
+        self.copy('usr/share/icons/hicolor/256x256/apps/wps-office2023-wpsmain.png',
+                  'usr/share/icons/hicolor/256x256/apps/wps-office2023-etmain.png',
+                  'usr/share/icons/hicolor/256x256/apps/wps-office2023-wppmain.png',
+                  'usr/share/icons/hicolor/256x256/apps/wps-office2023-kprometheus.png',
+                  'usr/share/icons/hicolor/256x256/apps/wps-office2023-pdfmain.png',
+                   func = lambda x: x.replace('office2023-', '').replace('main', '').replace('kpro', 'pro'))
 
     @reg(r'vivaldi-stable_.*\.deb')
     def upd_vivaldi(self):
