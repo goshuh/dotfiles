@@ -1,0 +1,27 @@
+font-family                = Fira Code
+font-size                  = 10
+
+adjust-cell-height         = 3
+
+freetype-load-flags        = no-hinting
+
+background                 = #23272e
+foreground                 = #abb2bf
+
+selection-invert-fg-bg     = true
+
+cursor-style               = bar
+cursor-style-blink         = false
+
+scrollback-limit           = 65536
+
+window-padding-x           = 4
+window-padding-y           = 4
+
+resize-overlay             = never
+
+focus-follows-mouse        = true
+
+shell-integration-features = no-cursor
+
+gtk-wide-tabs              = false
