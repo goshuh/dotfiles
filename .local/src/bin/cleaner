@@ -308,6 +308,8 @@ class Cleaner(object):
                     exts = 'desktop',
                     pats = 's/^Exec=nm-applet$/Exec=nm-applet --indicator/g')
 
+        # waydroid is unhappy with nft
+        self.exec.append('sed \'/use_nft() {/!b;n;c\\    false\' /usr/lib/waydroid/data/scripts/waydroid-net.sh')
 
         # really do the cleaning/purging
         log = '/tmp/cleaner.log'
@@ -318,6 +320,8 @@ class Cleaner(object):
         os.chmod(log, 0o755)
 
         self.spawn(log)
+
+        # clean pacman package cache
         self.spawn('pacman', '-Scc', inb = 'y\ny\n'.encode())
 
 
