@@ -1,15 +1,68 @@
-#!/usr/bin/zsh
+#!/usr/bin/python
 
-# make symlinks
-src=${HOME}/.config/cache
-dst=${HOME}/.cache
+import os
 
-for i in $(ls ${src}); do
-    if [[ ! -e ${dst}/${i} ]]; then
-        ln -sf ${src}/${i} ${dst}/${i}
-    fi
-done
+import shlex
+import subprocess
+import configparser
 
-for i in Code Slack; do
-    mkdir -p /dev/shm/${i}
-done
+
+def do_exec(dn):
+    for f in os.listdir(dn):
+        if not f.endswith(".desktop"):
+            continue
+
+        fn = os.path.join(dn, f)
+
+        try:
+            dt = configparser.ConfigParser()
+            dt.read(fn)
+            de = dt['Desktop Entry']
+
+            if 'OnlyShowIn' in de:
+                continue
+
+            subprocess.Popen(shlex.split(de['Exec']),
+                             start_new_session = True,
+                             stdin  = subprocess.DEVNULL,
+                             stdout = subprocess.DEVNULL,
+                             stderr = subprocess.DEVNULL)
+        except:
+            pass
+
+
+def do_link(src, dst):
+    for d in os.listdir(src):
+        sn = os.path.join(src, d)
+        dn = os.path.join(dst, d)
+
+        if not os.path.isdir(sn) or os.path.exists(dn):
+            continue
+
+        try:
+            os.symlink(sn, dn)
+        except:
+            pass
+
+
+def do_init(*ds):
+    for d in ds:
+        dn = os.path.join('/dev/shm', d)
+
+        if os.path.exists(dn):
+            continue
+
+        try:
+            os.makedirs(dn)
+        except:
+            pass
+
+
+if __name__ == '__main__':
+    do_exec('/etc/xdg/autostart')
+    do_exec(os.path.expanduser('~/.config/autostart'))
+
+    do_link(os.path.expanduser('~/.config/cache'),
+            os.path.expanduser('~/.cache'))
+
+    do_init('Code', 'Slack')
