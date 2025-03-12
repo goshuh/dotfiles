@@ -103,15 +103,15 @@ function moveWindowToSpace(n)
     Mouse.absolutePosition(pos)
 end
 
-Hotkey.bind('ctrl-alt', '1', 'Move window to space 1', function() moveWindowToSpace(1) end)
-Hotkey.bind('ctrl-alt', '2', 'Move window to space 2', function() moveWindowToSpace(2) end)
-Hotkey.bind('ctrl-alt', '3', 'Move window to space 3', function() moveWindowToSpace(3) end)
-Hotkey.bind('ctrl-alt', '4', 'Move window to space 4', function() moveWindowToSpace(4) end)
-Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSpace(5) end)
-Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(6) end)
-Hotkey.bind('ctrl-alt', '7', 'Move window to space 7', function() moveWindowToSpace(7) end)
-Hotkey.bind('ctrl-alt', '8', 'Move window to space 8', function() moveWindowToSpace(8) end)
-Hotkey.bind('ctrl-alt', '9', 'Move window to space 9', function() moveWindowToSpace(9) end)
+-- Hotkey.bind('ctrl-alt', '1', 'Move window to space 1', function() moveWindowToSpace(1) end)
+-- Hotkey.bind('ctrl-alt', '2', 'Move window to space 2', function() moveWindowToSpace(2) end)
+-- Hotkey.bind('ctrl-alt', '3', 'Move window to space 3', function() moveWindowToSpace(3) end)
+-- Hotkey.bind('ctrl-alt', '4', 'Move window to space 4', function() moveWindowToSpace(4) end)
+-- Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSpace(5) end)
+-- Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(6) end)
+-- Hotkey.bind('ctrl-alt', '7', 'Move window to space 7', function() moveWindowToSpace(7) end)
+-- Hotkey.bind('ctrl-alt', '8', 'Move window to space 8', function() moveWindowToSpace(8) end)
+-- Hotkey.bind('ctrl-alt', '9', 'Move window to space 9', function() moveWindowToSpace(9) end)
 
 
 -- maximize when creating and quit when closing the last Window
