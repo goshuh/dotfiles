@@ -40,3 +40,5 @@ keybind                    = alt+9=unbind
 keybind                    = ctrl+shift+h=new_split:down
 keybind                    = ctrl+shift+v=new_split:right
 keybind                    = ctrl+shift+w=close_surface
+
+macos-titlebar-style       = hidden
