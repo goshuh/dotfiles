@@ -484,7 +484,7 @@ require('lazy').setup({
         config = function ()
             require('lspconfig').clangd.setup({})
 
-            vim.diagnostic.disable()
+            vim.diagnostic.enable(false)
         end
     },
 
