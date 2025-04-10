@@ -1,0 +1,149 @@
+#!/usr/bin/python
+
+import os
+import json
+import sqlite3
+
+
+def exist(fn):
+    return os.path.isfile(fn.split('file://')[-1])
+
+
+def connect(fn):
+    try:
+        con = sqlite3.connect(fn)
+        con.row_factory = sqlite3.Row
+        return con
+
+    except Exception:
+        return None
+
+
+def get_value(con, key):
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT value FROM ItemTable WHERE key = ?", (key, ))
+        row = cur.fetchone()
+        return row['value'] if row else None
+
+    except Exception:
+        return None
+
+
+def set_value(con, key, val):
+    try:
+        cur = con.cursor()
+        cur.execute("UPDATE ItemTable SET value = ? WHERE key = ?", (val, key))
+        con.commit()
+
+    except Exception:
+        conn.rollback()
+
+
+def delete(con, key):
+    try:
+        cur = con.cursor()
+        cur.execute("DELETE FROM ItemTable WHERE key = ?", (key, ))
+        con.commit()
+
+    except Exception:
+        con.rollback()
+
+
+def process(con, key, fn):
+    if not (val := get_value(con, key)):
+        return
+
+    if not (val := fn(json.loads(val))):
+        return
+
+    set_value(con, key, json.dumps(val))
+
+
+def proc_he(val):
+    ret = []
+
+    for e in val:
+        if exist(e["editor"]['resource']):
+            ret.append(e)
+
+    return ret if len(ret) != len(val) else None
+
+
+def proc_me(val):
+    raw = val["textEditorViewState"]
+    ret = []
+
+    for e in raw:
+        if exist(e[0]):
+            ret.append(e)
+
+    return {'textEditorViewState': ret} if len(ret) != len(raw) else None
+
+
+def proc_ts(val):
+    ret = {}
+    mod = False
+
+    for k in ["expanded", "focus", "selection"]:
+        rep = []
+
+        for e in val[k]:
+            if exist(e.split('::')[-1]):
+                rep.append(e)
+
+        if len(rep) != len(val[k]):
+            val[k] = rep
+            mod = True
+
+    return ret if mod else None
+
+
+def proc_cc(val):
+    ret = {}
+
+    for k in val.keys():
+        if exist(k):
+            ret[k] = val[k]
+
+    return ret if len(ret) != len(val) else None
+
+
+def clean(dn):
+    if not (con := connect(dn)):
+        return
+
+    for k in ['debug.repl.history',
+              'foam.foam-vscode',
+              'workbench.tasks.recentlyUsedTasks']:
+        delete(con, k)
+
+    process(con, "history.entries",
+                  proc_he)
+    process(con, "momento/workbench.editors.files.textFileEditor",
+                  proc_me)
+    process(con, "workbench.explorer.treeViewState",
+                  proc_ts)
+    process(con, "codelens/cache2",
+                  proc_cc)
+
+    con.close()
+
+
+def main():
+    dn = os.path.expanduser('~/.config/Code/User/workspaceStorage')
+
+    if not os.path.isdir(dn):
+        return
+
+    for sn in os.listdir(dn):
+        sn = os.path.join(dn, sn)
+
+        if not os.path.isdir(sn):
+            continue
+
+        clean(os.path.join(sn, 'state.vscdb'))
+
+
+if __name__ == "__main__":
+    main()
