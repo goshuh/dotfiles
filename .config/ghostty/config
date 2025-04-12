@@ -13,7 +13,7 @@ selection-invert-fg-bg     = true
 cursor-style               = bar
 cursor-style-blink         = false
 
-scrollback-limit           = 65536
+scrollback-limit           = 16777216
 
 window-padding-x           = 4
 window-padding-y           = 4
