@@ -185,6 +185,7 @@ local init_opts = {
     whichwrap      =  '<>[]bshl~',
     wildmenu       =   true,
     wildoptions    =  'fuzzy',
+    winborder      =  'none',
     winheight      =   2,
     winminheight   =   0,
     winminwidth    =   0,
@@ -426,6 +427,8 @@ require('lazy').setup({
                 bgd = '#1e2227'
             },
             highlights = {
+                FloatTitle                 = { fg = '$bg1',   bg = '$bg1' },
+
                 TelescopeNormal            = {                bg = '$bg1' },
                 TelescopePromptTitle       = { fg = '$bg1',   bg = '$bg1' },
                 TelescopePromptBorder      = { fg = '$bg1',   bg = '$bg1' },
@@ -530,6 +533,17 @@ require('lazy').setup({
         }
     },
 
+    { 'tiagovla/scope.nvim',
+        dependencies = { "nvim-telescope/telescope.nvim" },
+        keys = {
+            { '<leader>b', tele_buf, mode = { 'n' } }
+        },
+        config = function ()
+            require('scope').setup()
+            require('telescope').load_extension('scope')
+        end
+    },
+
     { 'echasnovski/mini.nvim',
         config = function ()
             require('mini.align'     ).setup()
@@ -569,17 +583,6 @@ require('lazy').setup({
                 tabpage_section  = 'right'
             })
             require('mini.trailspace').setup()
-        end
-    },
-
-    { 'tiagovla/scope.nvim',
-        dependencies = { "nvim-telescope/telescope.nvim" },
-        keys = {
-            { '<leader>b', tele_buf, mode = { 'n' } }
-        },
-        config = function ()
-            require('scope').setup()
-            require('telescope').load_extension('scope')
         end
     }
 })
