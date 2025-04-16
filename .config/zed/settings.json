@@ -1,0 +1,42 @@
+{
+  "restore_on_startup": "none",
+  "auto_update": false,
+  "base_keymap": "VSCode",
+  "buffer_font_family": "Fira Code",
+  "buffer_font_size": 13,
+  "buffer_font_weight": 100,
+  "buffer_line_height": {
+    "custom": 1.5
+  },
+  "cursor_blink": false,
+  "hide_mouse": "never",
+  "tab_bar": {
+    "show": true,
+    "show_nav_history_buttons": false,
+    "show_tab_bar_buttons": false
+  },
+  "toolbar": {
+    "breadcrumbs": false,
+    "quick_actions": false,
+    "selections_menu": false
+  },
+  "format_on_save": "off",
+  "always_treat_brackets_as_autoclosed": true,
+  "remove_trailing_whitespace_on_save": true,
+  "search": {
+    "regex": true
+  },
+  "telemetry": {
+    "metrics": false,
+    "diagnostics": false
+  },
+  "theme": {
+    "mode": "system",
+    "light": "One Dark",
+    "dark": "One Dark"
+  },
+  "vim_mode": true,
+  "ui_font_size": 15,
+  "ui_font_family": "Cantarell",
+  "ui_font_weight": 100
+}
