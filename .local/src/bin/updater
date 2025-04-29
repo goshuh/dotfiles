@@ -132,6 +132,11 @@ class Updater(object):
             return f
         return dec
 
+    @reg(r'anytype.*\.deb')
+    def upd_anytype(self):
+        self.sync('opt/AnyType')
+        self.copy('usr/share/icons/hicolor/256x256/apps/anytype.png')
+
     @reg(r'discord.*\.deb')
     def upd_discord(self):
         self.sync('usr/share/discord')
