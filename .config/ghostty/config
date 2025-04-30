@@ -13,7 +13,7 @@ selection-invert-fg-bg     = true
 cursor-style               = bar
 cursor-style-blink         = false
 
-scrollback-limit           = 16777216
+scrollback-limit           = 67108864
 
 window-padding-x           = 4
 window-padding-y           = 4
@@ -40,5 +40,10 @@ keybind                    = alt+9=unbind
 keybind                    = ctrl+shift+h=new_split:down
 keybind                    = ctrl+shift+v=new_split:right
 keybind                    = ctrl+shift+w=close_surface
+
+keybind                    = ctrl+up=scroll_page_up
+keybind                    = ctrl+down=scroll_page_down
+keybind                    = ctrl+shift+up=scroll_to_top
+keybind                    = ctrl+shift+down=scroll_to_bottom
 
 macos-titlebar-style       = hidden
