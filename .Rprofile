@@ -1,128 +1,282 @@
-.libPaths("~/.r")
+.libPaths('~/.r')
 
-library(ggplot2)
+# these functions should be built-in
+pkg_remove <- function(pkg) {
+  ins <- installed.packages()
+  all <- tools::package_dependencies(rownames(ins), ins, recursive = TRUE)
 
-draw_lite <- function(
-  val_aspect      =  0.4,
-  val_text_margin =  0.01,
-  val_font_name   = "Linux Libertine",
-  val_font_size   =  12,
-  val_line_width  =  0.25,
-  val_tick_major  =  0.025,
-  val_tick_minor  =  0.0125,
-  val_lkey_height =  0.1,
-  val_lkey_width  =  0.3,
-  val_lkey_sep    =  0.15,
-  val_unit        = "inches") {
+  dep <- if (is.null(all[[pkg]])) character() else all[[pkg]]
+  use <- unique(unlist(all[!names(all) %in% c(pkg, dep)]))
+  rem <- dep[!dep %in% use]
 
-  def_null <- element_blank()
-
-  def_line <- element_line(linewidth     =  val_line_width,
-                           linetype      = "solid",
-                           lineend       =  NULL,
-                           color         = "black",
-                           arrow         =  NULL,
-                           inherit.blank =  TRUE)
-
-  def_rect <- element_rect(fill          =  NA,
-                           linewidth     =  val_line_width,
-                           linetype      = "solid",
-                           color         = "black",
-                           inherit.blank =  TRUE)
-
-  def_text <- element_text(family        =  val_font_name,
-                           face          = "plain",
-                           size          =  val_font_size,
-                           hjust         =  0.5,
-                           vjust         =  0.5,
-                           angle         =  0,
-                           lineheight    =  NULL,
-                           color         = "black",
-                           margin        =  margin(t    = val_text_margin,
-                                                   b    = val_text_margin,
-                                                   l    = val_text_margin * 3,
-                                                   r    = val_text_margin * 3,
-                                                   unit = val_unit),
-                           debug         =  FALSE,
-                           inherit.blank =  TRUE)
-
-  def_text_ytitle <- def_text
-  def_text_ylabel <- def_text
-
-  def_tick_major  <- unit(val_tick_major,  val_unit)
-  def_tick_minor  <- unit(val_tick_minor,  val_unit)
-
-  def_lkey_height <- unit(val_lkey_height, val_unit)
-  def_lkey_width  <- unit(val_lkey_width,  val_unit)
-  def_lkey_sep    <- unit(val_lkey_sep,    val_unit)
-
-  def_unit_zero   <- unit(0.0,             val_unit)
-
-  def_marg_zero   <- margin(0.0, 0.0, 0.0, 0.0, unit = val_unit)
-
-  def_text_ytitle$angle <- 90
-  def_text_ylabel$hjust <- 1.0
-
-  return(theme(line                    =  def_line,
-               rect                    =  def_rect,
-               text                    =  def_text,
-               title                   =  def_text,
-               aspect.ratio            =  val_aspect,
-               axis.title              =  def_text,
-               axis.title.y            =  def_text_ytitle,
-               axis.text               =  def_text,
-               axis.text.y             =  def_text_ylabel,
-               axis.ticks              =  def_line,
-               axis.ticks.length       =  def_tick_major,
-               axis.minor.ticks.length =  def_tick_minor,
-               legend.margin           =  def_marg_zero,
-               legend.spacing          =  def_lkey_height,
-               legend.key.size         =  def_unit_zero,
-               legend.key.height       =  def_lkey_height,
-               legend.key.width        =  def_lkey_width,
-               legend.key.spacing      =  def_lkey_sep,
-               legend.text             =  def_text,
-               legend.text.position    = "right",
-               legend.title            =  def_null,
-               legend.position         = "top",
-               legend.direction        = "horizontal",
-               legend.byrow            =  TRUE,
-               legend.location         = "panel",
-               legend.box              = "horizontal",
-               legend.box.just         = "top",
-               legend.box.margin       =  def_marg_zero,
-               legend.box.spacing      =  def_tick_major,
-               panel.background        =  def_null,
-               panel.border            =  def_rect,
-               panel.spacing           =  def_unit_zero,
-               panel.grid              =  def_null,
-               panel.ontop             =  TRUE,
-               plot.tag                =  def_null,
-               plot.margin             =  def_marg_zero,
-               strip.background        =  def_null,
-               strip.clip              = "inherit",
-               strip.placement         = "inside",
-               strip.text              =  def_text,
-               strip.switch.pad.grid   =  def_unit_zero,
-               strip.switch.pad.wrap   =  def_unit_zero,
-               complete                =  TRUE,
-               validate                =  TRUE))
+  if (length(rem))
+    print(rem)
 }
 
-draw_save <- function(
-  name,
-  plot,
-  device =  cairo_pdf,
-  width  =  3.35,
-  height =  1.75,
-  units  = "in",
-  dpi    =  72) {
+pkg_orphan <- function() {
+  ins <- installed.packages()
+  all <- tools::package_dependencies(rownames(ins), ins, recursive = TRUE)
 
-  ggsave(name,
-         plot,
-         device = device,
-         width  = width,
-         height = height,
-         units  = units,
-         dpi    = dpi)
+  # filter out built-in packages
+  print(setdiff(rownames(ins[grepl('.r', ins[, 'LibPath'], fixed = TRUE), ]),
+                unique(unlist(all))))
+}
+
+# palette
+.colors = rep(list(
+  '#000000',
+  '#307098',
+  '#832211',
+  '#b26925'
+), times = 10)
+
+.shapes = rep(list(
+  15,
+  16,
+  17,
+  18,
+  19,
+  20
+), times = 10)
+
+.lazy = new.env()
+
+decl_lazy <- function(name, pkgs, def) {
+  .lazy[[name]] <- list(
+    pkgs = pkgs,
+    def  = def
+  )
+}
+
+decl_lazy('draw_load', c('tidyr', 'ggplot2'),
+  function(name,
+           trans = FALSE,
+           rows  = NULL,
+           cols  = NULL) {
+    data <- read.table(name, header = FALSE, sep = '\t')
+    plot <- NULL
+
+    if (trans)
+      data <- t(data)
+
+    if (is.null(cols))
+      cols <- 1:ncol(data)
+
+    if (is.null(rows)) {
+      plot <- data.frame(x = data[[1]])
+
+      for (i in 2:ncol(data))
+        plot[[cols[i - 1]]] <- data[[i]]
+
+    } else {
+      plot <- data.frame(x = 1:nrow(data))
+
+      for (i in 1:ncol(data))
+        plot[[cols[i]]] <- data[[i]]
+    }
+
+    # convert to long format
+    plot <- pivot_longer(plot,
+                         cols      = !x,
+                         names_to  = 'cat',
+                         values_to = 'val')
+
+    return(ggplot(plot, aes(x     = x,
+                            y     = val,
+                            color = cat,
+                            shape = cat,
+                            size  = cat,
+                            fill  = cat)))
+  }
+)
+
+decl_lazy('draw_with', c('ggplot2'),
+  function(xlabel      = waiver(),
+           ylabel      = waiver(),
+           xlimit      = NULL,
+           ylimit      = NULL,
+           xlog        = FALSE,
+           ylog        = FALSE,
+           xticks      = waiver(),
+           yticks      = waiver(),
+           xticklabels = waiver(),
+           yticklabels = waiver(),
+           colors      = NULL,
+           shapes      = NULL,
+           sizes       = NULL,
+           fills       = NULL) {
+
+    mod <- list()
+
+    if (!xlog)
+      mod <- append(mod, scale_x_continuous(name   = xlabel,
+                                            breaks = xticks,
+                                            labels = xticklabels,
+                                            limits = xlimit))
+    else
+      mod <- append(mod, scale_x_log10     (name   = xlabel,
+                                            breaks = xticks,
+                                            labels = xticklabels,
+                                            limits = xlimit))
+
+    if (!ylog)
+      mod <- append(mod, scale_y_continuous(name   = ylabel,
+                                            breaks = yticks,
+                                            labels = yticklabels,
+                                            limits = ylimit))
+    else
+      mod <- append(mod, scale_y_log10     (name   = ylabel,
+                                            breaks = yticks,
+                                            labels = yticklabels,
+                                            limits = ylimit))
+
+    if (!is.null(colors))
+      mod <- append(mod, scale_color_manual(values = colors))
+    if (!is.null(shapes))
+      mod <- append(mod, scale_shape_manual(values = shapes))
+    if (!is.null(sizes ))
+      mod <- append(mod, scale_size_manual (values = sizes))
+    if (!is.null(fills ))
+      mod <- append(mod, scale_fill_manual (values = fills))
+
+    return(mod)
+  }
+)
+
+decl_lazy('draw_lite', c('ggplot2'),
+  function(aspect      =  0.4,
+           text_margin =  0.01,
+           font_name   = 'Linux Libertine',
+           font_size   =  12,
+           line_width  =  0.25,
+           tick_major  =  0.025,
+           tick_minor  =  0.0125,
+           lkey_height =  0.1,
+           lkey_width  =  0.3,
+           lkey_sep    =  0.15,
+           units       = 'inches') {
+
+    def_null <- element_blank()
+
+    def_line <- element_line(linewidth     =  line_width,
+                             linetype      = 'solid',
+                             lineend       =  NULL,
+                             color         = 'black',
+                             arrow         =  NULL,
+                             inherit.blank =  TRUE)
+
+    def_rect <- element_rect(fill          =  NA,
+                             linewidth     =  line_width,
+                             linetype      = 'solid',
+                             color         = 'black',
+                             inherit.blank =  TRUE)
+
+    def_text <- element_text(family        =  font_name,
+                             face          = 'plain',
+                             size          =  font_size,
+                             hjust         =  0.5,
+                             vjust         =  0.5,
+                             angle         =  0,
+                             lineheight    =  NULL,
+                             color         = 'black',
+                             margin        =  margin(t    = text_margin,
+                                                     b    = text_margin,
+                                                     l    = text_margin * 3,
+                                                     r    = text_margin * 3,
+                                                     unit = units),
+                             debug         =  FALSE,
+                             inherit.blank =  TRUE)
+
+    def_text_ytitle <- def_text
+    def_text_ylabel <- def_text
+
+    def_tick_major  <- unit(tick_major,  units)
+    def_tick_minor  <- unit(tick_minor,  units)
+
+    def_lkey_height <- unit(lkey_height, units)
+    def_lkey_width  <- unit(lkey_width,  units)
+    def_lkey_sep    <- unit(lkey_sep,    units)
+
+    def_unit_zero   <- unit(0.0,         units)
+
+    def_marg_zero   <- margin(0.0, 0.0, 0.0, 0.0, unit = units)
+
+    def_text_ytitle$angle <- 90
+    def_text_ylabel$hjust <- 1.0
+
+    return(theme(line                    =  def_line,
+                 rect                    =  def_rect,
+                 text                    =  def_text,
+                 title                   =  def_text,
+                 aspect.ratio            =  aspect,
+                 axis.title              =  def_text,
+                 axis.title.y            =  def_text_ytitle,
+                 axis.text               =  def_text,
+                 axis.text.y             =  def_text_ylabel,
+                 axis.ticks              =  def_line,
+                 axis.ticks.length       =  def_tick_major,
+                 axis.minor.ticks.length =  def_tick_minor,
+                 legend.margin           =  def_marg_zero,
+                 legend.spacing          =  def_lkey_height,
+                 legend.key.size         =  def_unit_zero,
+                 legend.key.height       =  def_lkey_height,
+                 legend.key.width        =  def_lkey_width,
+                 legend.key.spacing      =  def_lkey_sep,
+                 legend.text             =  def_text,
+                 legend.text.position    = 'right',
+                 legend.title            =  def_null,
+                 legend.position         = 'top',
+                 legend.direction        = 'horizontal',
+                 legend.byrow            =  TRUE,
+                 legend.location         = 'panel',
+                 legend.box              = 'horizontal',
+                 legend.box.just         = 'top',
+                 legend.box.margin       =  def_marg_zero,
+                 legend.box.spacing      =  def_tick_major,
+                 panel.background        =  def_null,
+                 panel.border            =  def_rect,
+                 panel.spacing           =  def_unit_zero,
+                 panel.grid              =  def_null,
+                 panel.ontop             =  TRUE,
+                 plot.tag                =  def_null,
+                 plot.margin             =  def_marg_zero,
+                 strip.background        =  def_null,
+                 strip.clip              = 'inherit',
+                 strip.placement         = 'inside',
+                 strip.text              =  def_text,
+                 strip.switch.pad.grid   =  def_unit_zero,
+                 strip.switch.pad.wrap   =  def_unit_zero,
+                 complete                =  TRUE,
+                 validate                =  TRUE))
+  }
+)
+
+decl_lazy('draw_save', c('ggplot2'),
+  function(name,
+           plot,
+           device =  cairo_pdf,
+           width  =  3.35,
+           height =  1.75,
+           units  = 'in',
+           dpi    =  72) {
+
+    ggsave(name,
+           plot,
+           device = device,
+           width  = width,
+           height = height,
+           units  = units,
+           dpi    = dpi)
+  }
+)
+
+load_lazy <- function() {
+  for (name in ls(.lazy)) {
+    f = .lazy[[name]]
+
+    for (pkg in f$pkgs)
+      library(pkg, character.only = TRUE)
+
+    assign(name, f$def, envir = .GlobalEnv)
+  }
 }
