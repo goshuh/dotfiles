@@ -95,6 +95,8 @@ decl_lazy('draw_with', c('ggplot2'),
            ylog        = FALSE,
            xticks      = waiver(),
            yticks      = waiver(),
+           xminorticks = waiver(),
+           yminorticks = waiver(),
            xticklabels = waiver(),
            yticklabels = waiver(),
            colors      = NULL,
@@ -106,33 +108,37 @@ decl_lazy('draw_with', c('ggplot2'),
 
     if (xlog)
       mod <- append(mod,
-                    scale_x_log10     (name   = xlabel,
-                                       breaks = xticks,
-                                       labels = xticklabels,
-                                       limits = xlimit,
-                                       oob    = scales::oob_keep))
+                    scale_x_log10     (name         = xlabel,
+                                       breaks       = xticks,
+                                       minor_breaks = xminorticks,
+                                       labels       = xticklabels,
+                                       limits       = xlimit,
+                                       oob          = scales::oob_keep))
     else
       mod <- append(mod,
-                    scale_x_continuous(name   = xlabel,
-                                       breaks = xticks,
-                                       labels = xticklabels,
-                                       limits = xlimit,
-                                       oob    = scales::oob_keep))
+                    scale_x_continuous(name         = xlabel,
+                                       breaks       = xticks,
+                                       minor_breaks = xminorticks,
+                                       labels       = xticklabels,
+                                       limits       = xlimit,
+                                       oob          = scales::oob_keep))
 
     if (ylog)
       mod <- append(mod,
-                    scale_y_log10     (name   = ylabel,
-                                       breaks = yticks,
-                                       labels = yticklabels,
-                                       limits = ylimit,
-                                       oob    = scales::oob_keep))
+                    scale_y_log10     (name         = ylabel,
+                                       breaks       = yticks,
+                                       minor_breaks = yminorticks,
+                                       labels       = yticklabels,
+                                       limits       = ylimit,
+                                       oob          = scales::oob_keep))
     else
       mod <- append(mod,
-                    scale_y_continuous(name   = ylabel,
-                                       breaks = yticks,
-                                       labels = yticklabels,
-                                       limits = ylimit,
-                                       oob    = scales::oob_keep))
+                    scale_y_continuous(name         = ylabel,
+                                       breaks       = yticks,
+                                       minor_breaks = yminorticks,
+                                       labels       = yticklabels,
+                                       limits       = ylimit,
+                                       oob          = scales::oob_keep))
 
     mod <- append(mod,
                   scale_color_manual(values =
@@ -200,6 +206,7 @@ decl_lazy('draw_lite', c('ggplot2'),
 
     def_text_ytitle <- def_text
     def_text_ylabel <- def_text
+    def_rect_border <- def_rect
 
     def_tick_major  <- unit(tick_major,  units)
     def_tick_minor  <- unit(tick_minor,  units)
@@ -212,8 +219,9 @@ decl_lazy('draw_lite', c('ggplot2'),
 
     def_marg_zero   <- margin(0.0, 0.0, 0.0, 0.0, unit = units)
 
-    def_text_ytitle$angle <- 90
-    def_text_ylabel$hjust <- 1.0
+    def_text_ytitle$angle     <- 90
+    def_text_ylabel$hjust     <- 1.0
+    def_rect_border$linewidth <- line_width * 2
 
     return(theme(line                    =  def_line,
                  rect                    =  def_rect,
@@ -245,7 +253,7 @@ decl_lazy('draw_lite', c('ggplot2'),
                  legend.box.margin       =  def_marg_zero,
                  legend.box.spacing      =  def_tick_major,
                  panel.background        =  def_null,
-                 panel.border            =  def_rect,
+                 panel.border            =  def_rect_border,
                  panel.spacing           =  def_unit_zero,
                  panel.grid              =  def_null,
                  panel.ontop             =  TRUE,
