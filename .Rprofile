@@ -18,26 +18,26 @@ pkg_orphan <- function() {
   all <- tools::package_dependencies(rownames(ins), ins, recursive = TRUE)
 
   # filter out built-in packages
-  print(setdiff(rownames(ins[grepl('.r', ins[, 'LibPath'], fixed = TRUE), ]),
+  print(setdiff(rownames(ins[grepl('/.r', ins[, 'LibPath'], fixed = TRUE), ]),
                 unique(unlist(all))))
 }
 
 # palette
-.colors = rep(list(
+.colors = c(
   '#000000',
   '#307098',
   '#832211',
   '#b26925'
-), times = 10)
+)
 
-.shapes = rep(list(
+.shapes = c(
   15,
   16,
   17,
   18,
   19,
   20
-), times = 10)
+)
 
 .lazy = new.env()
 
@@ -48,45 +48,41 @@ decl_lazy <- function(name, pkgs, def) {
   )
 }
 
-decl_lazy('draw_load', c('tidyr', 'ggplot2'),
+decl_lazy('draw_load', c('ggplot2'),
   function(name,
            trans = FALSE,
            rows  = NULL,
            cols  = NULL) {
-    data <- read.table(name, header = FALSE, sep = '\t')
-    plot <- NULL
+    data <- read.table(name,
+                       header = FALSE,
+                       sep    = '\t')
 
     if (trans)
       data <- t(data)
 
     if (is.null(cols))
-      cols <- 1:ncol(data)
+      cols <- as.character(1:ncol(data))
 
-    if (is.null(rows)) {
-      plot <- data.frame(x = data[[1]])
+    names(data) <- cols
 
-      for (i in 2:ncol(data))
-        plot[[cols[i - 1]]] <- data[[i]]
-
-    } else {
-      plot <- data.frame(x = 1:nrow(data))
-
-      for (i in 1:ncol(data))
-        plot[[cols[i]]] <- data[[i]]
-    }
+    if (is.null(rows))
+      names(data)[1] <- 'x'
+    else
+      cbind(x = rows, data)
 
     # convert to long format
-    plot <- pivot_longer(plot,
-                         cols      = !x,
-                         names_to  = 'cat',
-                         values_to = 'val')
+    plot <- tidyr::pivot_longer(data,
+                                cols      = !x,
+                                names_to  = 'cat',
+                                values_to = 'val')
 
-    return(ggplot(plot, aes(x     = x,
-                            y     = val,
-                            color = cat,
-                            shape = cat,
-                            size  = cat,
-                            fill  = cat)))
+    return(ggplot(plot,
+                  aes(x     = x,
+                      y     = val,
+                      color = cat,
+                      shape = cat,
+                      size  = cat,
+                      fill  = cat)))
   }
 )
 
@@ -108,36 +104,51 @@ decl_lazy('draw_with', c('ggplot2'),
 
     mod <- list()
 
-    if (!xlog)
-      mod <- append(mod, scale_x_continuous(name   = xlabel,
-                                            breaks = xticks,
-                                            labels = xticklabels,
-                                            limits = xlimit))
+    if (xlog)
+      mod <- append(mod,
+                    scale_x_log10     (name   = xlabel,
+                                       breaks = xticks,
+                                       labels = xticklabels,
+                                       limits = xlimit,
+                                       oob    = scales::oob_keep))
     else
-      mod <- append(mod, scale_x_log10     (name   = xlabel,
-                                            breaks = xticks,
-                                            labels = xticklabels,
-                                            limits = xlimit))
+      mod <- append(mod,
+                    scale_x_continuous(name   = xlabel,
+                                       breaks = xticks,
+                                       labels = xticklabels,
+                                       limits = xlimit,
+                                       oob    = scales::oob_keep))
 
-    if (!ylog)
-      mod <- append(mod, scale_y_continuous(name   = ylabel,
-                                            breaks = yticks,
-                                            labels = yticklabels,
-                                            limits = ylimit))
+    if (ylog)
+      mod <- append(mod,
+                    scale_y_log10     (name   = ylabel,
+                                       breaks = yticks,
+                                       labels = yticklabels,
+                                       limits = ylimit,
+                                       oob    = scales::oob_keep))
     else
-      mod <- append(mod, scale_y_log10     (name   = ylabel,
-                                            breaks = yticks,
-                                            labels = yticklabels,
-                                            limits = ylimit))
+      mod <- append(mod,
+                    scale_y_continuous(name   = ylabel,
+                                       breaks = yticks,
+                                       labels = yticklabels,
+                                       limits = ylimit,
+                                       oob    = scales::oob_keep))
 
-    if (!is.null(colors))
-      mod <- append(mod, scale_color_manual(values = colors))
-    if (!is.null(shapes))
-      mod <- append(mod, scale_shape_manual(values = shapes))
-    if (!is.null(sizes ))
-      mod <- append(mod, scale_size_manual (values = sizes))
-    if (!is.null(fills ))
-      mod <- append(mod, scale_fill_manual (values = fills))
+    mod <- append(mod,
+                  scale_color_manual(values =
+                    if (is.null(colors)) .colors else colors))
+
+    mod <- append(mod,
+                  scale_shape_manual(values =
+                    if (is.null(shapes)) .shapes else shapes))
+
+    if (!is.null(sizes))
+      mod <- append(mod,
+                    scale_size_manual(values = sizes))
+
+    if (!is.null(fills))
+      mod <- append(mod,
+                    scale_fill_manual(values = fills))
 
     return(mod)
   }
@@ -262,11 +273,11 @@ decl_lazy('draw_save', c('ggplot2'),
 
     ggsave(name,
            plot,
-           device = device,
-           width  = width,
-           height = height,
-           units  = units,
-           dpi    = dpi)
+           device =  device,
+           width  =  width,
+           height =  height,
+           units  =  units,
+           dpi    =  dpi)
   }
 )
 
