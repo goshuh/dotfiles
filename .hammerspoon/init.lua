@@ -126,7 +126,8 @@ local whitelist = {
     ['com.owncloud.desktopclient' ] = true,
     ['com.tencent.xinWeChat'      ] = true,
     ['com.microsoft.Outlook'      ] = true,
-    ['com.tinyspeck.slackmacgap'  ] = true
+    ['com.tinyspeck.slackmacgap'  ] = true,
+    ['ru.keepcode.Telegram'       ] = true
 }
 
 local filter = Window.filter.new():setDefaultFilter({})

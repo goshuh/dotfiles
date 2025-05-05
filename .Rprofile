@@ -113,6 +113,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = xminorticks,
                                        labels       = xticklabels,
                                        limits       = xlimit,
+                                       guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
     else
       mod <- append(mod,
@@ -121,6 +122,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = xminorticks,
                                        labels       = xticklabels,
                                        limits       = xlimit,
+                                       guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
 
     if (ylog)
@@ -130,6 +132,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = yminorticks,
                                        labels       = yticklabels,
                                        limits       = ylimit,
+                                       guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
     else
       mod <- append(mod,
@@ -138,6 +141,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = yminorticks,
                                        labels       = yticklabels,
                                        limits       = ylimit,
+                                       guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
 
     mod <- append(mod,
@@ -171,6 +175,7 @@ decl_lazy('draw_lite', c('ggplot2'),
            lkey_height =  0.1,
            lkey_width  =  0.3,
            lkey_sep    =  0.15,
+           plot_margin =  0.0,
            units       = 'inches') {
 
     def_null <- element_blank()
@@ -217,7 +222,12 @@ decl_lazy('draw_lite', c('ggplot2'),
 
     def_unit_zero   <- unit(0.0,         units)
 
-    def_marg_zero   <- margin(0.0, 0.0, 0.0, 0.0, unit = units)
+    def_marg_zero   <- margin(unit = units)
+    def_marg_plot   <- margin(plot_margin,
+                              plot_margin,
+                              plot_margin,
+                              plot_margin,
+                              unit = units)
 
     def_text_ytitle$angle     <- 90
     def_text_ylabel$hjust     <- 1.0
@@ -258,7 +268,7 @@ decl_lazy('draw_lite', c('ggplot2'),
                  panel.grid              =  def_null,
                  panel.ontop             =  TRUE,
                  plot.tag                =  def_null,
-                 plot.margin             =  def_marg_zero,
+                 plot.margin             =  def_marg_plot,
                  strip.background        =  def_null,
                  strip.clip              = 'inherit',
                  strip.placement         = 'inside',
