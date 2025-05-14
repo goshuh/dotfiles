@@ -168,7 +168,7 @@ def runq(env, *opts):
     for op in opts:
         if op.startswith('+'):
             if sp := op[1:].split('='):
-                env[sp[0]] = sp[1] if len(sp) > 1 else '1'
+                env[sp[0]] = '='.join(sp[1:]) if len(sp) > 1 else '1'
         elif op:
             real.append(op)
 

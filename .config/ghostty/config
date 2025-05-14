@@ -46,4 +46,4 @@ keybind                    = ctrl+down=scroll_page_down
 keybind                    = ctrl+shift+up=scroll_to_top
 keybind                    = ctrl+shift+down=scroll_to_bottom
 
-macos-titlebar-style       = hidden
+macos-titlebar-style       = tabs
