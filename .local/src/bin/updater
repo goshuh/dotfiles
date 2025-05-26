@@ -139,7 +139,7 @@ class Updater(object):
     @reg(r'drawio.*\.deb')
     def upd_drawio(self):
         self.sync('opt/drawio')
-        self.copy('usr/share/icons/hicolor/256x256/apps/drawio.png')
+        self.copy('usr/share/icons/hicolor/1024x1024/apps/drawio.png')
 
     @reg(r'master-pdf-editor-.*\.deb')
     def upd_pdfeditor(self):

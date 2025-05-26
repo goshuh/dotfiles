@@ -20,6 +20,13 @@
     "quick_actions": false,
     "selections_menu": false
   },
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "ignore_system_version": false
+      }
+    }
+  },
   "format_on_save": "off",
   "always_treat_brackets_as_autoclosed": true,
   "remove_trailing_whitespace_on_save": true,
