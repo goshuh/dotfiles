@@ -1,0 +1,10 @@
+[
+  {
+    "context": "VimControl && !menu",
+    "bindings": {
+      "ctrl-y": "editor::Copy",
+      "ctrl-p": "editor::Paste",
+      "ctrl-w": "pane::CloseActiveItem"
+    }
+  }
+]

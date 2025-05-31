@@ -151,6 +151,11 @@ class Updater(object):
         self.copy('opt/master-pdf-editor-5/masterpdfeditor5.png',
                    func = lambda x: 'pdfeditor.png')
 
+    @reg(r'obsidian.*\.deb')
+    def upd_obsidian(self):
+        self.sync('opt/Obsidian')
+        self.copy('usr/share/icons/hicolor/256x256/apps/obsidian.png')
+
     @reg(r'slack.*\.deb')
     def upd_slack(self):
         self.sync('usr/lib/slack')
