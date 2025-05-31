@@ -484,11 +484,24 @@ require('lazy').setup({
     },
 
     { 'neovim/nvim-lspconfig',
-        config = function ()
-            require('lspconfig').clangd.setup({})
+        dependencies = { 'saghen/blink.cmp' },
+        config = function (_, opts)
+            local lspconfig = require('lspconfig')
+            local blink     = require('blink.cmp')
+
+            for lang, conf in pairs(opts.servers) do
+                conf.capabilities = blink.get_lsp_capabilities(conf.capabilities)
+
+                lspconfig[lang].setup(conf)
+            end
 
             vim.diagnostic.enable(false)
-        end
+        end,
+        opts   = {
+            servers = {
+                clangd = {}
+            }
+        }
     },
 
     { 'nvim-telescope/telescope.nvim',
@@ -544,12 +557,55 @@ require('lazy').setup({
         end
     },
 
+    { 'saghen/blink.cmp',
+        dependencies = { 'xzbdmw/colorful-menu.nvim' },
+        opts = {
+            keymap    = { preset         =   'super-tab'               },
+            sources   = { default        = { 'lsp', 'path', 'buffer' } },
+            signature = { enabled        =    true                     },
+            fuzzy     = { implementation =   'lua'                     },
+            cmdline   = {
+                completion = {
+                    menu = {
+                        auto_show = true
+                    }
+                }
+            },
+        },
+        config = function(_, opts)
+            local blink    = require('blink.cmp')
+            local colorful = require('colorful-menu')
+
+            opts['completion'] = {
+                menu = {
+                    draw = {
+                        columns = {
+                            { 'kind_icon'      },
+                            { 'label', gap = 1 }
+                        },
+                        components = {
+                            label = {
+                                text      = function(ctx)
+                                    return colorful.blink_components_text(ctx)
+                                end,
+                                highlight = function(ctx)
+                                    return colorful.blink_components_highlight(ctx)
+                                end
+                            }
+                        }
+                    }
+                }
+            }
+
+            blink.setup(opts)
+        end
+    },
+
     { 'echasnovski/mini.nvim',
         config = function ()
             require('mini.align'     ).setup()
             require('mini.bracketed' ).setup()
             require('mini.comment'   ).setup()
-            require('mini.completion').setup()
             require('mini.cursorword').setup({
                 delay            = 500
             })
