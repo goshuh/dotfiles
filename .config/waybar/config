@@ -6,7 +6,8 @@
         "hyprland/window"
     ],
     "hyprland/window": {
-        "icon": true
+        "icon": true,
+        "separate-outputs": true
     },
     "modules-right": [
         "hyprland/workspaces",
@@ -16,8 +17,8 @@
         "clock"
     ],
     "hyprland/workspaces": {
-        "active-only": false,
-        "all-outputs": false
+        "active-only": true,
+        "all-outputs": true
     },
     "tray": {
         "icon-size": 18,
