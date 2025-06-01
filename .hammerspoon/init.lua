@@ -118,15 +118,16 @@ end
 local whitelist = {
     -- no suiside after closing the console
     ['org.hammerspoon.Hammerspoon'] = true,
+    -- the better window manager
     ['com.amethyst.Amethyst'      ] = true,
     -- unstable after killed and restarted multiple times
     ['com.apple.finder'           ] = true,
     -- long-running stuff
-    ['com.cisco.anyconnect.gui'   ] = true,
-    ['com.owncloud.desktopclient' ] = true,
     ['com.tencent.xinWeChat'      ] = true,
-    ['com.microsoft.Outlook'      ] = true,
     ['com.tinyspeck.slackmacgap'  ] = true,
+    ['com.microsoft.Outlook'      ] = true,
+    ['com.microsoft.OneDrive'     ] = true,
+    ['com.cisco.anyconnect.gui'   ] = true,
     ['ru.keepcode.Telegram'       ] = true
 }
 
