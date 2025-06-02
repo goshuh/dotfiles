@@ -1,0 +1,30 @@
+#!/usr/bin/python3
+
+import os
+import requests
+
+import xml.etree.ElementTree as et
+
+
+def main():
+    key = et.parse(os.path.expanduser("~/.local/state/syncthing/config.xml")) \
+            .getroot() \
+            .find('gui/apikey').text
+
+    res = requests.get("http://localhost:8384/rest/events/disk",
+                        headers = { 'X-API-Key': key },
+                        params  = { 'limit':     25  })
+
+    ret = []
+
+    for e in res.json():
+        t = e['time'].split('T')[1].split('.')[0]
+        d = e['data']
+        ret.append((t, d['action'], d['path']))
+
+    for t, a, p in reversed(ret):
+        print(f'{t} {a:8} {p}')
+
+
+if __name__ == "__main__":
+    main()
