@@ -14,11 +14,11 @@ local EventTap    = require 'hs.eventtap'
 --[[
 -- launchers
 function launch(app, ...)
-    Task.new('/usr/bin/open', nil, {'-a', app, '--args', ...}):start()
+  Task.new('/usr/bin/open', nil, {'-a', app, '--args', ...}):start()
 end
 
 function launchWithRoot(...)
-    Task.new('/usr/bin/osascript', nil, {'-e', string.format('do shell script "%s" with administrator privileges', table.concat({...}, ' '))}):start()
+  Task.new('/usr/bin/osascript', nil, {'-e', string.format('do shell script "%s" with administrator privileges', table.concat({...}, ' '))}):start()
 end
 --]]
 
@@ -34,14 +34,14 @@ Hotkey.bind('alt', 'c', function() Application.launchOrFocus('Visual Studio Code
 --[[
 -- mount tmpfs
 function createTmpFS(dir, mb)
-    local info = Host.volumeInformation()
+  local info = Host.volumeInformation()
 
-    if info[dir] then
-        return
-    end
+  if info[dir] then
+    return
+  end
 
-    -- really mount
-    launchWithRoot('mount_tmpfs', '-s' .. tostring(mb) .. 'M', dir)
+  -- really mount
+  launchWithRoot('mount_tmpfs', '-s' .. tostring(mb) .. 'M', dir)
 end
 
 Hotkey.bind('ctrl-alt', 'r', function() createTmpFS('/tmp/ram', 8192) end)
@@ -64,111 +64,111 @@ Hotkey.bind('alt-shift', 'tab', function() switcher:previous() end)
 --]]
 
 
+--[[
 -- sending Window to other spaces
 function moveWindowToSpace(n)
-    local win = Window.focusedWindow()
+  local win = Window.focusedWindow()
 
-    if not win or not win:isStandard() or win:isFullScreen() then
-        return
-    end
+  if not win or not win:isStandard() or win:isFullScreen() then
+    return
+  end
 
-    --[[
-    -- the canonical way of getting spaces
-    --   spaces.spaceForScreen(Window:screen())
-    -- doesn't work on ventura 13.2.1
-    Spaces.moveWindowToSpace(win, n)
-    --]]
+  -- the canonical way of getting spaces
+  --   spaces.spaceForScreen(Window:screen())
+  -- doesn't work on ventura 13.2.1
+  -- Spaces.moveWindowToSpace(win, n)
 
-    -- https://github.com/ianyh/Amethyst/issues/1676
-    local geo = win:frame()
-    local pos = Mouse.absolutePosition()
-    local mov = {
-        x = geo.x + geo.w / 2,
-        y = geo.y + 5
-    }
+  -- https://github.com/ianyh/Amethyst/issues/1676
+  local geo = win:frame()
+  local pos = Mouse.absolutePosition()
+  local mov = {
+    x = geo.x + geo.w / 2,
+    y = geo.y + 5
+  }
 
-    -- good (for gc) to bind a name
-    local lmd = EventTap.event.newMouseEvent(
-                EventTap.event.types.leftMouseDown, mov)
-    local lmu = EventTap.event.newMouseEvent(
-                EventTap.event.types.leftMouseUp,   mov)
+  -- good (for gc) to bind a name
+  local lmd = EventTap.event.newMouseEvent(
+              EventTap.event.types.leftMouseDown, mov)
+  local lmu = EventTap.event.newMouseEvent(
+              EventTap.event.types.leftMouseUp,   mov)
 
-    lmd:post()
+  lmd:post()
 
-    -- there must be something good that we can exploit
-    EventTap.keyStroke({ 'ctrl' }, tostring(n))
+  -- there must be something good that we can exploit
+  EventTap.keyStroke({ 'ctrl' }, tostring(n))
 
-    lmu:post()
+  lmu:post()
 
-    Mouse.absolutePosition(pos)
+  Mouse.absolutePosition(pos)
 end
 
--- Hotkey.bind('ctrl-alt', '1', 'Move window to space 1', function() moveWindowToSpace(1) end)
--- Hotkey.bind('ctrl-alt', '2', 'Move window to space 2', function() moveWindowToSpace(2) end)
--- Hotkey.bind('ctrl-alt', '3', 'Move window to space 3', function() moveWindowToSpace(3) end)
--- Hotkey.bind('ctrl-alt', '4', 'Move window to space 4', function() moveWindowToSpace(4) end)
--- Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSpace(5) end)
--- Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(6) end)
--- Hotkey.bind('ctrl-alt', '7', 'Move window to space 7', function() moveWindowToSpace(7) end)
--- Hotkey.bind('ctrl-alt', '8', 'Move window to space 8', function() moveWindowToSpace(8) end)
--- Hotkey.bind('ctrl-alt', '9', 'Move window to space 9', function() moveWindowToSpace(9) end)
+Hotkey.bind('ctrl-alt', '1', 'Move window to space 1', function() moveWindowToSpace(1) end)
+Hotkey.bind('ctrl-alt', '2', 'Move window to space 2', function() moveWindowToSpace(2) end)
+Hotkey.bind('ctrl-alt', '3', 'Move window to space 3', function() moveWindowToSpace(3) end)
+Hotkey.bind('ctrl-alt', '4', 'Move window to space 4', function() moveWindowToSpace(4) end)
+Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSpace(5) end)
+Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(6) end)
+Hotkey.bind('ctrl-alt', '7', 'Move window to space 7', function() moveWindowToSpace(7) end)
+Hotkey.bind('ctrl-alt', '8', 'Move window to space 8', function() moveWindowToSpace(8) end)
+Hotkey.bind('ctrl-alt', '9', 'Move window to space 9', function() moveWindowToSpace(9) end)
+--]]
 
 
 -- maximize when creating and quit when closing the last Window
 local whitelist = {
-    -- no suiside after closing the console
-    ['org.hammerspoon.Hammerspoon'] = true,
-    -- the better window manager
-    ['com.amethyst.Amethyst'      ] = true,
-    -- unstable after killed and restarted multiple times
-    ['com.apple.finder'           ] = true,
-    -- long-running stuff
-    ['com.tencent.xinWeChat'      ] = true,
-    ['com.tinyspeck.slackmacgap'  ] = true,
-    ['com.microsoft.Outlook'      ] = true,
-    ['com.microsoft.OneDrive'     ] = true,
-    ['com.cisco.anyconnect.gui'   ] = true,
-    ['ru.keepcode.Telegram'       ] = true
+  -- no suiside after closing the console
+  ['org.hammerspoon.Hammerspoon'] = true,
+  -- the better window manager
+  ['com.amethyst.Amethyst'      ] = true,
+  -- unstable after killed and restarted multiple times
+  ['com.apple.finder'           ] = true,
+  -- long-running stuff
+  ['com.tencent.xinWeChat'      ] = true,
+  ['com.tinyspeck.slackmacgap'  ] = true,
+  ['com.microsoft.Outlook'      ] = true,
+  ['com.microsoft.OneDrive'     ] = true,
+  ['com.cisco.anyconnect.gui'   ] = true,
+  ['ru.keepcode.Telegram'       ] = true
 }
 
 local filter = Window.filter.new():setDefaultFilter({})
 
 filter:subscribe({
-    --[[
-    [Window.filter.windowCreated  ] = function(win, name, evt)
-        if win:isMaximizable() then
-            win:maximize()
-        end
-    end,
-    --]]
-
-    [Window.filter.windowDestroyed] = function(win, name, evt)
-        local app = win:application()
-
-        if not app then
-            return
-        end
-
-        local bid = app:bundleID()
-
-        if not bid or whitelist[bid] then
-            return
-        end
-
-        Timer.doAfter(3, function()
-            if app and app:isRunning() then
-                -- not only in the current space
-                for _, w in ipairs(filter:getWindows()) do
-                    if w:application():bundleID() == bid then
-                        return
-                    end
-                end
-
-                -- no windows, kill
-                app:kill()
-            end
-        end)
+  --[[
+  [Window.filter.windowCreated  ] = function(win, name, evt)
+    if win:isMaximizable() then
+      win:maximize()
     end
+  end,
+  --]]
+
+  [Window.filter.windowDestroyed] = function(win, name, evt)
+    local app = win:application()
+
+    if not app then
+      return
+    end
+
+    local bid = app:bundleID()
+
+    if not bid or whitelist[bid] then
+      return
+    end
+
+    Timer.doAfter(3, function()
+      if app and app:isRunning() then
+        -- not only in the current space
+        for _, w in ipairs(filter:getWindows()) do
+          if w:application():bundleID() == bid then
+            return
+          end
+        end
+
+        -- no windows, kill
+        app:kill()
+      end
+    end)
+  end
 })
 
 
@@ -177,34 +177,34 @@ filter:subscribe({
 local yabai = string.format("/tmp/yabai_%s.socket", os.getenv("USER"))
 
 function sendToYabai(...)
-    local args = table.pack(...)
-    local mesg = ''
+  local args = table.pack(...)
+  local mesg = ''
 
-    for i = 1, args.n, 1 do
-        mesg = mesg .. tostring(args[i]) .. string.char(0)
-    end
-    mesg = string.pack('i4', string.len(mesg) + 1) .. mesg .. string.char(0)
+  for i = 1, args.n, 1 do
+    mesg = mesg .. tostring(args[i]) .. string.char(0)
+  end
+  mesg = string.pack('i4', string.len(mesg) + 1) .. mesg .. string.char(0)
 
-    local sock = Socket.new()
+  local sock = Socket.new()
 
-    sock:connect(yabai):write(mesg, function()
-        sock:disconnect()
-    end)
+  sock:connect(yabai):write(mesg, function()
+    sock:disconnect()
+  end)
 end
 
 function yabaiInit()
-    sendToYabai('config', 'layout',              'bsp')
-    sendToYabai('config', 'window_placement',    'second_child')
-    sendToYabai('config', 'window_topmost',      'on')
+  sendToYabai('config', 'layout',              'bsp')
+  sendToYabai('config', 'window_placement',    'second_child')
+  sendToYabai('config', 'window_topmost',      'on')
 
-    sendToYabai('config', 'top_padding',         '8')
-    sendToYabai('config', 'bottom_padding',      '8')
-    sendToYabai('config', 'left_padding',        '8')
-    sendToYabai('config', 'right_padding',       '8')
-    sendToYabai('config', 'window_gap',          '8')
+  sendToYabai('config', 'top_padding',         '8')
+  sendToYabai('config', 'bottom_padding',      '8')
+  sendToYabai('config', 'left_padding',        '8')
+  sendToYabai('config', 'right_padding',       '8')
+  sendToYabai('config', 'window_gap',          '8')
 
-    sendToYabai('config', 'mouse_modifier',      'fn')
-    sendToYabai('config', 'focus_follows_mouse', 'autofocus')
+  sendToYabai('config', 'mouse_modifier',      'fn')
+  sendToYabai('config', 'focus_follows_mouse', 'autofocus')
 end
 
 Hotkey.bind('ctrl-alt', 'y', yabaiInit)
@@ -232,21 +232,21 @@ Hotkey.bind('ctrl-alt', '0', function() sendToYabai('window', '--space',  '10'  
 --[[
 -- xwm
 hs.loadSpoon('XWM'):start():bindHotkeys({
-    toggle      = { { 'ctrl', 'alt' }, 'e'      },
-    tile        = { { 'ctrl', 'alt' }, 'q'      },
+  toggle      = { { 'ctrl', 'alt' }, 'e'      },
+  tile        = { { 'ctrl', 'alt' }, 'q'      },
 
-    swap_prev   = { { 'ctrl', 'alt' }, 'up'     },
-    swap_next   = { { 'ctrl', 'alt' }, 'down'   },
-    swap_master = { { 'ctrl', 'alt' }, 'return' },
+  swap_prev   = { { 'ctrl', 'alt' }, 'up'     },
+  swap_next   = { { 'ctrl', 'alt' }, 'down'   },
+  swap_master = { { 'ctrl', 'alt' }, 'return' },
 
-    skid        = { { 'ctrl', 'alt' }, 'tab'    },
+  skid        = { { 'ctrl', 'alt' }, 'tab'    },
 
-    jump_1      = { { 'ctrl', 'alt' }, '1'      },
-    jump_2      = { { 'ctrl', 'alt' }, '2'      },
-    jump_3      = { { 'ctrl', 'alt' }, '3'      },
-    jump_4      = { { 'ctrl', 'alt' }, '4'      },
-    jump_5      = { { 'ctrl', 'alt' }, '5'      },
-    jump_6      = { { 'ctrl', 'alt' }, '6'      }
+  jump_1      = { { 'ctrl', 'alt' }, '1'      },
+  jump_2      = { { 'ctrl', 'alt' }, '2'      },
+  jump_3      = { { 'ctrl', 'alt' }, '3'      },
+  jump_4      = { { 'ctrl', 'alt' }, '4'      },
+  jump_5      = { { 'ctrl', 'alt' }, '5'      },
+  jump_6      = { { 'ctrl', 'alt' }, '6'      }
 })
 --]]
 
@@ -258,11 +258,11 @@ local continuous = EventTap.event.properties.scrollWheelEventIsContinuous
 local delta      = EventTap.event.properties.scrollWheelEventDeltaAxis1
 
 local wheel = EventTap.new({EventTap.event.types.scrollWheel}, function(e)
-    if e:getProperty(continuous) == 0 then
-        e:setProperty(delta, -e:getProperty(delta))
-    end
+  if e:getProperty(continuous) == 0 then
+    e:setProperty(delta, -e:getProperty(delta))
+  end
 
-    return false, ({[0] = e})
+  return false, ({[0] = e})
 end)
 
 wheel:start()

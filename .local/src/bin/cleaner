@@ -53,6 +53,12 @@ class Cleaner(object):
                     if os.path.exists(fn := os.path.join(d, f'{f}.{e}' if e else f)):
                         yield fn
 
+    def update(self, f, p):
+        if not os.path.isfile(f):
+            return
+
+        self.exec.append(p.replace('{file}', f))
+
     def clean(self, *a, **kw):
         self.exec.extend(map(lambda x: f'rm -rf "{x}"', self.search(*a, **kw)))
 
@@ -69,6 +75,15 @@ class Cleaner(object):
                        input  = kw.get('inb', None),
                        stdout = kw.get('out', subprocess.DEVNULL),
                        stderr = kw.get('err', subprocess.DEVNULL))
+
+    def merge(self, s):
+        strs = []
+
+        for a in s.split('\n'):
+            if x := a.strip():
+                strs.append(x)
+
+        return ' '.join(strs)
 
     def __call__(self):
         self.clean('org.bluez',
@@ -309,7 +324,33 @@ class Cleaner(object):
                     pats = 's/^Exec=nm-applet$/Exec=nm-applet --indicator/g')
 
         # waydroid is unhappy with nft
-        self.exec.append('sed -i "/use_nft() {/!b;n;c\\    false" "/usr/lib/waydroid/data/scripts/waydroid-net.sh"')
+        self.update('/usr/lib/waydroid/data/scripts/waydroid-net.sh',
+                    'sed -i "/use_nft() {/!b;n;c\\    false" {file}')
+
+        # waydroid: stop creating desktop files
+        prog = self.merge('''
+            /def makeDesktopFile/ {
+                flag = 1;
+                print;
+                print "        return 0";
+            }
+
+            /def makeWaydroidDesktopFile/ {
+                print;
+                print "        return";
+            }
+
+            /def userUnlocked/ {
+                flag = 0;
+            }
+
+            !flag {
+                print;
+            }
+        ''')
+
+        self.update('/usr/lib/waydroid/tools/services/user_manager.py',
+                   f'awk -i inplace \'{prog}\' {{file}}')
 
         # really do the cleaning/purging
         log = '/tmp/cleaner.log'
