@@ -1,19 +1,20 @@
 #!/usr/bin/python3
 
 import os
+import argparse
 import requests
 
 import xml.etree.ElementTree as et
 
 
-def main():
+def main(args):
     key = et.parse(os.path.expanduser("~/.local/state/syncthing/config.xml")) \
             .getroot() \
             .find('gui/apikey').text
 
-    res = requests.get("http://localhost:8384/rest/events/disk",
-                        headers = { 'X-API-Key': key },
-                        params  = { 'limit':     25  })
+    res = requests.get(f"http://localhost:{args.p}/rest/events/disk",
+                       headers = { 'X-API-Key': key    },
+                       params  = { 'limit':     args.n })
 
     ret = []
 
@@ -26,5 +27,14 @@ def main():
         print(f'{t} {a:8} {p}')
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description = '')
+
+    parser.add_argument('-p', type = int, default = 8384)
+    parser.add_argument('-n', type = int, default = 25)
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    main()
+    main(parse_args())
