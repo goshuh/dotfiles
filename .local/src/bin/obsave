@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+import os
+import mmap
+import argparse
+
+
+# obtained by searching for 'requestSave='
+PATS = [
+    b'o.requestSave=@@((function(){return o.save(o.text,!0)}),2e3)',
+    b'i=@@(n.save.bind(n),2e3);return n.requestSave=function()'
+]
+
+
+def main(args):
+    fn = os.path.join(args.d, 'obsidian.asar')
+
+    if not os.path.isfile(fn):
+        return;
+
+    with open(fn, 'r+b') as fd:
+        with mmap.mmap(fd.fileno(), 0) as mfd:
+            for pat in PATS:
+                raw = pat.decode ()
+                old = raw.replace('@@',   args.v).encode()
+                new = raw.replace('2e3', '9e9'  ).encode()
+
+                mfd.seek(0)
+
+                if (pos := mfd.find(old)) >= 0:
+                    print(f'INFO: patching at {pos}')
+
+                    mfd.seek (pos)
+                    mfd.write(new)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description = '')
+
+    parser.add_argument('-d', default = 'resources')
+    parser.add_argument('-v', default = 'ic')
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    main(parse_args())
