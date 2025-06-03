@@ -22,8 +22,9 @@ def main(args):
         with mmap.mmap(fd.fileno(), 0) as mfd:
             for pat in PATS:
                 raw = pat.decode ()
-                old = raw.replace('@@',   args.v).encode()
-                new = raw.replace('2e3', '9e9'  ).encode()
+                var = raw.replace('@@', args.v)
+                old = var.encode ()
+                new = var.replace('2e3', '9e9').encode()
 
                 mfd.seek(0)
 
