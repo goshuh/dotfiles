@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import argparse
 import requests
 
@@ -8,7 +9,11 @@ import xml.etree.ElementTree as et
 
 
 def main(args):
-    key = et.parse(os.path.expanduser("~/.local/state/syncthing/config.xml")) \
+    dir = '~/Library/Application Support/Syncthing' \
+              if sys.platform == 'darwin' else      \
+          '~/.local/state/syncthing'
+
+    key = et.parse(os.path.expanduser(os.path.join(dir, "config.xml"))) \
             .getroot() \
             .find('gui/apikey').text
 
