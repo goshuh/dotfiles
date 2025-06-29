@@ -202,7 +202,7 @@ class Updater(object):
         for r, _, fs in os.walk('opt/wechat/vlc_plugins'):
             for f in fs:
                 if f.endswith('.so'):
-                    swlf.spawn('patchelf', '--set-rpath', '$ORIGIN:$ORIGIN/../..',
+                    self.spawn('patchelf', '--set-rpath', '$ORIGIN:$ORIGIN/../..',
                                 os.path.join(r, f))
 
         self.sync('opt/wechat')
