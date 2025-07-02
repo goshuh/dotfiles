@@ -2,11 +2,14 @@ import Qt.labs.folderlistmodel
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import Quickshell.Services.Notifications
+import Quickshell.Services.Pam
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -30,39 +33,53 @@ ShellRoot {
     }
 
     component GlobalConfig: Item {
-        readonly property color  foreground:       "#abb2bf"
-        readonly property color  foregroundDark:   "#848b98"
-        readonly property color  foregroundDarker: "#5f6571"
-        readonly property color  background:       "#23272e"
-        readonly property color  backgroundLight:  "#31353f"
+        readonly property color  foreground:         "#abb2bf"
+        readonly property color  foregroundDark:     "#848b98"
+        readonly property color  foregroundDarker:   "#5f6571"
+        readonly property color  background:         "#23272e"
+        readonly property color  backgroundLight:    "#31353f"
 
-        readonly property string fontFamily:       "Cantarell"
-        readonly property int    fontSize:          10
-        readonly property int    fontSizeLarge:     12
+        readonly property color  backgroundRed:      "#993939"
+        readonly property color  backgroundYellow:   "#93691d"
+        readonly property color  backgroundPurple:   "#8a3fa0"
 
-        readonly property int    panelWidth:        48
-        readonly property int    panelWorkspace:    5
-        readonly property int    panelPadding:      4
-        readonly property int    panelPaddingLarge: 12
+        readonly property string fontFamily:         "Cantarell"
+        readonly property int    fontSize:            10
+        readonly property int    fontSizeLarge:       12
+        readonly property int    fontSizeHuge:        64
 
-        readonly property int    iconSize:          20
-        readonly property int    iconSizeLarge:     28
-        readonly property int    iconSizeHuge:      42
+        readonly property int    panelWidth:          48
+        readonly property int    panelPadding:        4
+        readonly property int    panelPaddingLarge:   12
+        readonly property int    panelWorkspaceShown: 5
 
-        readonly property int    menuWidth:         320
-        readonly property int    menuEntryHeight:   20
-        readonly property int    menuPadding:       4
+        readonly property int    iconSize:            20
+        readonly property int    iconSizeLarge:       28
+        readonly property int    iconSizeHuge:        42
 
-        readonly property int    launcherWidth:     640
-        readonly property int    launcherHeightApp: 48
-        readonly property int    launcherHeightInp: 24
-        readonly property int    launcherPadding:   4
-        readonly property int    launcherApp:       8
+        readonly property int    menuEntryWidth:      320
+        readonly property int    menuEntryHeight:     20
+        readonly property int    menuPadding:         4
+
+        readonly property int    launcherWidth:       640
+        readonly property int    launcherHeight:      48
+        readonly property int    launcherPadding:     4
+        readonly property int    launcherItemShown:   8
+
+        readonly property int    lockerWidth:         320
+        readonly property int    lockerHeight:        32
+        readonly property int    lockerPadding:       8
+
+        readonly property int    notifierWidth:       480
+        readonly property int    notifierHeight:      48
+        readonly property int    notifierPadding:     4
+        readonly property int    notifierItemShown:   8
     }
 
     component GlobalHelper: Item {
         id: root
 
+        // icon
         function getIcon(desc) {
             const trial = Quickshell.iconPath(desc, true);
 
@@ -72,47 +89,7 @@ ShellRoot {
             return Quickshell.iconPath("image-missing", true);
         }
 
-        SystemClock {
-            id: subClock
-
-            precision: SystemClock.Seconds
-        }
-
-        readonly property date date: subClock.date
-
-        function fmtDate(fmt: string): string {
-            return Qt.formatDateTime(date, fmt);
-        }
-
-        Connections {
-            target: Hyprland
-
-            function onRawEvent(event: HyprlandEvent): void {
-                if (event.name.endsWith("v2"))
-                    return;
-
-                if (event.name.includes("mon"))
-                    Hyprland.refreshMonitors();
-                else if (event.name.includes("workspace"))
-                    Hyprland.refreshWorkspaces();
-                else
-                    Hyprland.refreshToplevels();
-            }
-        }
-
-        readonly property var  monitors:         Hyprland.monitors
-        readonly property var  workspaces:       Hyprland.workspaces
-        readonly property var  toplevels:        Hyprland.toplevels
-        readonly property var  focusedMonitor:   Hyprland.focusedMonitor
-        readonly property var  focusedWorkspace: Hyprland.focusedWorkspace
-        readonly property var  activeToplevel:   Hyprland.activeToplevel
-
-        readonly property int  workspaceId:      focusedWorkspace?.id ?? 1
-
-        function dispatch(request: string): void {
-            Hyprland.dispatch(request);
-        }
-
+        // apps
         readonly property var  rawApplications: {
             DesktopEntries.applications.values.filter(a => !a.noDisplay).sort((a, b) =>
                 a.name.localeCompare(b.name))
@@ -140,6 +117,68 @@ ShellRoot {
                 Quickshell.execDetached(exec.slice(2));
             else
                 Quickshell.execDetached(exec);
+        }
+
+        // time
+        SystemClock {
+            id: subclock
+
+            precision: SystemClock.Seconds
+        }
+
+        function fmtDate(fmt: string): string {
+            return Qt.formatDateTime(subclock.date, fmt);
+        }
+
+        // notif
+        readonly property list<var> notifs: []
+
+        NotificationServer {
+            id: subnotif
+
+            keepOnReload: false
+
+            actionsSupported:        true
+            bodyHyperlinksSupported: true
+            bodyImagesSupported:     true
+            bodyMarkupSupported:     true
+            imageSupported:          true
+
+            onNotification: notif => {
+                notif.tracked = true;
+
+                root.notifs.push(notif);
+            }
+        }
+
+        // hypr
+        Connections {
+            target: Hyprland
+
+            function onRawEvent(event: HyprlandEvent): void {
+                if (event.name.endsWith("v2"))
+                    return;
+
+                if (event.name.includes("mon"))
+                    Hyprland.refreshMonitors();
+                else if (event.name.includes("workspace"))
+                    Hyprland.refreshWorkspaces();
+                else
+                    Hyprland.refreshToplevels();
+            }
+        }
+
+        readonly property var  monitors:         Hyprland.monitors
+        readonly property var  workspaces:       Hyprland.workspaces
+        readonly property var  toplevels:        Hyprland.toplevels
+        readonly property var  focusedMonitor:   Hyprland.focusedMonitor
+        readonly property var  focusedWorkspace: Hyprland.focusedWorkspace
+        readonly property var  activeToplevel:   Hyprland.activeToplevel
+
+        readonly property int  workspaceId:      focusedWorkspace?.id ?? 1
+
+        function dispatch(request: string): void {
+            Hyprland.dispatch(request);
         }
 
         /*
@@ -183,66 +222,51 @@ ShellRoot {
     component PanelFocus: Item {
         id: root
 
-        implicitWidth:  config.panelWidth
-        implicitHeight: subColumn.height
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
-        property string icon:  helper.getIcon("")
-        property string text: "Desktop"
+        property string icon: helper.getIcon("")
 
         Column {
-            id: subColumn
-
-            anchors.horizontalCenter: parent.horizontalCenter
+            id: widget
 
             spacing: config.panelPaddingLarge
 
             IconImage {
-                id: subIcon
-
-                anchors.horizontalCenter: parent.horizontalCenter
-
                 implicitSize: config.iconSize
 
                 source: root.icon
             }
 
-            Item {
-                implicitWidth:  subText.width
-                implicitHeight: subText.height
+            Text {
+                id: subtext
 
-                anchors.horizontalCenter: parent.horizontalCenter
+                width: config.iconSize
 
-                Text {
-                    id: subText
+                font.family:    config.fontFamily
+                font.pointSize: config.fontSize
 
-                    width: config.iconSize
+                color: config.foreground
 
-                    color: config.foreground
+                transform: Rotation {
+                    angle: 90
 
-                    font.family:    config.fontFamily
-                    font.pointSize: config.fontSize
-
-                    anchors.centerIn: parent
-
-                    transform: Rotation {
-                        angle: 90
-
-                        origin.x: subText.width  / 2
-                        origin.y: subText.height / 2
-                    }
-
-                    text: root.text
+                    origin.x: subtext.width  / 2
+                    origin.y: subtext.height / 2
                 }
 
+                text: submetrics.text
+
                 TextMetrics {
+                    id: submetrics
+
                     font.family:    config.fontFamily
                     font.pointSize: config.fontSize
 
                     elide:      Qt.ElideRight
-                    elideWidth: root.height - subIcon.height - config.panelPadding
+                    elideWidth: parent.height
 
                     onTextChanged: {
-                        root.text = elidedText;
                         root.icon = helper.getIcon(helper.activeToplevel?.lastIpcObject.class ?? "");
                     }
 
@@ -255,8 +279,8 @@ ShellRoot {
     component PanelWorkspace: Item {
         id: root
 
-        implicitWidth:  config.iconSizeLarge
-        implicitHeight: config.iconSizeLarge
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         required property int  index
         required property var  occupation
@@ -265,13 +289,16 @@ ShellRoot {
         readonly property bool occupied: occupation[index + 1] ?? false
 
         Rectangle {
-            anchors.fill: parent
+            id: widget
+
+            implicitWidth:  config.iconSizeLarge
+            implicitHeight: config.iconSizeLarge
 
             radius: width / 2
 
-            color: root.focused ?
-                       config.backgroundLight :
-                      "transparent"
+            color:  root.focused ?
+                        config.backgroundLight :
+                       "transparent"
 
             MouseArea {
                 anchors.fill: parent
@@ -301,8 +328,8 @@ ShellRoot {
     component PanelWorkspaces: Item {
         id: root
 
-        implicitWidth:  config.panelWidth
-        implicitHeight: subColumn.height
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         readonly property var occupation: {
             helper.workspaces.values.reduce((a, c) => {
@@ -312,17 +339,13 @@ ShellRoot {
         }
 
         Column {
-            id: subColumn
-
-            anchors.horizontalCenter: parent.horizontalCenter
+            id: widget
 
             Repeater {
-                model: config.panelWorkspace
+                model: config.panelWorkspaceShown
 
                 PanelWorkspace {
                     occupation: root.occupation
-
-                    anchors.horizontalCenter: parent.horizontalCenter
                 }
             }
         }
@@ -331,53 +354,60 @@ ShellRoot {
     component PanelTrayMenuEntry: Rectangle {
         id: root
 
-        implicitWidth:  config.menuWidth - config.menuPadding * 2
-        implicitHeight: modelData.isSeparator ? 1 : subText.height
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         color: config.background
 
         required property int index
         required property var modelData
-
         required property var loader
 
-        Text {
-            id: subText
+        Rectangle {
+            id: widget
 
-            anchors.left:           parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.margins:        config.panelPadding
+            implicitWidth:  config.menuEntryWidth
+            implicitHeight: root.modelData.isSeparator ? 1 : config.menuEntryHeight
 
-            visible: !root.modelData.isSeparator
+            color: config.background
 
-            font.family:    config.fontFamily
-            font.pointSize: config.fontSize
+            Text {
+                id: subtext
 
-            color: root.modelData.enabled ?
-                       config.foreground :
-                       config.foregroundDarker
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins:        config.menuPadding
 
-            text:  root.modelData.text
-        }
+                visible: !root.modelData.isSeparator
 
-        MouseArea {
-            anchors.fill: parent
+                font.family:    config.fontFamily
+                font.pointSize: config.fontSize
 
-            visible: root.modelData.enabled &&
-                    !root.modelData.isSeparator
+                color: root.modelData.enabled ?
+                           config.foreground :
+                           config.foregroundDarker
 
-            hoverEnabled: true
-
-            onEntered: {
-                root.color = config.backgroundLight;
+                text:  root.modelData.text
             }
-            onExited: {
-                root.color = config.background;
-            }
-            onClicked: {
-                root.modelData.triggered();
 
-                root.loader.sourceComponent = null;
+            MouseArea {
+                anchors.fill: parent
+
+                visible: root.modelData.enabled &&
+                        !root.modelData.isSeparator
+
+                hoverEnabled: true
+
+                onEntered: {
+                    widget.color = config.backgroundLight;
+                }
+                onExited: {
+                    widget.color = config.background;
+                }
+                onClicked: {
+                    root.modelData.triggered();
+
+                    root.loader.sourceComponent = null;
+                }
             }
         }
     }
@@ -385,40 +415,45 @@ ShellRoot {
     component PanelTrayMenu: CustomWindow {
         id: root
 
-        implicitWidth:  config.menuWidth
-        implicitHeight: subColumn.height + config.panelPadding * 2
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+        anchors.left:   true
+        anchors.bottom: true
+
+        implicitWidth:  widget.implicitWidth  + config.menuPadding * 2
+        implicitHeight: widget.implicitHeight + config.menuPadding * 2
 
         color: config.background
 
         required property int index
         required property var modelData
-
         required property var loader
 
-        anchors {
-            left: true
-            bottom: true
-        }
-
         Column {
-            id: subColumn
+            id: widget
 
             anchors.centerIn: parent
 
-            spacing: 2
+            focus: true
+
+            spacing: config.menuPadding
 
             QsMenuOpener {
-                id: subOpener
+                id: subopener
 
                 menu: root.modelData
             }
 
             Repeater {
-                model: subOpener.children
+                model: subopener.children
 
                 PanelTrayMenuEntry {
                     loader: root.loader
                 }
+            }
+
+            Keys.onEscapePressed: {
+                root.loader.sourceComponent = null;
             }
         }
     }
@@ -426,14 +461,14 @@ ShellRoot {
     component PanelTrayItem: Item {
         id: root
 
-        implicitWidth:  config.iconSize
-        implicitHeight: config.iconSize
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         required property int index
         required property var modelData
 
         IconImage {
-            anchors.centerIn: parent
+            id: widget
 
             implicitSize: config.iconSize
 
@@ -449,23 +484,23 @@ ShellRoot {
                         root.modelData.activate();
 
                     else if (root.modelData.menu)
-                        subLoader.sourceComponent = subComp
+                        subloader.sourceComponent = subcomp
                 }
             }
         }
 
         Loader {
-            id: subLoader
+            id: subloader
         }
 
         Component {
-            id: subComp
+            id: subcomp
 
             PanelTrayMenu {
                 index:     root.index
                 modelData: root.modelData.menu
 
-                loader:    subLoader
+                loader:    subloader
             }
         }
     }
@@ -473,15 +508,13 @@ ShellRoot {
     component PanelTray: Item {
         id: root
 
-        implicitWidth:  config.panelWidth
-        implicitHeight: subColumn.height
+        visible: widget.children.length > 0
 
-        visible: subColumn.children.length > 0
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         Column {
-            id: subColumn
-
-            anchors.horizontalCenter: parent.horizontalCenter
+            id: widget
 
             spacing: config.panelPaddingLarge
 
@@ -499,18 +532,16 @@ ShellRoot {
     component PanelCalendar: Item {
         id: root
 
-        implicitWidth:  config.panelWidth
-        implicitHeight: subText.height
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         Text {
-            id: subText
-
-            anchors.centerIn: parent
-
-            color: config.foreground
+            id: widget
 
             font.family:    config.fontFamily
             font.pointSize: config.fontSize
+
+            color: config.foreground
 
             text: helper.fmtDate("hh:mm")
         }
@@ -667,29 +698,26 @@ ShellRoot {
         WlrLayershell.exclusionMode: ExclusionMode.Auto
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-        implicitWidth: subColumn.implicitWidth
+        anchors.left:   true
+        anchors.top:    true
+        anchors.bottom: true
+
+        implicitWidth: config.panelWidth
 
         color: config.background
 
-        anchors {
-            left:   true
-            top:    true
-            bottom: true
-        }
-
         ColumnLayout {
-            id: subColumn
-
-            anchors.fill: parent
+            anchors.top:              parent.top
+            anchors.bottom:           parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
 
             spacing: config.panelPaddingLarge
 
             PanelFocus {
-                // expandable
-                Layout.fillHeight:   true
-
                 Layout.alignment:    Qt.AlignHCenter
-                Layout.topMargin:    config.panelPaddingLarge
+                Layout.topMargin:    config.panelPadding
+
+                Layout.fillHeight:   true
             }
 
             PanelWorkspaces {
@@ -760,38 +788,42 @@ ShellRoot {
     component LauncherItem: Item {
         id: root
 
-        implicitWidth:  config.launcherWidth - config.launcherPadding * 2
-        implicitHeight: config.launcherHeightApp
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
+        required property int index
         required property var modelData
 
+        required property var list
         required property var loader
 
         Rectangle {
-            id: subRec
+            id: widget
 
-            anchors.fill: parent
+            implicitWidth:  config.launcherWidth
+            implicitHeight: config.launcherHeight
 
-            color: config.background
+            color: "transparent"
 
             RowLayout {
-                anchors.fill: parent
-
-                spacing: config.launcherPadding
+                anchors.verticalCenter: parent.verticalCenter
 
                 IconImage {
-                    Layout.alignment: Qt.AlignVCenter
+                    Layout.alignment:   Qt.AlignVCenter
+                    Layout.leftMargin:  config.launcherPadding
 
                     implicitSize: config.iconSizeHuge
 
-                    source: helper.getIcon(root.modelData?.icon, "image-missing")
+                    source: helper.getIcon(root.modelData?.icon)
                 }
 
                 Column {
-                    id: subColumn
+                    Layout.alignment:   Qt.AlignVCenter
+                    Layout.rightMargin: config.launcherPadding
 
-                    Layout.alignment: Qt.AlignVCenter
-                    Layout.fillWidth: true
+                    Layout.fillWidth:   true
+
+                    id: subcol
 
                     Text {
                         font.family:    config.fontFamily
@@ -809,72 +841,98 @@ ShellRoot {
                         color: config.foregroundDarker
 
                         TextMetrics {
-                            id: subMetrics
+                            id: submetrics
+
+                            font.family:    config.fontFamily
+                            font.pointSize: config.fontSize
 
                             elide:      Qt.ElideRight
-                            elideWidth: subColumn.width
+                            elideWidth: subcol.width
 
                             text: (root.modelData?.comment || root.modelData?.name) ?? ""
                         }
 
-                        text: subMetrics.elidedText
+                        text: submetrics.elidedText
                     }
                 }
             }
-        }
 
-        MouseArea {
-            anchors.fill: parent
+            MouseArea {
+                anchors.fill: parent
 
-            hoverEnabled: true
+                hoverEnabled: true
 
-            onEntered: {
-                subRec.color = config.backgroundLight;
-            }
-            onExited: {
-                subRec.color = config.background;
-            }
-            onClicked: {
-                helper.launch(root.modelData)
+                onEntered: {
+                    root.list.currentIndex = index;
+                }
+                onClicked: {
+                    helper.launch(root.modelData)
 
-                root.loader.sourceComponent = null;
+                    root.loader.sourceComponent = null;
+                }
             }
         }
     }
 
-    component LauncherList: ListView {
+    component LauncherList: Item {
         id: root
 
-        width:  config.launcherWidth - config.launcherPadding * 2
-        height: config.launcherHeightApp * config.launcherApp
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
-        model: ScriptModel {
-            values: root.getApps()
+        required property var name
+        required property var loader
 
-            onValuesChanged: {
-                root.currentIndex = 0;
+        function incr(): void {
+            widget.incrementCurrentIndex();
+        }
+        function decr(): void {
+            widget.decrementCurrentIndex();
+        }
+        function curr(): var {
+            return widget.currentItem;
+        }
+
+        ListView {
+            id: widget
+
+            implicitWidth:  config.launcherWidth
+            implicitHeight: config.launcherHeight * config.launcherItemShown
+
+            clip:  true
+            focus: true
+
+            spacing:     config.launcherPadding
+            orientation: Qt.Vertical
+
+            model: ScriptModel {
+                values: helper.getApp(name)
+
+                onValuesChanged: {
+                    widget.currentIndex = 0;
+                }
             }
-        }
 
-        spacing:     0
-        orientation: Qt.Vertical
+            currentIndex: 0
 
-        delegate: {
-            return subComp;
-        }
+            highlight: Rectangle {
+                color: config.backgroundLight
+            }
 
-        required property string name
-        required property var    loader
+            highlightMoveDuration:    0
+            highlightMoveVelocity:   -1
+            highlightResizeDuration:  0
+            highlightResizeVelocity: -1
 
-        function getApps() {
-            return helper.getApp(name)
-        }
+            delegate: subcomp
 
-        Component {
-            id: subComp
+            Component {
+                id: subcomp
 
-            LauncherItem {
-                loader: root.loader
+                LauncherItem {
+                    list:   widget
+                    loader: root.loader
+                }
             }
         }
     }
@@ -882,87 +940,77 @@ ShellRoot {
     component Launcher: CustomWindow {
         id: root
 
-        implicitWidth:  config.launcherWidth
-        implicitHeight: config.launcherHeightApp * config.launcherApp +
-                        config.launcherHeightInp
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         color: config.background
 
         required property var loader
 
         Column {
-            anchors.fill: parent
+            id: widget
 
-            spacing: 0
-
-            RowLayout {
-                implicitWidth:  parent.implicitWidth
-                implicitHeight: config.launcherHeightInp
-
-                IconImage {
-                    Layout.alignment: Qt.AlignVCenter
-                    Layout.leftMargin: 20
-
-                    implicitSize: config.iconSizeLarge
-
-                    source: helper.getIcon("search")
-                }
+            Item {
+                implicitWidth:  config.launcherWidth
+                implicitHeight: config.launcherHeight
 
                 TextField {
-                    Layout.alignment: Qt.AlignVCenter
-                    Layout.fillWidth: true
+                    id: subtext
 
-                    id: subField
+                    anchors.centerIn: parent
 
-                    implicitHeight: config.iconSizeLarge - config.launcherPadding * 2
+                    implicitWidth:  config.launcherWidth     / 2
+                    implicitHeight: config.launcherHeightApp / 1.6
 
-                    color: config.backgroundLight
+                    focus: true
+
+                    font.family:    config.fontFamily
+                    font.pointSize: config.fontSizeLarge
+
+                    color: config.foreground
+
+                    leftPadding:  height / 2
+                    rightPadding: height / 2
+
+                    cursorDelegate: Item {
+                    }
+
+                    background: Rectangle {
+                        anchors.fill: parent
+
+                        radius: height / 2
+
+                        color:  config.backgroundLight
+                    }
 
                     onAccepted: {
-                        const curr = subList.currentList?.currentItem;
+                        const curr = sublist.curr();
 
-                        if (curr) {
+                        if (curr)
                             helper.launch(curr.modelData);
 
-                            root.loader.sourceComponent = null;
-                        }
-                    }
-
-                    Keys.onUpPressed: {
-                        subList.currentList?.decrementCurrentIndex()
-                    }
-                    Keys.onDownPressed: {
-                        subList.currentList?.incrementCurrentIndex()
-                    }
-                    Keys.onEscapePressed: {
                         root.loader.sourceComponent = null;
-                    }
-                }
-
-                IconImage {
-                    Layout.alignment: Qt.AlignVCenter
-                    Layout.rightMargin: 20
-
-                    implicitSize: config.iconSizeLarge
-
-                    source: helper.getIcon("close")
-
-                    MouseArea {
-                        onClicked: {
-                            subField.text = "";
-                        }
                     }
                 }
             }
 
             LauncherList {
-                id: subList
+                id: sublist
 
-                implicitWidth:  parent.width
-                implicitHeight: config.launcherHeightApp * config.launcherApp
-
-                name:   subField.text
+                name:   subtext.text
                 loader: root.loader
+            }
+
+            Keys.onUpPressed: {
+                sublist.decr();
+            }
+            Keys.onDownPressed: {
+                sublist.incr();
+            }
+            Keys.onEscapePressed: {
+                root.loader.sourceComponent = null;
             }
         }
     }
@@ -971,18 +1019,18 @@ ShellRoot {
         id: root
 
         function launch(): void {
-            subLoader.sourceComponent = subComp
+            subloader.sourceComponent = subcomp
         }
 
         Loader {
-            id: subLoader
+            id: subloader
         }
 
         Component {
-            id: subComp
+            id: subcomp
 
             Launcher {
-                loader: subLoader
+                loader: subloader
             }
         }
     }
@@ -991,16 +1039,16 @@ ShellRoot {
         model: Quickshell.screens
 
         Scope {
-            id: subScope
+            id: subscope
 
             property var modelData
 
             Panel {
-                screen: subScope.modelData
+                screen: subscope.modelData
             }
 
             Wallpaper {
-                screen: subScope.modelData
+                screen: subscope.modelData
             }
         }
     }
@@ -1016,5 +1064,359 @@ ShellRoot {
         onPressed: {
             launcher.launch()
         }
+    }
+
+    component Locker: WlSessionLockSurface {
+        id: root
+
+        required property var lock
+
+        property color color: config.backgroundLight
+
+        ScreencopyView {
+            id: subscreen
+
+            anchors.fill: parent
+
+            visible: true
+
+            captureSource: root.screen
+        }
+
+        MultiEffect {
+            id: subeffect
+
+            anchors.fill: parent
+
+            source: subscreen
+
+            autoPaddingEnabled: false
+
+            blurEnabled:    true
+            blur:           1
+            blurMax:        64
+            blurMultiplier: 2
+        }
+
+        PamContext {
+            id: subpam
+
+            onResponseRequiredChanged: {
+                if (!responseRequired)
+                    return;
+
+                respond(widget.text)
+            }
+
+            onCompleted: res => {
+                if (res === PamResult.Success) {
+                    root.lock.locked = false;
+                    return;
+                }
+
+                widget.text = "";
+
+                if (res === PamResult.Error)
+                    root.color = config.backgroundYellow
+                else if (res === PamResult.MaxTries)
+                    root.color = config.backgroundPurple
+                else if (res === PamResult.Failed)
+                    root.color = config.backgroundRed
+            }
+        }
+
+        Column {
+            anchors.centerIn: parent
+
+            spacing: config.lockerPadding
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                font.family:    config.fontFamily
+                font.pointSize: config.fontSizeHuge
+
+                color: config.foreground
+
+                style:     "Raised"
+                styleColor: config.background
+
+                text: helper.fmtDate("hh:mm")
+            }
+
+            TextField {
+                id: widget
+
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                implicitWidth:  config.lockerWidth
+                implicitHeight: config.lockerHeight
+
+                focus: true
+
+                font.family:    config.fontFamily
+                font.pointSize: config.fontSizeLarge
+
+                color: config.foreground
+
+                leftPadding:  height / 2
+                rightPadding: height / 2
+
+                echoMode:          TextInput.Password
+                passwordMaskDelay: 0
+
+                cursorDelegate: Item {
+                }
+
+                background: Rectangle {
+                    anchors.fill: parent
+
+                    radius: height / 2
+
+                    color:  root.color
+                }
+
+                onTextChanged: {
+                    root.color = config.backgroundLight
+                }
+
+                onAccepted: {
+                    if (subpam.active)
+                        return;
+
+                    subpam.start();
+                }
+            }
+        }
+    }
+
+    component LockerWrapper: Item {
+        id: root
+
+        function launch(): void {
+            subloader.sourceComponent = subcomp
+        }
+
+        Loader {
+            id: subloader
+        }
+
+        Component {
+            id: subcomp
+
+            WlSessionLock {
+                id: sublock
+
+                locked: true
+
+                onLockedChanged: {
+                    if (!locked)
+                        subloader.sourceComponent = null;
+                }
+
+                Locker {
+                    lock: sublock
+                }
+            }
+        }
+    }
+
+    LockerWrapper {
+        id: locker
+    }
+
+    CustomShortcut {
+        name:        "lock"
+        description: "Launch locker"
+
+        onPressed: {
+            locker.launch()
+        }
+    }
+
+    component NotifierItem: Item {
+        id: root
+
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
+
+        required property int index
+        required property var modelData
+
+        required property var list
+        required property var loader
+
+        Rectangle {
+            id: widget
+
+            implicitWidth:  config.launcherWidth
+            implicitHeight: config.launcherHeight
+
+            color: "transparent"
+
+            RowLayout {
+                anchors.verticalCenter: parent.verticalCenter
+
+                IconImage {
+                    Layout.alignment:   Qt.AlignVCenter
+                    Layout.leftMargin:  config.launcherPadding
+
+                    visible: root.modelData.appIcon.length > 0
+
+                    implicitSize: config.iconSizeHuge
+
+                    source: helper.getIcon(root.modelData.appIcon)
+                }
+
+                Column {
+                    Layout.alignment:   Qt.AlignVCenter
+                    Layout.rightMargin: config.launcherPadding
+
+                    Layout.fillWidth:   true
+
+                    id: subcol
+
+                    Text {
+                        font.family:    config.fontFamily
+                        font.pointSize: config.fontSizeLarge
+
+                        color: config.foreground
+
+                        text: root.modelData?.name ?? ""
+                    }
+
+                    Text {
+                        font.family:    config.fontFamily
+                        font.pointSize: config.fontSize
+
+                        color: config.foregroundDarker
+
+                        TextMetrics {
+                            id: submetrics
+
+                            font.family:    config.fontFamily
+                            font.pointSize: config.fontSize
+
+                            elide:      Qt.ElideRight
+                            elideWidth: subcol.width
+
+                            text: (root.modelData?.comment || root.modelData?.name) ?? ""
+                        }
+
+                        text: submetrics.elidedText
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+
+                hoverEnabled: true
+
+                onEntered: {
+                    root.list.currentIndex = index;
+                }
+                onClicked: {
+                    helper.launch(root.modelData)
+
+                    root.loader.sourceComponent = null;
+                }
+            }
+        }
+    }
+
+    component Notifier: CustomWindow {
+        id: root
+
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+        anchors.right:  true
+        anchors.bottom: true
+
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
+
+        color: config.background
+
+        required property var loader
+
+        ListView {
+            id: widget
+
+            implicitWidth:  config.notifierWidth
+            implicitHeight: config.notifierHeight * Math.max(config.notifierShown, helper.notifs.length)
+
+            clip:  true
+            focus: true
+
+            spacing:     config.notifierPadding
+            orientation: Qt.Vertical
+
+            model: ScriptModel {
+                values: helper.notifs
+
+                onValuesChanged: {
+                    widget.currentIndex = 0;
+                }
+            }
+
+            currentIndex: 0
+
+            highlight: Rectangle {
+                color: config.backgroundLight
+            }
+
+            highlightMoveDuration:    0
+            highlightMoveVelocity:   -1
+            highlightResizeDuration:  0
+            highlightResizeVelocity: -1
+
+            delegate: subcomp
+
+            Component {
+                id: subcomp
+
+                NotifierItem {
+                    list:   widget
+                    loader: root.loader
+                }
+            }
+        }
+    }
+
+    component NotifierWrapper: Item {
+        id: root
+
+        function launch(): void {
+            if (subloader.sourceComponent === null)
+                subloader.sourceComponent = subcomp
+        }
+
+        Loader {
+            id: subloader
+        }
+
+        Component {
+            id: subcomp
+
+            Variants {
+                model: Quickshell.screens
+
+                Scope {
+                    id: subscope
+
+                    property var modelData
+
+                    Notifier {
+                        screen: subscope.modelData
+                        loader: subloader
+                    }
+                }
+            }
+        }
+    }
+
+    NotifierWrapper {
+        id: notifier
     }
 }
