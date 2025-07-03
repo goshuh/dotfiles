@@ -32,12 +32,66 @@ ShellRoot {
         appid: "quickshell"
     }
 
+    component CustomText: Text {
+        font.family:    config.fontFamily
+        font.pointSize: config.fontSize
+
+        color: config.foreground
+    }
+
+    component CustomTextMetrics: TextMetrics {
+        font.family:    config.fontFamily
+        font.pointSize: config.fontSize
+
+        elide:      Qt.ElideRight
+        elideWidth: parent.width
+    }
+
+    component CustomListView: ListView {
+        clip:  true
+        focus: true
+
+        orientation: Qt.Vertical
+
+        currentIndex: 0
+
+        highlight: Rectangle {
+            color: config.backgroundLight
+        }
+
+        highlightMoveDuration:    0
+        highlightMoveVelocity:   -1
+        highlightResizeDuration:  0
+        highlightResizeVelocity: -1
+    }
+
+    component CustomPopout: Item {
+        required property var comp
+
+        property var loader: subloader
+
+        function exec(): void {
+            subloader.active = true;
+        }
+        function done(): void {
+            subloader.active = false;
+        }
+
+        Loader {
+            id: subloader
+
+            active: false
+
+            sourceComponent: comp
+        }
+    }
+
     component GlobalConfig: Item {
         readonly property color  foreground:         "#abb2bf"
         readonly property color  foregroundDark:     "#848b98"
         readonly property color  foregroundDarker:   "#5f6571"
-        readonly property color  background:         "#23272e"
         readonly property color  backgroundLight:    "#31353f"
+        readonly property color  background:         "#23272e"
 
         readonly property color  backgroundRed:      "#993939"
         readonly property color  backgroundYellow:   "#93691d"
@@ -58,35 +112,60 @@ ShellRoot {
         readonly property int    iconSizeHuge:        42
 
         readonly property int    menuEntryWidth:      320
-        readonly property int    menuEntryHeight:     20
+        readonly property int    menuEntryHeight:     28
+        readonly property int    menuSLineHeight:     2
         readonly property int    menuPadding:         4
 
         readonly property int    launcherWidth:       640
         readonly property int    launcherHeight:      48
-        readonly property int    launcherPadding:     4
-        readonly property int    launcherItemShown:   8
+        readonly property int    launcherPadding:     8
+        readonly property int    launcherItemShown:   5
 
         readonly property int    lockerWidth:         320
         readonly property int    lockerHeight:        32
         readonly property int    lockerPadding:       8
 
-        readonly property int    notifierWidth:       480
+        readonly property int    notifierWidth:       320
         readonly property int    notifierHeight:      48
         readonly property int    notifierPadding:     4
-        readonly property int    notifierItemShown:   8
+        readonly property int    notifierItemShown:   5
     }
 
     component GlobalHelper: Item {
         id: root
 
         // icon
-        function getIcon(desc) {
-            const trial = Quickshell.iconPath(desc, true);
+        function getIcon(str: string): string {
+            const trial = Quickshell.iconPath(str, true);
 
             if (trial.length > 0)
                 return trial;
 
             return Quickshell.iconPath("image-missing", true);
+        }
+        function getIconSum(str: string): string {
+            if (str.includes("welcome"))
+                return "waving_hand";
+            if (str.includes("recording"))
+                return "screen_record";
+            if (str.includes("screenshot"))
+                return "screenshot_monitor";
+            if (str.includes("time"))
+                return "schedule";
+            if (str.includes("installed"))
+                return "download";
+            if (str.includes("update"))
+                return "update";
+            if (str.includes("unable to"))
+                return "deployed_code_alert";
+            if (str.includes("reboot"))
+                return "restart_alt";
+            if (str.includes("file"))
+                return "folder_copy";
+            if (str.includes("profile"))
+                return "person";
+
+            return "";
         }
 
         // apps
@@ -109,7 +188,6 @@ ShellRoot {
                 scoreFn: r => r[0].score > 0 ? (r[0].score * 0.9 + r[1].score * 0.1) : 0
             }).map(r => r.obj.entry)
         }
-
         function launch(entry: DesktopEntry): void {
             let exec = entry.execString.split(" ").filter(a => !a.startsWith("%"))
 
@@ -131,7 +209,7 @@ ShellRoot {
         }
 
         // notif
-        readonly property list<var> notifs: []
+        readonly property var notifs: subnotif.trackedNotifications
 
         NotificationServer {
             id: subnotif
@@ -147,7 +225,7 @@ ShellRoot {
             onNotification: notif => {
                 notif.tracked = true;
 
-                root.notifs.push(notif);
+                notifier.exec();
             }
         }
 
@@ -180,14 +258,6 @@ ShellRoot {
         function dispatch(request: string): void {
             Hyprland.dispatch(request);
         }
-
-        /*
-        signal startAreaPickerRequested(bool freeze)
-
-        function startAreaPicker(freeze: bool): void {
-            startAreaPickerRequested(freeze);
-        }
-        */
     }
 
     GlobalConfig {
@@ -196,27 +266,6 @@ ShellRoot {
 
     GlobalHelper {
         id: helper
-
-        /*
-        onStartAreaPickerRequested: freeze => {
-            root.areaPickerFreeze = freeze;
-            root.areaPickerActive = true;
-        }
-        */
-    }
-
-    CustomShortcut {
-        name:        "screenshot"
-        description: "Take screenshot"
-
-        onPressed: helper.startAreaPicker(false)
-    }
-
-    CustomShortcut {
-        name:        "screenshotFreeze"
-        description: "Take screenshot (freeze mode)"
-
-        onPressed: helper.startAreaPicker(true)
     }
 
     component PanelFocus: Item {
@@ -238,15 +287,10 @@ ShellRoot {
                 source: root.icon
             }
 
-            Text {
+            CustomText {
                 id: subtext
 
                 width: config.iconSize
-
-                font.family:    config.fontFamily
-                font.pointSize: config.fontSize
-
-                color: config.foreground
 
                 transform: Rotation {
                     angle: 90
@@ -256,22 +300,16 @@ ShellRoot {
                 }
 
                 text: submetrics.text
+            }
 
-                TextMetrics {
-                    id: submetrics
+            CustomTextMetrics {
+                id: submetrics
 
-                    font.family:    config.fontFamily
-                    font.pointSize: config.fontSize
-
-                    elide:      Qt.ElideRight
-                    elideWidth: parent.height
-
-                    onTextChanged: {
-                        root.icon = helper.getIcon(helper.activeToplevel?.lastIpcObject.class ?? "");
-                    }
-
-                    text: helper.activeToplevel?.title ?? qsTr("Desktop")
+                onTextChanged: {
+                    root.icon = helper.getIcon(helper.activeToplevel?.lastIpcObject.class ?? "");
                 }
+
+                text: helper.activeToplevel?.title ?? qsTr("Desktop")
             }
         }
     }
@@ -311,17 +349,14 @@ ShellRoot {
             }
         }
 
-        Text {
+        CustomText {
             anchors.centerIn: parent
-
-            font.family:    config.fontFamily
-            font.pointSize: config.fontSize
 
             color: root.occupied ?
                        config.foreground :
                        config.foregroundDarker
 
-            text:  root.index + 1
+            text: root.index + 1
         }
     }
 
@@ -351,63 +386,75 @@ ShellRoot {
         }
     }
 
-    component PanelTrayMenuEntry: Rectangle {
+    component PanelTrayMenuItem: Item {
         id: root
 
         implicitWidth:  widget.implicitWidth
         implicitHeight: widget.implicitHeight
 
-        color: config.background
-
         required property int index
         required property var modelData
-        required property var loader
+        required property var popout
 
         Rectangle {
             id: widget
 
             implicitWidth:  config.menuEntryWidth
-            implicitHeight: root.modelData.isSeparator ? 1 : config.menuEntryHeight
+            implicitHeight: root.modelData.isSeparator ?
+                                config.menuSLineHeight :
+                                config.menuEntryHeight
 
             color: config.background
 
-            Text {
+            CustomText {
                 id: subtext
 
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.margins:        config.menuPadding
+
+                anchors.left:       parent.left
+                anchors.leftMargin: config.menuPadding
 
                 visible: !root.modelData.isSeparator
 
-                font.family:    config.fontFamily
-                font.pointSize: config.fontSize
+                font.pointSize: config.fontSizeLarge
 
                 color: root.modelData.enabled ?
                            config.foreground :
                            config.foregroundDarker
 
-                text:  root.modelData.text
+                text: submetrics.elidedText
             }
 
-            MouseArea {
-                anchors.fill: parent
+            CustomTextMetrics {
+                id: submetrics
 
-                visible: root.modelData.enabled &&
-                        !root.modelData.isSeparator
+                font.pointSize: config.fontSizeLarge
 
-                hoverEnabled: true
+                elide:      Qt.ElideRight
+                elideWidth: parent.width - config.menuPadding * 2
 
-                onEntered: {
-                    widget.color = config.backgroundLight;
-                }
-                onExited: {
-                    widget.color = config.background;
-                }
-                onClicked: {
-                    root.modelData.triggered();
+                text: root.modelData.text
+            }
+        }
 
-                    root.loader.sourceComponent = null;
-                }
+        MouseArea {
+            anchors.fill: parent
+
+            visible: root.modelData.enabled &&
+                    !root.modelData.isSeparator
+
+            hoverEnabled: true
+
+            onEntered: {
+                widget.color = config.backgroundLight;
+            }
+            onExited: {
+                widget.color = config.background;
+            }
+            onClicked: {
+                root.modelData.triggered();
+
+                root.popout.done();
             }
         }
     }
@@ -420,23 +467,18 @@ ShellRoot {
         anchors.left:   true
         anchors.bottom: true
 
-        implicitWidth:  widget.implicitWidth  + config.menuPadding * 2
-        implicitHeight: widget.implicitHeight + config.menuPadding * 2
+        implicitWidth:  widget.implicitWidth
+        implicitHeight: widget.implicitHeight
 
         color: config.background
 
-        required property int index
         required property var modelData
-        required property var loader
+        required property var popout
 
         Column {
             id: widget
 
-            anchors.centerIn: parent
-
             focus: true
-
-            spacing: config.menuPadding
 
             QsMenuOpener {
                 id: subopener
@@ -447,13 +489,13 @@ ShellRoot {
             Repeater {
                 model: subopener.children
 
-                PanelTrayMenuEntry {
-                    loader: root.loader
+                PanelTrayMenuItem {
+                    popout: root.popout
                 }
             }
 
             Keys.onEscapePressed: {
-                root.loader.sourceComponent = null;
+                root.popout.done();
             }
         }
     }
@@ -473,34 +515,30 @@ ShellRoot {
             implicitSize: config.iconSize
 
             source: root.modelData.icon
+        }
 
-            MouseArea {
-                anchors.fill: parent
+        CustomPopout {
+            id: subpop
 
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
-
-                onClicked: event => {
-                    if (event.button === Qt.LeftButton)
-                        root.modelData.activate();
-
-                    else if (root.modelData.menu)
-                        subloader.sourceComponent = subcomp
+            comp: Component {
+                PanelTrayMenu {
+                    modelData: root.modelData.menu
+                    popout:    subpop
                 }
             }
         }
 
-        Loader {
-            id: subloader
-        }
+        MouseArea {
+            anchors.fill: parent
 
-        Component {
-            id: subcomp
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            PanelTrayMenu {
-                index:     root.index
-                modelData: root.modelData.menu
+            onClicked: event => {
+                if (event.button === Qt.LeftButton)
+                    root.modelData.activate();
 
-                loader:    subloader
+                else if (root.modelData.menu)
+                    subpop.exec();
             }
         }
     }
@@ -535,164 +573,12 @@ ShellRoot {
         implicitWidth:  widget.implicitWidth
         implicitHeight: widget.implicitHeight
 
-        Text {
+        CustomText {
             id: widget
-
-            font.family:    config.fontFamily
-            font.pointSize: config.fontSize
-
-            color: config.foreground
 
             text: helper.fmtDate("hh:mm")
         }
     }
-
-    /*
-    // Area Picker Implementation
-    property bool areaPickerActive: false
-    property bool areaPickerFreeze: false
-
-    Variants {
-        model: root.areaPickerActive ? Quickshell.screens : []
-
-        PanelWindow {
-            required property var modelData
-
-            id: areaPickerWindow
-            screen: modelData
-
-            visible: root.areaPickerActive
-            color: "transparent"
-
-            implicitWidth: screen.width
-            implicitHeight: screen.height
-
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-
-            anchors {
-                left: true
-                right: true
-                top: true
-                bottom: true
-            }
-
-            PanelAreaPicker {
-                anchors.fill: parent
-                screen: areaPickerWindow.modelData
-                freeze: root.areaPickerFreeze
-                onClosed: root.areaPickerActive = false
-            }
-        }
-    }
-
-    component PanelAreaPicker: MouseArea {
-        id: picker
-
-        required property var screen
-        required property bool freeze
-        signal closed()
-
-        focus: true
-        hoverEnabled: true
-        cursorShape: Qt.CrossCursor
-
-        property real startX: 0
-        property real startY: 0
-        property real currentX: 0
-        property real currentY: 0
-
-        property real selectionX: Math.min(startX, currentX)
-        property real selectionY: Math.min(startY, currentY)
-        property real selectionWidth: Math.abs(currentX - startX)
-        property real selectionHeight: Math.abs(currentY - startY)
-
-        property bool onWindow: false
-
-        Keys.onEscapePressed: closed()
-
-        Component.onCompleted: {
-            // Initialize selection to center of screen
-            startX = screen.width / 2 - 100;
-            startY = screen.height / 2 - 100;
-            currentX = screen.width / 2 + 100;
-            currentY = screen.height / 2 + 100;
-        }
-
-        onPressed: event => {
-            startX = event.x;
-            startY = event.y;
-            currentX = event.x;
-            currentY = event.y;
-        }
-
-        onPositionChanged: event => {
-            if (pressed) {
-                onWindow = false;
-                currentX = event.x;
-                currentY = event.y;
-            } else {
-                // Check if over a window
-                checkWindowAt(event.x, event.y);
-            }
-        }
-
-        onReleased: {
-            // Take screenshot of selected area
-            const x = screen.x + Math.ceil(selectionX);
-            const y = screen.y + Math.ceil(selectionY);
-            const w = Math.floor(selectionWidth);
-            const h = Math.floor(selectionHeight);
-
-            console.log("Taking screenshot:", `${x},${y} ${w}x${h}`);
-            Quickshell.execDetached(["grim", "-g", `${x},${y} ${w}x${h}`]);
-
-            closed();
-        }
-
-        function checkWindowAt(x: real, y: real): void {
-            const windows = helper.toplevels.values.filter(w => w.workspace.id === helper.workspaceId);
-
-            for (const window of windows) {
-                const obj = window.lastIpcObject;
-                const wx = obj.at[0];
-                const wy = obj.at[1];
-                const ww = obj.size[0];
-                const wh = obj.size[1];
-
-                if (wx <= x && wy <= y && wx + ww >= x && wy + wh >= y) {
-                    onWindow = true;
-                    startX = wx;
-                    startY = wy;
-                    currentX = wx + ww;
-                    currentY = wy + wh;
-                    break;
-                }
-            }
-        }
-
-        // Semi-transparent overlay
-        Rectangle {
-            anchors.fill: parent
-            color: Qt.rgba(0, 0, 0, 0.3)
-
-            // Cut out the selection area
-            Rectangle {
-                x: picker.selectionX
-                y: picker.selectionY
-                width: picker.selectionWidth
-                height: picker.selectionHeight
-                color: "transparent"
-
-                // Selection border
-                border.color: picker.onWindow ? config.foreground : config.backgroundLight
-                border.width: 2
-                radius: 4
-            }
-        }
-    }
-    */
 
     component Panel: CustomWindow {
         WlrLayershell.exclusionMode: ExclusionMode.Auto
@@ -743,36 +629,46 @@ ShellRoot {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer:         WlrLayer.Background
 
-        property string source: getRand()
+        anchors.left:   true
+        anchors.right:  true
+        anchors.top:    true
+        anchors.bottom: true
+
+        property string source: ""
 
         function getRand() {
-            return subModel.get(Math.floor(Math.random() * subModel.count),
-                               "fileURL");
+            return submodel.get(Math.floor(Math.random() % submodel.count), "fileURL");
         }
 
         FolderListModel {
-            id: subModel
+            id: submodel
 
-            folder:       "file:///home/gosh/.wall"
+            folder: "file:///home/gosh/.wall"
+
+            showDirs:  false
+            showFiles: true
+
             nameFilters: ["*.jpg", "*.jpeg", "*.png"]
+
+            onStatusChanged: {
+                if (status === FolderListModel.Ready)
+                    subtimer.start();
+            }
         }
 
         Timer {
+            id: subtimer
+
             interval: 30 * 60 * 1000
 
-            running: true
+            running: false
             repeat:  true
+
+            triggeredOnStart: true
 
             onTriggered: {
                 root.source = root.getRand();
             }
-        }
-
-        anchors {
-            left:   true
-            right:  true
-            top:    true
-            bottom: true
         }
 
         Image {
@@ -785,7 +681,25 @@ ShellRoot {
         }
     }
 
-    component LauncherItem: Item {
+    Variants {
+        model: Quickshell.screens
+
+        Scope {
+            id: subscope
+
+            property var modelData
+
+            Panel {
+                screen: subscope.modelData
+            }
+
+            Wallpaper {
+                screen: subscope.modelData
+            }
+        }
+    }
+
+    component ExecerItem: Item {
         id: root
 
         implicitWidth:  widget.implicitWidth
@@ -793,9 +707,8 @@ ShellRoot {
 
         required property int index
         required property var modelData
-
         required property var list
-        required property var loader
+        required property var popout
 
         Rectangle {
             id: widget
@@ -808,9 +721,13 @@ ShellRoot {
             RowLayout {
                 anchors.verticalCenter: parent.verticalCenter
 
+                anchors.left:       parent.left
+                anchors.leftMargin: config.launcherPadding
+
+                spacing: config.launcherPadding
+
                 IconImage {
-                    Layout.alignment:   Qt.AlignVCenter
-                    Layout.leftMargin:  config.launcherPadding
+                    Layout.alignment: Qt.AlignVCenter
 
                     implicitSize: config.iconSizeHuge
 
@@ -818,70 +735,56 @@ ShellRoot {
                 }
 
                 Column {
-                    Layout.alignment:   Qt.AlignVCenter
-                    Layout.rightMargin: config.launcherPadding
+                    Layout.alignment: Qt.AlignVCenter
 
-                    Layout.fillWidth:   true
+                    Layout.fillWidth: true
 
-                    id: subcol
-
-                    Text {
-                        font.family:    config.fontFamily
+                    CustomText {
                         font.pointSize: config.fontSizeLarge
-
-                        color: config.foreground
 
                         text: root.modelData?.name ?? ""
                     }
 
-                    Text {
-                        font.family:    config.fontFamily
-                        font.pointSize: config.fontSize
-
+                    CustomText {
                         color: config.foregroundDarker
 
-                        TextMetrics {
-                            id: submetrics
-
-                            font.family:    config.fontFamily
-                            font.pointSize: config.fontSize
-
-                            elide:      Qt.ElideRight
-                            elideWidth: subcol.width
-
-                            text: (root.modelData?.comment || root.modelData?.name) ?? ""
-                        }
-
                         text: submetrics.elidedText
+
+                    }
+
+                    TextMetrics {
+                        id: submetrics
+
+                        text: (root.modelData?.comment || root.modelData?.name) ?? ""
                     }
                 }
             }
+        }
 
-            MouseArea {
-                anchors.fill: parent
+        MouseArea {
+            anchors.fill: parent
 
-                hoverEnabled: true
+            hoverEnabled: true
 
-                onEntered: {
-                    root.list.currentIndex = index;
-                }
-                onClicked: {
-                    helper.launch(root.modelData)
+            onEntered: {
+                root.list.currentIndex = index;
+            }
+            onClicked: {
+                helper.launch(root.modelData)
 
-                    root.loader.sourceComponent = null;
-                }
+                root.popout.done();
             }
         }
     }
 
-    component LauncherList: Item {
+    component ExecerList: Item {
         id: root
 
         implicitWidth:  widget.implicitWidth
         implicitHeight: widget.implicitHeight
 
         required property var name
-        required property var loader
+        required property var popout
 
         function incr(): void {
             widget.incrementCurrentIndex();
@@ -893,51 +796,35 @@ ShellRoot {
             return widget.currentItem;
         }
 
-        ListView {
+        CustomListView {
             id: widget
 
             implicitWidth:  config.launcherWidth
             implicitHeight: config.launcherHeight * config.launcherItemShown
 
-            clip:  true
-            focus: true
-
-            spacing:     config.launcherPadding
-            orientation: Qt.Vertical
-
             model: ScriptModel {
                 values: helper.getApp(name)
 
                 onValuesChanged: {
-                    widget.currentIndex = 0;
+                    if (values.length > 0)
+                        widget.currentIndex = 0;
                 }
             }
-
-            currentIndex: 0
-
-            highlight: Rectangle {
-                color: config.backgroundLight
-            }
-
-            highlightMoveDuration:    0
-            highlightMoveVelocity:   -1
-            highlightResizeDuration:  0
-            highlightResizeVelocity: -1
 
             delegate: subcomp
 
             Component {
                 id: subcomp
 
-                LauncherItem {
+                ExecerItem {
                     list:   widget
-                    loader: root.loader
+                    popout: root.popout
                 }
             }
         }
     }
 
-    component Launcher: CustomWindow {
+    component Execer: CustomWindow {
         id: root
 
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -947,7 +834,7 @@ ShellRoot {
 
         color: config.background
 
-        required property var loader
+        required property var popout
 
         Column {
             id: widget
@@ -988,19 +875,19 @@ ShellRoot {
                     onAccepted: {
                         const curr = sublist.curr();
 
-                        if (curr)
+                        if (curr) {
                             helper.launch(curr.modelData);
-
-                        root.loader.sourceComponent = null;
+                            root.popout.done();
+                        }
                     }
                 }
             }
 
-            LauncherList {
+            ExecerList {
                 id: sublist
 
                 name:   subtext.text
-                loader: root.loader
+                popout: root.popout
             }
 
             Keys.onUpPressed: {
@@ -1010,68 +897,34 @@ ShellRoot {
                 sublist.incr();
             }
             Keys.onEscapePressed: {
-                root.loader.sourceComponent = null;
+                root.popout.done();
             }
         }
     }
 
-    component LauncherWrapper: Item {
-        id: root
-
-        function launch(): void {
-            subloader.sourceComponent = subcomp
-        }
-
-        Loader {
-            id: subloader
-        }
-
-        Component {
-            id: subcomp
-
-            Launcher {
-                loader: subloader
-            }
-        }
-    }
-
-    Variants {
-        model: Quickshell.screens
-
-        Scope {
-            id: subscope
-
-            property var modelData
-
-            Panel {
-                screen: subscope.modelData
-            }
-
-            Wallpaper {
-                screen: subscope.modelData
-            }
-        }
-    }
-
-    LauncherWrapper {
+    CustomPopout {
         id: launcher
+
+        comp: Component {
+            Execer {
+                popout: launcher
+            }
+        }
     }
 
     CustomShortcut {
-        name:        "launcher"
-        description: "Launch launcher"
+        name:        "execer"
+        description: "Start execer"
 
         onPressed: {
-            launcher.launch()
+            launcher.exec()
         }
     }
 
-    component Locker: WlSessionLockSurface {
+    component LockerSurface: WlSessionLockSurface {
         id: root
 
-        required property var lock
-
-        property color color: config.backgroundLight
+        required property var locker
 
         ScreencopyView {
             id: subscreen
@@ -1101,6 +954,8 @@ ShellRoot {
         PamContext {
             id: subpam
 
+            property string reason: ""
+
             onResponseRequiredChanged: {
                 if (!responseRequired)
                     return;
@@ -1110,18 +965,18 @@ ShellRoot {
 
             onCompleted: res => {
                 if (res === PamResult.Success) {
-                    root.lock.locked = false;
+                    root.locker.locked = false;
                     return;
                 }
 
                 widget.text = "";
 
                 if (res === PamResult.Error)
-                    root.color = config.backgroundYellow
+                    reason = "error"
                 else if (res === PamResult.MaxTries)
-                    root.color = config.backgroundPurple
+                    reason = "max"
                 else if (res === PamResult.Failed)
-                    root.color = config.backgroundRed
+                    reason = "failed"
             }
         }
 
@@ -1130,13 +985,10 @@ ShellRoot {
 
             spacing: config.lockerPadding
 
-            Text {
+            CustomText {
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                font.family:    config.fontFamily
                 font.pointSize: config.fontSizeHuge
-
-                color: config.foreground
 
                 style:     "Raised"
                 styleColor: config.background
@@ -1173,11 +1025,20 @@ ShellRoot {
 
                     radius: height / 2
 
-                    color:  root.color
+                    color: {
+                        if (subpam.reason === "error")
+                            return config.backgroundYellow
+                        else if (subpam.reason === "max")
+                            return config.backgroundPurple
+                        else if (subpam.reason === "failed")
+                            return config.backgroundRed
+                        else
+                            return config.backgroundLight
+                    }
                 }
 
                 onTextChanged: {
-                    root.color = config.backgroundLight
+                    subpam.reason = "";
                 }
 
                 onAccepted: {
@@ -1190,47 +1051,39 @@ ShellRoot {
         }
     }
 
-    component LockerWrapper: Item {
+    component Locker: WlSessionLock {
         id: root
 
-        function launch(): void {
-            subloader.sourceComponent = subcomp
+        locked: true
+
+        required property var popout
+
+        onLockedChanged: {
+            if (!locked)
+                popout.done();
         }
 
-        Loader {
-            id: subloader
+        LockerSurface {
+            locker: root
         }
+    }
 
-        Component {
-            id: subcomp
+    CustomPopout {
+        id: locker
 
-            WlSessionLock {
-                id: sublock
-
-                locked: true
-
-                onLockedChanged: {
-                    if (!locked)
-                        subloader.sourceComponent = null;
-                }
-
-                Locker {
-                    lock: sublock
-                }
+        comp: Component {
+            Locker {
+                popout: locker
             }
         }
     }
 
-    LockerWrapper {
-        id: locker
-    }
-
     CustomShortcut {
-        name:        "lock"
-        description: "Launch locker"
+        name:        "locker"
+        description: "Start locker"
 
         onPressed: {
-            locker.launch()
+            locker.exec()
         }
     }
 
@@ -1242,85 +1095,111 @@ ShellRoot {
 
         required property int index
         required property var modelData
-
         required property var list
-        required property var loader
 
         Rectangle {
             id: widget
 
-            implicitWidth:  config.launcherWidth
-            implicitHeight: config.launcherHeight
+            implicitWidth:  config.notifierWidth
+            implicitHeight: config.notifierHeight
 
-            color: "transparent"
+            color: {
+                if (modelData.urgency === NotificationUrgency.Critical)
+                    return config.backgroundRed;
+                else if (modelData.urgency === NotificationUrgency.Low)
+                    return config.backgroundYellow;
+                else
+                    return "transparent";
+            }
 
             RowLayout {
                 anchors.verticalCenter: parent.verticalCenter
 
+                anchors.left:       parent.left
+                anchors.leftMargin: config.notifierPadding
+
+                spacing: config.notifierPadding
+
+                Rectangle {
+                    Layout.alignment:   Qt.AlignVCenter
+                    Layout.leftMargin:  config.notifierPadding
+
+                    visible: root.modelData.image.length > 0
+
+                    implicitWidth:  config.iconSizeHuge
+                    implicitHeight: config.iconSizeHuge
+
+                    color: "transparent"
+
+                    Image {
+                        anchors.fill: parent
+
+                        fillMode: Image.PreserveAspectCrop
+
+                        source: Qt.resolvedUrl(root.modelData.image)
+                    }
+                }
+
                 IconImage {
                     Layout.alignment:   Qt.AlignVCenter
-                    Layout.leftMargin:  config.launcherPadding
+                    Layout.leftMargin:  config.notifierPadding
 
-                    visible: root.modelData.appIcon.length > 0
+                    visible: root.modelData.image.length === 0
 
                     implicitSize: config.iconSizeHuge
 
-                    source: helper.getIcon(root.modelData.appIcon)
+                    source: {
+                        var str = root.modelData.appIcon;
+
+                        if (str.length === 0)
+                            str = helper.getIconSum(root.modelData.summary.toLowerCase());
+
+                        return helper.getIcon(str);
+                    }
                 }
 
                 Column {
                     Layout.alignment:   Qt.AlignVCenter
-                    Layout.rightMargin: config.launcherPadding
+                    Layout.rightMargin: config.notifierPadding
 
                     Layout.fillWidth:   true
 
                     id: subcol
 
-                    Text {
-                        font.family:    config.fontFamily
+                    CustomText {
                         font.pointSize: config.fontSizeLarge
 
-                        color: config.foreground
-
-                        text: root.modelData?.name ?? ""
+                        text: root.modelData.summary
                     }
 
-                    Text {
-                        font.family:    config.fontFamily
-                        font.pointSize: config.fontSize
-
+                    CustomText {
                         color: config.foregroundDarker
 
-                        TextMetrics {
-                            id: submetrics
+                        text: submetricsBody.elidedText
+                    }
 
-                            font.family:    config.fontFamily
-                            font.pointSize: config.fontSize
+                    TextMetrics {
+                        id: submetricsBody
 
-                            elide:      Qt.ElideRight
-                            elideWidth: subcol.width
-
-                            text: (root.modelData?.comment || root.modelData?.name) ?? ""
-                        }
-
-                        text: submetrics.elidedText
+                        text: root.modelData.body
                     }
                 }
             }
+        }
 
-            MouseArea {
-                anchors.fill: parent
+        MouseArea {
+            anchors.fill: parent
 
-                hoverEnabled: true
+            hoverEnabled: true
 
-                onEntered: {
-                    root.list.currentIndex = index;
-                }
-                onClicked: {
-                    helper.launch(root.modelData)
+            onEntered: {
+                root.list.currentIndex = index;
+            }
+            onClicked: {
+                for (var i = 0; i < root.modelData.actions.length; i++)
+                    root.modelData.actions[i].invoke();
 
-                    root.loader.sourceComponent = null;
-                }
+                root.modelData.tracked = false;
             }
         }
     }
@@ -1338,38 +1217,24 @@ ShellRoot {
 
         color: config.background
 
-        required property var loader
+        required property var popout
 
-        ListView {
+        CustomListView {
             id: widget
 
             implicitWidth:  config.notifierWidth
-            implicitHeight: config.notifierHeight * Math.max(config.notifierShown, helper.notifs.length)
-
-            clip:  true
-            focus: true
-
-            spacing:     config.notifierPadding
-            orientation: Qt.Vertical
+            implicitHeight: config.notifierHeight * Math.min(config.notifierItemShown, helper.notifs.values.length)
 
             model: ScriptModel {
-                values: helper.notifs
+                values: helper.notifs.values
 
                 onValuesChanged: {
-                    widget.currentIndex = 0;
+                    if (values.length > 0)
+                        widget.currentIndex = 0;
+                    else
+                        root.popout.done();
                 }
             }
-
-            currentIndex: 0
-
-            highlight: Rectangle {
-                color: config.backgroundLight
-            }
-
-            highlightMoveDuration:    0
-            highlightMoveVelocity:   -1
-            highlightResizeDuration:  0
-            highlightResizeVelocity: -1
 
             delegate: subcomp
 
@@ -1377,46 +1242,253 @@ ShellRoot {
                 id: subcomp
 
                 NotifierItem {
-                    list:   widget
-                    loader: root.loader
+                    list: widget
                 }
             }
         }
     }
 
-    component NotifierWrapper: Item {
+    component NotifierAll: Item {
         id: root
 
-        function launch(): void {
-            if (subloader.sourceComponent === null)
-                subloader.sourceComponent = subcomp
-        }
+        required property var popout
 
-        Loader {
-            id: subloader
-        }
+        Variants {
+            model: Quickshell.screens
 
-        Component {
-            id: subcomp
+            Scope {
+                id: subscope
 
-            Variants {
-                model: Quickshell.screens
+                property var modelData
 
-                Scope {
-                    id: subscope
-
-                    property var modelData
-
-                    Notifier {
-                        screen: subscope.modelData
-                        loader: subloader
-                    }
+                Notifier {
+                    screen: subscope.modelData
+                    popout: root.popout
                 }
             }
         }
     }
 
-    NotifierWrapper {
+    CustomPopout {
         id: notifier
+
+        function exec(): void {
+            if (loader.active === false)
+                loader.active = true
+        }
+
+        comp: Component {
+            NotifierAll {
+                popout: notifier
+            }
+        }
+    }
+
+    component PickerArea: MouseArea {
+        id: root
+
+        anchors.fill: parent
+
+        focus: true
+
+        hoverEnabled: true
+
+        required property var screen
+        required property var popout
+
+        property real preX: 0
+        property real preY: 0
+        property real curX: 0
+        property real curY: 0
+
+        property real selX: 0
+        property real selY: 0
+        property real selW: 0
+        property real selH: 0
+
+        property bool pressed: false
+
+        property list<var> clients: {
+            Hyprland.toplevels.values.filter(c => c.workspace.id === Hyprland.activeWsId).sort((a, b) => {
+                if (a.lastIpcObject.pinned === b.lastIpcObject.pinned) {
+                    if (a.lastIpcObject.floating === b.lastIpcObject.floating)
+                        return 0;
+                    else
+                        return a.lastIpcObject.floating ? -1 : 1;
+                }
+
+                return a.lastIpcObject.pinned ? -1 : 1;
+            })
+        }
+
+        function take(): void {
+            for (const c of clients) {
+                const {
+                    at:   [x, y],
+                    size: [w, h]
+                } = c.lastIpcObject;
+
+                if ((x <= curX) && (y <= curY) && (x + w >= curX) && (y + h >= curY)) {
+                    selX = x;
+                    selY = y;
+                    selW = w;
+                    selH = h;
+                    break;
+                }
+            }
+        }
+        function exec(): void {
+            Quickshell.execDetached(["grim", "-g", `${selX},${selY} ${selW}x${selH}`]);
+
+            root.popout.done();
+        }
+
+        onPositionChanged: e => {
+            curX = e.x;
+            curY = e.y;
+
+            if (pressed) {
+                selX = Math.min(preX,  curX);
+                selY = Math.min(preY,  curY);
+                selW = Math.abs(preX - curX);
+                selH = Math.abs(preY - curY);
+            } else
+                take();
+        }
+
+        onClicked: {
+            pressed = false;
+
+            take();
+            exec();
+        }
+
+        onPressed: e => {
+            pressed = true;
+
+            preX = e.x;
+            preY = e.y;
+        }
+
+        onReleased: {
+            pressed = false;
+
+            exec();
+        }
+
+        ScreencopyView {
+            anchors.fill: parent
+
+            captureSource: root.screen
+        }
+
+        Rectangle {
+            id: subback
+
+            anchors.fill: parent
+
+            color: config.background
+        }
+
+        Rectangle {
+            id: subsel
+
+            x: root.selX
+            y: root.selY
+
+            implicitWidth:  root.selW
+            implicitHeight: root.selH
+
+            color: "transparent"
+        }
+
+        MultiEffect {
+            anchors.fill: parent
+
+            source: subback
+
+            maskEnabled:  true
+            maskSource:   subsel
+            maskInverted: true
+
+            opacity: 0.3
+        }
+
+        Connections {
+            target: Hyprland
+
+            function onActiveWsIdChanged(): void {
+                root.take();
+            }
+        }
+
+        Keys.onEscapePressed: {
+            if (pressed)
+                pressed = false;
+            else
+                root.popout.done();
+        }
+    }
+
+    component Picker: CustomWindow {
+        id: root
+
+        name: "picker"
+
+        WlrLayershell.layer:         WlrLayer.Overlay
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+        anchors.top:    true
+        anchors.bottom: true
+        anchors.left:   true
+        anchors.right:  true
+
+        required property var popout
+
+        PickerArea {
+            screen: root.screen
+            popout: root.popout
+        }
+    }
+
+    component PickerAll: Item {
+        id: root
+
+        required property var popout
+
+        Variants {
+            model: Quickshell.screens
+
+            Scope {
+                id: subscope
+
+                property var modelData
+
+                Picker {
+                    screen: subscope.modelData
+                    popout: root.popout
+                }
+            }
+        }
+    }
+
+    CustomPopout {
+        id: picker
+
+        comp: Component {
+            PickerAll {
+                popout: picker
+            }
+        }
+    }
+
+    CustomShortcut {
+        name:        "picker"
+        description: "Start picker"
+
+        onPressed: {
+            picker.exec();
+        }
     }
 }
