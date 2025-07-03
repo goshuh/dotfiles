@@ -10,6 +10,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import Quickshell.Services.Pam
+import Quickshell.Services.Pipewire
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -87,6 +88,8 @@ ShellRoot {
     }
 
     component GlobalConfig: Item {
+        id: root
+
         readonly property color  foreground:         "#abb2bf"
         readonly property color  foregroundDark:     "#848b98"
         readonly property color  foregroundDarker:   "#5f6571"
@@ -129,6 +132,19 @@ ShellRoot {
         readonly property int    notifierHeight:      48
         readonly property int    notifierPadding:     4
         readonly property int    notifierItemShown:   5
+
+        readonly property real   pickerOpacity:       0.75
+
+        property int clientRounding: 0
+
+        Process {
+            running:   true
+            command: ["hyprctl", "-j", "getoption", "decoration:rounding"]
+
+            stdout: StdioCollector {
+                onStreamFinished: root.clientRounding = JSON.parse(text).int
+            }
+        }
     }
 
     component GlobalHelper: Item {
@@ -170,7 +186,9 @@ ShellRoot {
 
         // apps
         readonly property var  rawApplications: {
-            DesktopEntries.applications.values.filter(a => !a.noDisplay).sort((a, b) =>
+            DesktopEntries.applications.values.filter(
+                a => !a.noDisplay
+            ).sort((a, b) =>
                 a.name.localeCompare(b.name))
         }
         readonly property var  fuzApplications: {
@@ -227,6 +245,38 @@ ShellRoot {
 
                 notifier.exec();
             }
+        }
+
+        // audio
+        readonly property var audioSink: Pipewire.defaultAudioSink
+
+        function incVolume(vol: real): real {
+            if (audioSink?.ready && audioSink?.audio) {
+                audioSink.audio.muted  = false;
+                audioSink.audio.volume = audioSink.audio.volume + vol;
+
+                return audioSink.audio.volume;
+            }
+
+            return -1;
+        }
+        function decVolume(vol: real): real {
+            if (audioSink?.ready && audioSink?.audio) {
+                audioSink.audio.muted  = false;
+                audioSink.audio.volume = audioSink.audio.volume - vol;
+
+                return audioSink.audio.volume;
+            }
+
+            return -1;
+        }
+        function mute(): void {
+            if (audioSink?.ready && audioSink?.audio)
+                audioSink.audio.muted  = true;
+        }
+
+        PwObjectTracker {
+            objects: [Pipewire.defaultAudioSink]
         }
 
         // hypr
@@ -306,7 +356,8 @@ ShellRoot {
                 id: submetrics
 
                 onTextChanged: {
-                    root.icon = helper.getIcon(helper.activeToplevel?.lastIpcObject.class ?? "");
+                    root.icon = helper.getIcon(
+                        helper.activeToplevel?.lastIpcObject.class ?? "");
                 }
 
                 text: helper.activeToplevel?.title ?? qsTr("Desktop")
@@ -637,7 +688,8 @@ ShellRoot {
         property string source: ""
 
         function getRand() {
-            return submodel.get(Math.floor(Math.random() % submodel.count), "fileURL");
+            return submodel.get(Math.floor(Math.random() % submodel.count),
+                               "fileURL");
         }
 
         FolderListModel {
@@ -755,7 +807,8 @@ ShellRoot {
                     TextMetrics {
                         id: submetrics
 
-                        text: (root.modelData?.comment || root.modelData?.name) ?? ""
+                        text: (root.modelData?.comment ||
+                               root.modelData?.name) ?? ""
                     }
                 }
             }
@@ -1151,8 +1204,11 @@ ShellRoot {
                     source: {
                         var str = root.modelData.appIcon;
 
-                        if (str.length === 0)
-                            str = helper.getIconSum(root.modelData.summary.toLowerCase());
+                        if (str.length === 0) {
+                            const sum = root.modelData.summary.toLowerCase();
+
+                            str = helper.getIconSum(sum);
+                        }
 
                         return helper.getIcon(str);
                     }
@@ -1192,12 +1248,15 @@ ShellRoot {
 
             hoverEnabled: true
 
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+
             onEntered: {
                 root.list.currentIndex = index;
             }
-            onClicked: {
-                for (var i = 0; i < root.modelData.actions.length; i++)
-                    root.modelData.actions[i].invoke();
+            onClicked: e => {
+                if (e.button === Qt.LeftButton)
+                    for (var i = 0; i < root.modelData.actions.length; i++)
+                        root.modelData.actions[i].invoke();
 
                 root.modelData.tracked = false;
             }
@@ -1223,7 +1282,9 @@ ShellRoot {
             id: widget
 
             implicitWidth:  config.notifierWidth
-            implicitHeight: config.notifierHeight * Math.min(config.notifierItemShown, helper.notifs.values.length)
+            implicitHeight: config.notifierHeight *
+                            Math.min(config.notifierItemShown,
+                                     helper.notifs.values.length)
 
             model: ScriptModel {
                 values: helper.notifs.values
@@ -1309,36 +1370,48 @@ ShellRoot {
         property bool pressed: false
 
         property list<var> clients: {
-            Hyprland.toplevels.values.filter(c => c.workspace.id === Hyprland.activeWsId).sort((a, b) => {
-                if (a.lastIpcObject.pinned === b.lastIpcObject.pinned) {
-                    if (a.lastIpcObject.floating === b.lastIpcObject.floating)
-                        return 0;
-                    else
-                        return a.lastIpcObject.floating ? -1 : 1;
-                }
-
-                return a.lastIpcObject.pinned ? -1 : 1;
-            })
+            return helper.toplevels.values.filter(c =>
+                (c.workspace?.active ?? false) &&
+                (c.workspace.monitor.name === screen.name)
+            ).map(c => conv(c)).sort((a, b) => a.t - b.t);
         }
 
-        function take(): void {
-            for (const c of clients) {
-                const {
-                    at:   [x, y],
-                    size: [w, h]
-                } = c.lastIpcObject;
+        function conv(c: var): var {
+            const o = c.lastIpcObject;
+            const r = screen.devicePixelRatio;
 
-                if ((x <= curX) && (y <= curY) && (x + w >= curX) && (y + h >= curY)) {
-                    selX = x;
-                    selY = y;
-                    selW = w;
-                    selH = h;
+            return {
+                x: (o.at  [0] - screen.x) / r,
+                y: (o.at  [1] - screen.y) / r,
+                w:  o.size[0]             / r,
+                h:  o.size[1]             / r,
+
+                t:  o.pinned   ? 0 :
+                    o.floating ? 1 :
+                                 2
+            };
+        }
+        function over(): void {
+            for (const c of clients)
+                if ((c.x <= curX) && (c.x + c.w >= curX) &&
+                    (c.y <= curY) && (c.y + c.h >= curY)) {
+                    selX = c.x;
+                    selY = c.y;
+                    selW = c.w;
+                    selH = c.h;
                     break;
                 }
-            }
+        }
+        function rsel(s: real): int {
+            return Math.round(s * screen.devicePixelRatio);
         }
         function exec(): void {
-            Quickshell.execDetached(["grim", "-g", `${selX},${selY} ${selW}x${selH}`]);
+            Quickshell.execDetached([
+                "grim",
+                "-g", `${rsel(selX)},${rsel(selY)} ${rsel(selW)}x${rsel(selH)}`,
+                "-t", "png",
+                "/tmp/ram/" + `${helper.fmtDate("yyyy-MM-dd_hh-mm-ss.png")}`
+            ]);
 
             root.popout.done();
         }
@@ -1353,14 +1426,7 @@ ShellRoot {
                 selW = Math.abs(preX - curX);
                 selH = Math.abs(preY - curY);
             } else
-                take();
-        }
-
-        onClicked: {
-            pressed = false;
-
-            take();
-            exec();
+                over();
         }
 
         onPressed: e => {
@@ -1387,19 +1453,29 @@ ShellRoot {
 
             anchors.fill: parent
 
+            visible: false
+
             color: config.background
         }
 
-        Rectangle {
-            id: subsel
+        Item {
+            id: submask
 
-            x: root.selX
-            y: root.selY
+            anchors.fill: parent
 
-            implicitWidth:  root.selW
-            implicitHeight: root.selH
+            visible: false
 
-            color: "transparent"
+            layer.enabled: true
+
+            Rectangle {
+                x: root.selX
+                y: root.selY
+
+                implicitWidth:  root.selW
+                implicitHeight: root.selH
+
+                radius: root.pressed ? 0 : config.clientRounding
+            }
         }
 
         MultiEffect {
@@ -1407,26 +1483,21 @@ ShellRoot {
 
             source: subback
 
-            maskEnabled:  true
-            maskSource:   subsel
-            maskInverted: true
+            maskEnabled:      true
+            maskInverted:     true
+            maskSource:       submask
+            maskSpreadAtMin:  1
+            maskThresholdMin: 0.5
 
-            opacity: 0.3
+            opacity: config.pickerOpacity
         }
 
-        Connections {
-            target: Hyprland
-
-            function onActiveWsIdChanged(): void {
-                root.take();
-            }
+        Component.onCompleted: {
+            over();
         }
 
         Keys.onEscapePressed: {
-            if (pressed)
-                pressed = false;
-            else
-                root.popout.done();
+            root.popout.done();
         }
     }
 
@@ -1463,7 +1534,7 @@ ShellRoot {
             Scope {
                 id: subscope
 
-                property var modelData
+                required property var modelData
 
                 Picker {
                     screen: subscope.modelData
@@ -1489,6 +1560,30 @@ ShellRoot {
 
         onPressed: {
             picker.exec();
+        }
+    }
+
+    CustomShortcut {
+        name:        "incVolume"
+        description: "Increase volume"
+
+        onPressed: {
+        }
+    }
+
+    CustomShortcut {
+        name:        "decVolume"
+        description: "Decrease volume"
+
+        onPressed: {
+        }
+    }
+
+    CustomShortcut {
+        name:        "mute"
+        description: "Mute"
+
+        onPressed: {
         }
     }
 }
