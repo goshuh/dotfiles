@@ -405,12 +405,10 @@ ShellRoot {
     implicitHeight: config.iconSizeLarge
 
     required property int index
-    required property var occupied
-
-    property int n: occupied[index]
+    required property var modelData
 
     radius: width / 2
-    color: (helper.wsid === n) ?
+    color: (helper.wsid === modelData.i) ?
              config.colorBackgroundLight :
             'transparent'
 
@@ -419,16 +417,18 @@ ShellRoot {
 
       color: config.colorForeground
 
-      text: `${n}`
+      text: `${modelData.n}`
     }
 
     MouseArea {
       anchors.fill: parent
 
+      enabled: helper.wsid !== modelData.i
+
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
       onClicked: {
-        helper.putHypr(`vdesk ${n}`)
+        helper.putHypr(`vdesk ${modelData.i}`)
       }
     }
   }
@@ -436,22 +436,24 @@ ShellRoot {
   component PanelWorkspace: Column {
     id: master
 
-    readonly property var occupied: {
-      var arr = []
+    required property var screen
 
-      for (const w of helper.workspaces.values)
-        if ((w === helper.focusedWorkspace) || w.lastIpcObject.windows)
-          arr.push(w.id)
-
-      return arr
-    }
+    // vdesk's ws numbering scheme
+    readonly property var select:
+      helper.workspaces.values.filter(w =>
+        (w.monitor?.name === screen.name) &&
+        (w.active || w.lastIpcObject.windows)
+      ).map(w => ({
+         i: w.id,
+         n: Math.floor((w.id - 1) / helper.monitors.values.length) + 1
+      }))
 
     Repeater {
-      model: master.occupied.length
-
-      PanelWorkspaceItem {
-        occupied: master.occupied
+      model: ScriptModel {
+        values: master.select
       }
+
+      PanelWorkspaceItem {}
     }
   }
 
@@ -893,6 +895,8 @@ ShellRoot {
   }
 
   component Panel: CustomWindow {
+    id: master
+
     WlrLayershell.exclusionMode: ExclusionMode.Auto
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
@@ -916,6 +920,8 @@ ShellRoot {
 
       PanelWorkspace {
         Layout.alignment:    Qt.AlignHCenter
+
+        screen: master.screen
       }
 
       PanelTray {
