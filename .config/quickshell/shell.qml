@@ -1405,17 +1405,25 @@ ShellRoot {
         CustomText {
           font.pointSize: config.fontSizeLarge
 
-          text:  master.modelData.summary
+          text:  masterMain.elidedText
         }
 
         CustomText {
           color: config.colorForegroundDarker
 
-          text:  metric.elidedText
+          text:  metricBody.elidedText
         }
 
         CustomTextMetrics {
-          id: metric
+          id: metricMain
+
+          elideWidth: column.width
+
+          text:  master.modelData.summary
+        }
+
+        CustomTextMetrics {
+          id: metricBody
 
           elideWidth: column.width
 
