@@ -169,6 +169,8 @@ ShellRoot {
     readonly property int    fontSizeLarge:         12
     readonly property int    fontSizeHuge:          64
 
+    readonly property int    lineWidth:             1
+
     readonly property int    itemWidth:             48
     readonly property int    itemHeight:            28
     readonly property int    itemHeightLarge:       32
@@ -252,8 +254,66 @@ ShellRoot {
       }).map(e => e.obj.entry)
     }
     function exec(ent: DesktopEntry): void {
-      const str = ent.execString
-      const arr = str.split(' ').filter(a => !a.startsWith('%'))
+      let arr = []
+      let cur = ''
+      let fsm = ''
+
+      for (const c of ent.execString) {
+        switch (fsm) {
+          case '\\':
+            switch (c) {
+              case 't':
+                cur += '\t'
+                break
+              case 'r':
+                cur += '\r'
+                break
+              case 'n':
+                cur += '\n'
+                break
+              case '\\':
+              case '\'':
+              case '"':
+                cur += c
+                break
+            }
+          case '%':
+            fsm = ''
+            break
+
+          case '\'':
+          case '"':
+          case '`':
+            if (c === fsm)
+              fsm  = ''
+            else
+              cur += c
+            break
+
+          default:
+            switch (c) {
+              case '\\':
+              case '\'':
+              case '%':
+              case '"':
+              case '`':
+                fsm = c
+                break
+
+              case ' ':
+                if (cur.length)
+                  arr.push(cur)
+                cur = ''
+                break
+
+              default:
+                cur += c
+            }
+        }
+      }
+
+      if (cur.length)
+        arr.push(cur)
 
       Quickshell.execDetached(arr)
     }
@@ -476,16 +536,16 @@ ShellRoot {
 
       active: !master.modelData.isSeparator
 
-      sourceComponent: Item {
+      sourceComponent: WrapperItem {
         implicitWidth:  config.windowWidth
         implicitHeight: config.itemHeight
 
-        RowLayout {
-          anchors.fill: parent
+        leftMargin:  config.padding
+        rightMargin: config.padding
 
+        RowLayout {
           Item {
-            Layout.alignment:   Qt.AlignVCenter
-            Layout.leftMargin:  config.padding
+            Layout.alignment: Qt.AlignVCenter
 
             implicitWidth:  config.iconSize
             implicitHeight: config.iconSize
@@ -493,7 +553,90 @@ ShellRoot {
             Loader {
               anchors.verticalCenter: parent.verticalCenter
 
-              active: master.modelData.icon.length
+              active: master.modelData.buttonType ===
+                        QsMenuButtonType.CheckBox
+
+              sourceComponent: Canvas {
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                onPaint: {
+                  var ctx = getContext('2d')
+                  ctx.clearRect(0, 0, width, height)
+
+                  ctx.strokeStyle =  config.colorForegroundDark
+                  ctx.lineWidth   =  config.lineWidth
+                  ctx.lineCap     = 'round'
+                  ctx.lineJoin    = 'round'
+
+                  ctx.strokeRect(config.padding,
+                                 config.padding,
+                                 width  - config.padding * 2,
+                                 height - config.padding * 2)
+
+                  if (master.modelData.checkState === Qt.Checked) {
+                    ctx.beginPath()
+                    ctx.moveTo(width * 0.8,  height * 0.2)
+                    ctx.lineTo(width * 0.35, height * 0.8)
+                    ctx.lineTo(width * 0.2,  height * 0.6)
+                    ctx.stroke()
+                  }
+                }
+
+                Component.onCompleted: {
+                  requestPaint()
+                }
+              }
+            }
+
+            Loader {
+              anchors.verticalCenter: parent.verticalCenter
+
+              active: master.modelData.buttonType ===
+                        QsMenuButtonType.RadioButton
+
+              sourceComponent: Canvas {
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                onPaint: {
+                  var ctx = getContext('2d')
+                  ctx.clearRect(0, 0, width, height)
+
+                  ctx.strokeStyle =  config.colorForegroundDark
+                  ctx.fillStyle   =  config.colorForegroundDark
+                  ctx.lineWidth   =  config.lineWidth
+                  ctx.lineCap     = 'round'
+                  ctx.lineJoin    = 'round'
+
+                  const x = width  / 2
+                  const y = height / 2
+                  const r = x - config.padding
+                  const d = 2 * Math.PI
+
+                  ctx.beginPath()
+                  ctx.arc(x, y, r, 0, d)
+                  ctx.stroke()
+
+                  if (master.modelData.checkState === Qt.Checked) {
+                    ctx.beginPath()
+                    ctx.arc(x, y, r / 2 - 0.5, 0, d)
+                    ctx.fill()
+                  }
+                }
+
+                Component.onCompleted: {
+                  requestPaint()
+                }
+              }
+            }
+
+            Loader {
+              anchors.verticalCenter: parent.verticalCenter
+
+              active: master.modelData.icon.length &&
+                     (master.modelData.buttonType ===
+                        QsMenuButtonType.None)
 
               sourceComponent: IconImage {
                 implicitSize: config.iconSize
@@ -506,10 +649,8 @@ ShellRoot {
           Item {
             id: item
 
-            Layout.alignment:   Qt.AlignVCenter
-            Layout.rightMargin: master.modelData.hasChildren ?
-                                  0 : config.padding
-            Layout.fillWidth:   true
+            Layout.alignment: Qt.AlignVCenter
+            Layout.fillWidth: true
 
             implicitHeight: config.iconSize
 
@@ -533,9 +674,7 @@ ShellRoot {
           }
 
           Loader {
-            Layout.alignment:   Qt.AlignVCenter
-            Layout.rightMargin: master.modelData.hasChild ?
-                                  config.padding : 0
+            Layout.alignment: Qt.AlignVCenter
 
             active: master.modelData.hasChildren
 
@@ -766,10 +905,10 @@ ShellRoot {
 
             onClicked: {
               if (grid.month === 0) {
-                grid.year  = grid.year  - 1
-                grid.month = 11
+                grid.month  = 11
+                grid.year  -= 1
               } else
-                grid.month = grid.month - 1
+                grid.month -= 1
             }
           }
         }
@@ -798,10 +937,10 @@ ShellRoot {
 
             onClicked: {
               if (grid.month === 11) {
-                grid.year  = grid.year  + 1
-                grid.month = 0
+                grid.month  = 0
+                grid.year  += 1
               } else
-                grid.month = grid.month + 1
+                grid.month += 1
             }
           }
         }
@@ -1010,7 +1149,7 @@ ShellRoot {
     }
   }
 
-  component PickerItem: Item {
+  component PickerItem: WrapperMouseArea {
     id: master
 
     required property int index
@@ -1020,14 +1159,24 @@ ShellRoot {
     implicitWidth:  config.windowWidthLarge
     implicitHeight: config.itemHeightGigantic
 
-    RowLayout {
-      anchors.fill: parent
+    leftMargin:  config.padding
+    rightMargin: config.padding
 
+    hoverEnabled: true
+
+    onEntered: {
+      list.currentIndex = index
+    }
+    onClicked: {
+      helper.exec(master.modelData)
+      list.popout.done()
+    }
+
+    RowLayout {
       spacing: config.paddingHuge
 
       IconImage {
-        Layout.alignment:   Qt.AlignVCenter
-        Layout.leftMargin:  config.padding
+        Layout.alignment: Qt.AlignVCenter
 
         implicitSize: config.iconSizeGigantic
 
@@ -1037,9 +1186,8 @@ ShellRoot {
       Column {
         id: column
 
-        Layout.alignment:   Qt.AlignVCenter
-        Layout.rightMargin: config.padding
-        Layout.fillWidth:   true
+        Layout.alignment: Qt.AlignVCenter
+        Layout.fillWidth: true
 
         CustomText {
           font.pointSize: config.fontSizeLarge
@@ -1060,20 +1208,6 @@ ShellRoot {
 
           text: (master.modelData?.comment || master.modelData?.name) ?? ''
         }
-      }
-    }
-
-    MouseArea {
-      anchors.fill: parent
-
-      hoverEnabled: true
-
-      onEntered: {
-        master.list.currentIndex = index
-      }
-      onClicked: {
-        helper.exec(master.modelData)
-        master.list.popout.done()
       }
     }
   }
@@ -1108,7 +1242,7 @@ ShellRoot {
 
     anchors.bottom: true
 
-    margins.bottom: config.itemHeightGigantic
+    margins.bottom: config.clientGap
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
@@ -1222,19 +1356,22 @@ ShellRoot {
       }
 
       onCompleted: res => {
-        if (res === PamResult.Success) {
-          master.locker.locked = false
-          return
-        }
-
         widget.text = ''
 
-        if (res === PamResult.Error)
-          reason = 'error'
-        else if (res === PamResult.MaxTries)
-          reason = 'max'
-        else if (res === PamResult.Failed)
-          reason = 'failed'
+        switch (res) {
+          case PamResult.Success:
+            master.locker.locked = false
+            return
+          case PamResult.Error:
+            reason = 'error'
+            break
+          case PamResult.MaxTries:
+            reason = 'max'
+            break
+          case PamResult.Failed:
+            reason = 'failed'
+            break
+        }
       }
     }
 
@@ -1272,14 +1409,16 @@ ShellRoot {
 
           radius: height / 2
           color: {
-            if (pam.reason === 'error')
-              return config.colorBackgroundError
-            else if (pam.reason === 'max')
-              return config.colorBackgroundMax
-            else if (pam.reason === 'failed')
-              return config.colorBackgroundFailed
-            else
-              return config.colorBackgroundLightTrans
+            switch (pam.reason) {
+              case 'error':
+                return config.colorBackgroundError
+              case 'max':
+                return config.colorBackgroundMax
+              case 'failed':
+                return config.colorBackgroundFailed
+              default:
+                return config.colorBackgroundLightTrans
+            }
           }
         }
 
@@ -1336,104 +1475,32 @@ ShellRoot {
   component ShowerItem: Rectangle {
     id: master
 
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
+
+    color: {
+      switch (modelData.urgency) {
+        case NotificationUrgency.Critical:
+          return config.colorBackgroundError
+        case NotificationUrgency.Low:
+          return config.colorBackgroundMax
+        default:
+          return 'transparent'
+      }
+    }
+
     required property int index
     required property var modelData
     required property var list
 
-    implicitWidth:  config.windowWidth
-    implicitHeight: config.itemHeightGigantic
+    WrapperMouseArea {
+      id: widget
 
-    color: {
-      if (modelData.urgency === NotificationUrgency.Critical)
-        return config.colorBackgroundRed
-      else if (modelData.urgency === NotificationUrgency.Low)
-        return config.colorBackgroundYellow
-      else
-        return 'transparent'
-    }
+      implicitWidth:  config.windowWidth
+      implicitHeight: config.itemHeightGigantic
 
-    RowLayout {
-      anchors.fill: parent
-
-      spacing: config.padding
-
-      Loader {
-        Layout.alignment:   Qt.AlignVCenter
-        Layout.leftMargin:  active ? config.padding : 0
-
-        active: master.modelData.image.length
-
-        sourceComponent: Item {
-          implicitWidth:  config.iconSizeGigantic
-          implicitHeight: config.iconSizeGigantic
-
-          Image {
-            anchors.fill: parent
-
-            fillMode: Image.PreserveAspectCrop
-
-            source: Qt.resolvedUrl(master.modelData.image)
-          }
-        }
-      }
-
-      Loader {
-        Layout.alignment:   Qt.AlignVCenter
-        Layout.leftMargin:  active ? config.padding : 0
-
-        active: !master.modelData.image.length
-
-        sourceComponent: IconImage {
-          implicitSize: config.iconSizeGigantic
-
-          source: {
-            var str = master.modelData.appIcon ?? helper.getIconSum(
-                      master.modelData.summary.toLowerCase())
-
-            return helper.getIcon(str)
-          }
-        }
-      }
-
-      Column {
-        id: column
-
-        Layout.alignment:   Qt.AlignVCenter
-        Layout.rightMargin: config.padding
-        Layout.fillWidth:   true
-
-        CustomText {
-          font.pointSize: config.fontSizeLarge
-
-          text:  masterMain.elidedText
-        }
-
-        CustomText {
-          color: config.colorForegroundDarker
-
-          text:  metricBody.elidedText
-        }
-
-        CustomTextMetrics {
-          id: metricMain
-
-          elideWidth: column.width
-
-          text:  master.modelData.summary
-        }
-
-        CustomTextMetrics {
-          id: metricBody
-
-          elideWidth: column.width
-
-          text:  master.modelData.body
-        }
-      }
-    }
-
-    MouseArea {
-      anchors.fill: parent
+      leftMargin:  config.padding
+      rightMargin: config.padding
 
       hoverEnabled: true
 
@@ -1448,6 +1515,81 @@ ShellRoot {
             a.invoke()
 
         master.modelData.tracked = false
+      }
+
+      RowLayout {
+        spacing: config.padding
+
+        Loader {
+          Layout.alignment: Qt.AlignVCenter
+
+          active: master.modelData.image.length
+
+          sourceComponent: Item {
+            implicitWidth:  config.iconSizeGigantic
+            implicitHeight: config.iconSizeGigantic
+
+            Image {
+              anchors.fill: parent
+
+              fillMode: Image.PreserveAspectCrop
+
+              source: Qt.resolvedUrl(master.modelData.image)
+            }
+          }
+        }
+
+        Loader {
+          Layout.alignment: Qt.AlignVCenter
+
+          active: !master.modelData.image.length
+
+          sourceComponent: IconImage {
+            implicitSize: config.iconSizeGigantic
+
+            source: {
+              var str = master.modelData.appIcon ?? helper.getIconSum(
+                        master.modelData.summary.toLowerCase())
+
+              return helper.getIcon(str)
+            }
+          }
+        }
+
+        Column {
+          id: column
+
+          Layout.alignment: Qt.AlignVCenter
+          Layout.fillWidth: true
+
+          CustomText {
+            font.pointSize: config.fontSizeLarge
+
+            text:  metricMain.elidedText
+          }
+
+          CustomText {
+            color: config.colorForegroundDarker
+
+            text:  metricBody.elidedText
+          }
+
+          CustomTextMetrics {
+            id: metricMain
+
+            elideWidth: column.width
+
+            text:  master.modelData.summary
+          }
+
+          CustomTextMetrics {
+            id: metricBody
+
+            elideWidth: column.width
+
+            text:  master.modelData.body
+          }
+        }
       }
     }
   }
@@ -1573,7 +1715,7 @@ ShellRoot {
     function pick(): void {
       for (const c of clients)
         if ((c.x <= curX) && (c.x + c.w >= curX) &&
-          (c.y <= curY) && (c.y + c.h >= curY)) {
+            (c.y <= curY) && (c.y + c.h >= curY)) {
           selX = c.x
           selY = c.y
           selW = c.w
