@@ -779,8 +779,8 @@ ShellRoot {
     anchors.left:   true
     anchors.bottom: true
 
-    margins.left:   config.clientGap
-    margins.bottom: config.clientGap
+    margins.left:   config.clientGap / screen.devicePixelRatio
+    margins.bottom: config.clientGap / screen.devicePixelRatio
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
@@ -876,8 +876,8 @@ ShellRoot {
     anchors.left:   true
     anchors.bottom: true
 
-    margins.left:   config.clientGap
-    margins.bottom: config.clientGap
+    margins.left:   config.clientGap / screen.devicePixelRatio
+    margins.bottom: config.clientGap / screen.devicePixelRatio
 
     implicitWidth:  widget.implicitWidth  + config.paddingHuge * 2
     implicitHeight: widget.implicitHeight + config.paddingHuge * 2
@@ -1242,7 +1242,7 @@ ShellRoot {
 
     anchors.bottom: true
 
-    margins.bottom: config.clientGap
+    margins.bottom: config.clientGap / screen.devicePixelRatio
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
@@ -1628,8 +1628,8 @@ ShellRoot {
     anchors.right:  true
     anchors.bottom: true
 
-    margins.right:  config.clientGap
-    margins.bottom: config.clientGap
+    margins.right:  config.clientGap / screen.devicePixelRatio
+    margins.bottom: config.clientGap / screen.devicePixelRatio
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
@@ -1882,12 +1882,14 @@ ShellRoot {
 
     anchors.bottom: true
 
-    margins.bottom: screen.height * 0.1 - height / 2
+    margins.bottom: margin / screen.devicePixelRatio
 
     implicitWidth:  config.windowWidth
     implicitHeight: config.itemHeightLarge
 
     hoverCheck: false
+
+    property real margin: screen.height * 0.1 - height / 2
 
     Rectangle {
       implicitWidth:  config.windowWidth * helper.vol
