@@ -421,8 +421,8 @@ require('lazy').setup({
       require('onedark').setup(opts)
       vim.cmd('colorscheme onedark')
     end,
-    opts   = {
-      colors     = {
+    opts = {
+      colors = {
         bg0 = '#23272e',
         bgd = '#1e2227'
       },
@@ -467,7 +467,7 @@ require('lazy').setup({
     config = function (_, opts)
       require('nvim-treesitter.configs').setup(opts)
     end,
-    opts   = {
+    opts = {
       indent    = { enable = true },
       highlight = { enable = true },
       ensure_installed = {
@@ -497,11 +497,7 @@ require('lazy').setup({
 
       vim.diagnostic.enable(false)
     end,
-    opts   = {
-      servers = {
-        clangd = {}
-      }
-    }
+    opts = { servers = { clangd = { } } }
   },
 
   { 'nvim-telescope/telescope.nvim',
@@ -526,8 +522,9 @@ require('lazy').setup({
             height          =  25,
             prompt_position = 'bottom'
           },
-          mappings = {
-            i = { ['<cr>'] = actions.select_vertical }
+          mappings = { i = {
+              ['<cr>'] = actions.select_vertical
+            }
           }
         }
       })
@@ -550,7 +547,7 @@ require('lazy').setup({
       { '<leader>b', tele_buf,  mode = { 'n' } }
     },
     config = function ()
-      require('scope').setup()
+      require('scope'    ).setup()
       require('telescope').load_extension('scope')
     end
   },
@@ -558,7 +555,7 @@ require('lazy').setup({
   { 'saghen/blink.cmp',
     dependencies = { 'xzbdmw/colorful-menu.nvim' },
     opts = {
-      keymap     = { preset = 'none',
+      keymap = { preset = 'none',
         ['<tab>'  ] = { 'select_next', 'snippet_forward',  'fallback' },
         ['<s-tab>'] = { 'select_prev', 'snippet_backward', 'fallback' },
         ['<up>'   ] = { 'select_prev',                     'fallback' },
@@ -566,11 +563,20 @@ require('lazy').setup({
         ['<cr>'   ] = { 'select_and_accept',               'fallback' },
         ['<esc>'  ] = { 'cancel',                          'fallback' }
       },
-      fuzzy      = { implementation =   'lua'                     },
-      signature  = { enabled        =    true                     },
-      sources    = { default        = { 'lsp', 'path', 'buffer' } },
-      cmdline    = {
-        keymap      = { preset = 'inherit',
+      completion = { list = { selection = {
+            preselect   = false,
+            auto_insert = true
+          }
+        }
+      },
+      fuzzy = { implementation = 'lua' },
+      signature = {
+        enabled = true,
+        window  = { border = 'padded' }
+      },
+      sources = { default = { 'lsp', 'path', 'buffer' } },
+      cmdline = { keymap  = { preset = 'inherit',
+          ['<cr>' ] = { 'fallback' },
           ['<esc>'] = {
             -- https://github.com/Saghen/blink.cmp/issues/547
             function (cmp)
@@ -583,29 +589,32 @@ require('lazy').setup({
             end
           }
         },
-        completion  = { menu   = { auto_show = true } }
-      },
+        completion = {
+          menu = { auto_show = true },
+          list = { selection = {
+              preselect   = false,
+              auto_insert = true
+            }
+          }
+        }
+      }
     },
     config = function (_, opts)
       local blink    = require('blink.cmp')
       local colorful = require('colorful-menu')
 
-      opts['completion'] = {
-        menu = {
-          draw = {
-            columns = {
-              { 'kind_icon'      },
-              { 'label', gap = 1 }
-            },
-            components = {
-              label = {
-                text      = function(ctx)
-                  return colorful.blink_components_text(ctx)
-                end,
-                highlight = function(ctx)
-                  return colorful.blink_components_highlight(ctx)
-                end
-              }
+      opts.completion.menu = { draw = {
+          columns = {
+            { 'kind_icon'      },
+            { 'label', gap = 1 }
+          },
+          components = { label = {
+              text      = function(ctx)
+                return colorful.blink_components_text(ctx)
+              end,
+              highlight = function(ctx)
+                return colorful.blink_components_highlight(ctx)
+              end
             }
           }
         }
@@ -621,11 +630,11 @@ require('lazy').setup({
       require('mini.bracketed' ).setup()
       require('mini.comment'   ).setup()
       require('mini.cursorword').setup({
-        delay            = 500
+        delay = 500
       })
       require('mini.diff'      ).setup()
       require('mini.hipatterns').setup({
-        highlighters     = {
+        highlighters = {
           fixme = { pattern = '%f[%w]()FIXME()%f[%W]',
                     group   = 'MiniHipatternsFixme' },
           hack  = { pattern = '%f[%w]()HACK()%f[%W]',
@@ -635,7 +644,7 @@ require('lazy').setup({
           note  = { pattern = '%f[%w]()NOTE()%f[%W]',
                     group   = 'MiniHipatternsNote'  },
 
-          hex   = require('mini.hipatterns').gen_highlighter.hex_color(),
+          hex = require('mini.hipatterns').gen_highlighter.hex_color(),
         }
       })
       require('mini.jump'      ).setup()
@@ -643,7 +652,7 @@ require('lazy').setup({
       require('mini.pairs'     ).setup()
       require('mini.splitjoin' ).setup()
       require('mini.statusline').setup({
-        content          = {
+        content = {
           active   = status_act,
           inactive = status_inact
         },
@@ -652,9 +661,9 @@ require('lazy').setup({
       })
       require('mini.surround'  ).setup()
       require('mini.tabline'   ).setup({
-        show_icons       =  false,
-        format           =  format_tab,
-        tabpage_section  = 'right'
+        show_icons      =  false,
+        format          =  format_tab,
+        tabpage_section = 'right'
       })
       require('mini.trailspace').setup()
     end
