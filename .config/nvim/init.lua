@@ -558,16 +558,35 @@ require('lazy').setup({
   { 'saghen/blink.cmp',
     dependencies = { 'xzbdmw/colorful-menu.nvim' },
     opts = {
-      keymap    = { preset         =   'super-tab'               },
-      sources   = { default        = { 'lsp', 'path', 'buffer' } },
-      signature = { enabled        =    true                     },
-      fuzzy     = { implementation =   'lua'                     },
-      cmdline   = {
-        keymap     = { preset =  'inherit'           },
-        completion = { menu   = { auto_show = true } }
+      keymap     = { preset = 'none',
+        ['<tab>'  ] = { 'select_next', 'snippet_forward',  'fallback' },
+        ['<s-tab>'] = { 'select_prev', 'snippet_backward', 'fallback' },
+        ['<up>'   ] = { 'select_prev',                     'fallback' },
+        ['<down>' ] = { 'select_next',                     'fallback' },
+        ['<cr>'   ] = { 'select_and_accept',               'fallback' },
+        ['<esc>'  ] = { 'cancel',                          'fallback' }
+      },
+      fuzzy      = { implementation =   'lua'                     },
+      signature  = { enabled        =    true                     },
+      sources    = { default        = { 'lsp', 'path', 'buffer' } },
+      cmdline    = {
+        keymap      = { preset = 'inherit',
+          ['<esc>'] = {
+            -- https://github.com/Saghen/blink.cmp/issues/547
+            function (cmp)
+              if cmp.is_visible() then
+                cmp.cancel()
+              else
+                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(
+                  '<c-c>', true, true, true), 'n', true)
+              end
+            end
+          }
+        },
+        completion  = { menu   = { auto_show = true } }
       },
     },
-    config = function(_, opts)
+    config = function (_, opts)
       local blink    = require('blink.cmp')
       local colorful = require('colorful-menu')
 
