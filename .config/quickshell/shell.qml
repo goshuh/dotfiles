@@ -1577,6 +1577,8 @@ ShellRoot {
           CustomTextMetrics {
             id: metricMain
 
+            font.pointSize: config.fontSizeLarge
+
             elideWidth: column.width
 
             text:  master.modelData.summary
@@ -1587,7 +1589,7 @@ ShellRoot {
 
             elideWidth: column.width
 
-            text:  master.modelData.body
+            text:  master.modelData.body.replace(/\n/g, ' | ')
           }
         }
       }
