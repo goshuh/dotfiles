@@ -1837,6 +1837,8 @@ ShellRoot {
     anchors.left:   true
     anchors.right:  true
 
+    hoverCheck: false
+
     ShoterArea {
       screen: master.screen
       popout: master.popout
