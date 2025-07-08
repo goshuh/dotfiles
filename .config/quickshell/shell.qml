@@ -1627,6 +1627,8 @@ ShellRoot {
   component Shower: CustomPopoutWindow {
     id: master
 
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
     anchors.right:  true
     anchors.bottom: true
 
