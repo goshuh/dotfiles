@@ -561,7 +561,7 @@ require('lazy').setup({
         ['<up>'   ] = { 'select_prev',                     'fallback' },
         ['<down>' ] = { 'select_next',                     'fallback' },
         ['<cr>'   ] = { 'select_and_accept',               'fallback' },
-        ['<esc>'  ] = { 'cancel',                          'fallback' }
+        ['<esc>'  ] = { 'hide',                            'fallback' }
       },
       completion = { list = { selection = {
             preselect   = false,
@@ -581,7 +581,7 @@ require('lazy').setup({
             -- https://github.com/Saghen/blink.cmp/issues/547
             function (cmp)
               if cmp.is_visible() then
-                cmp.cancel()
+                cmp.hide()
               else
                 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(
                   '<c-c>', true, true, true), 'n', true)
