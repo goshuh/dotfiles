@@ -50,14 +50,15 @@ decl_lazy <- function(name, pkgs, def) {
 
 decl_lazy('draw_load', c('ggplot2'),
   function(name,
-           trans = FALSE,
-           rows  = NULL,
-           cols  = NULL) {
+           rows = NULL,
+           cols = NULL,
+           tran = FALSE,
+           disc = FALSE) {
     data <- read.table(name,
                        header = FALSE,
                        sep    = '\t')
 
-    if (trans)
+    if (tran)
       data <- t(data)
 
     if (is.null(cols))
@@ -68,7 +69,7 @@ decl_lazy('draw_load', c('ggplot2'),
     if (is.null(rows))
       names(data)[1] <- 'x'
     else
-      cbind(x = rows, data)
+      data <- cbind(x = factor(rows, levels = rows), data)
 
     # convert to long format
     plot <- tidyr::pivot_longer(data,
@@ -76,13 +77,20 @@ decl_lazy('draw_load', c('ggplot2'),
                                 names_to  = 'cat',
                                 values_to = 'val')
 
-    return(ggplot(plot,
-                  aes(x     = x,
-                      y     = val,
-                      color = cat,
-                      shape = cat,
-                      size  = cat,
-                      fill  = cat)))
+    if (disc)
+      return(ggplot(plot,
+                    aes(x     = x,
+                        y     = val,
+                        color = cat,
+                        fill  = cat)))
+    else
+      return(ggplot(plot,
+                    aes(x     = x,
+                        y     = val,
+                        color = cat,
+                        shape = cat,
+                        size  = cat,
+                        fill  = cat)))
   }
 )
 
@@ -102,11 +110,19 @@ decl_lazy('draw_with', c('ggplot2'),
            colors      = NULL,
            shapes      = NULL,
            sizes       = NULL,
-           fills       = NULL) {
+           fills       = NULL,
+           disc        = FALSE) {
 
     mod <- list()
 
-    if (xlog)
+    if (disc)
+      mod <- append(mod,
+                    scale_x_discrete  (name         = xlabel,
+                                       breaks       = xticks,
+                                       labels       = xticklabels,
+                                       limits       = xlimit,
+                                       guide        = guide_axis(minor.ticks = TRUE)))
+    else if (xlog)
       mod <- append(mod,
                     scale_x_log10     (name         = xlabel,
                                        breaks       = xticks,
@@ -172,6 +188,7 @@ decl_lazy('draw_lite', c('ggplot2'),
            line_width  =  0.25,
            tick_major  =  0.025,
            tick_minor  =  0.0125,
+           lkey_space  =  0.01,
            lkey_height =  0.1,
            lkey_width  =  0.3,
            lkey_sep    =  0.15,
@@ -216,6 +233,7 @@ decl_lazy('draw_lite', c('ggplot2'),
     def_tick_major  <- unit(tick_major,  units)
     def_tick_minor  <- unit(tick_minor,  units)
 
+    def_lkey_space  <- unit(lkey_space,  units)
     def_lkey_height <- unit(lkey_height, units)
     def_lkey_width  <- unit(lkey_width,  units)
     def_lkey_sep    <- unit(lkey_sep,    units)
@@ -246,7 +264,7 @@ decl_lazy('draw_lite', c('ggplot2'),
                  axis.ticks.length       =  def_tick_major,
                  axis.minor.ticks.length =  def_tick_minor,
                  legend.margin           =  def_marg_zero,
-                 legend.spacing          =  def_lkey_height,
+                 legend.spacing          =  def_lkey_space,
                  legend.key.size         =  def_unit_zero,
                  legend.key.height       =  def_lkey_height,
                  legend.key.width        =  def_lkey_width,
