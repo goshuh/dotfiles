@@ -24,10 +24,10 @@ pkg_orphan <- function() {
 
 # palette
 .colors = c(
-  '#000000',
-  '#307098',
   '#832211',
-  '#b26925'
+  '#b26925',
+  '#307098',
+  '#000000'
 )
 
 .shapes = c(
@@ -52,19 +52,26 @@ decl_lazy('draw_load', c('ggplot2'),
   function(name,
            rows = NULL,
            cols = NULL,
+           grps = NULL,
            tran = FALSE,
            disc = FALSE) {
     data <- read.table(name,
                        header = FALSE,
                        sep    = '\t')
 
+    # unique identifiers
+    uniq <- as.character(1:ncol(data))
+
     if (tran)
       data <- t(data)
 
     if (is.null(cols))
-      cols <- as.character(1:ncol(data))
+      cols <- uniq
 
-    names(data) <- cols
+    names(data) <- uniq
+
+    if (is.null(grps))
+      grps <- uniq
 
     if (is.null(rows))
       names(data)[1] <- 'x'
@@ -77,28 +84,54 @@ decl_lazy('draw_load', c('ggplot2'),
                                 names_to  = 'cat',
                                 values_to = 'val')
 
+    # create groups
+    plot <- merge(plot, data.frame(cat = uniq,
+                                   col = cols,
+                                   grp = grps))
+
+    # preserve column order
+    plot$cat <- factor(plot$cat, levels = uniq)
+
     if (disc)
       return(ggplot(plot,
                     aes(x     = x,
                         y     = val,
-                        color = cat,
-                        fill  = cat)))
+                        color = col,
+                        shape = col,
+                        fill  = col,
+                        group = grp)))
     else
       return(ggplot(plot,
                     aes(x     = x,
                         y     = val,
-                        color = cat,
-                        shape = cat,
-                        size  = cat,
-                        fill  = cat)))
+                        color = col,
+                        shape = col,
+                        size  = col,
+                        fill  = col,
+                        group = grp)))
+  }
+)
+
+decl_lazy('draw_help_bar', c('ggplot2'),
+  function() {
+    return(geom_col(position = 'dodge'))
+  }
+)
+
+decl_lazy('draw_help_lap', c('ggplot2'),
+  function() {
+    return(list(geom_line(),
+                geom_point()))
   }
 )
 
 decl_lazy('draw_with', c('ggplot2'),
-  function(xlabel      = waiver(),
-           ylabel      = waiver(),
+  function(xlabel      = NULL,
+           ylabel      = NULL,
            xlimit      = NULL,
            ylimit      = NULL,
+           xexpand     = waiver(),
+           yexpand     = expansion(mult = c(0, 0.1)),
            xlog        = FALSE,
            ylog        = FALSE,
            xticks      = waiver(),
@@ -107,12 +140,12 @@ decl_lazy('draw_with', c('ggplot2'),
            yminorticks = waiver(),
            xticklabels = waiver(),
            yticklabels = waiver(),
+           legendrow   = 1,
            colors      = NULL,
            shapes      = NULL,
            sizes       = NULL,
            fills       = NULL,
            disc        = FALSE) {
-
     mod <- list()
 
     if (disc)
@@ -121,6 +154,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        breaks       = xticks,
                                        labels       = xticklabels,
                                        limits       = xlimit,
+                                       expand       = xexpand,
                                        guide        = guide_axis(minor.ticks = TRUE)))
     else if (xlog)
       mod <- append(mod,
@@ -129,6 +163,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = xminorticks,
                                        labels       = xticklabels,
                                        limits       = xlimit,
+                                       expand       = xexpand,
                                        guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
     else
@@ -138,6 +173,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = xminorticks,
                                        labels       = xticklabels,
                                        limits       = xlimit,
+                                       expand       = xexpand,
                                        guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
 
@@ -148,6 +184,7 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = yminorticks,
                                        labels       = yticklabels,
                                        limits       = ylimit,
+                                       expand       = yexpand,
                                        guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
     else
@@ -157,24 +194,26 @@ decl_lazy('draw_with', c('ggplot2'),
                                        minor_breaks = yminorticks,
                                        labels       = yticklabels,
                                        limits       = ylimit,
+                                       expand       = yexpand,
                                        guide        = guide_axis(minor.ticks = TRUE),
                                        oob          = scales::oob_keep))
 
     mod <- append(mod,
-                  scale_color_manual(values =
+                  scale_color_manual(guide  = guide_legend(nrow = legendrow),
+                                     values =
                     if (is.null(colors)) .colors else colors))
 
     mod <- append(mod,
                   scale_shape_manual(values =
                     if (is.null(shapes)) .shapes else shapes))
 
+    mod <- append(mod,
+                  scale_fill_manual(values =
+                    if (is.null(fills))  .colors else fills))
+
     if (!is.null(sizes))
       mod <- append(mod,
                     scale_size_manual(values = sizes))
-
-    if (!is.null(fills))
-      mod <- append(mod,
-                    scale_fill_manual(values = fills))
 
     return(mod)
   }
@@ -188,13 +227,12 @@ decl_lazy('draw_lite', c('ggplot2'),
            line_width  =  0.25,
            tick_major  =  0.025,
            tick_minor  =  0.0125,
-           lkey_space  =  0.01,
            lkey_height =  0.1,
            lkey_width  =  0.3,
-           lkey_sep    =  0.15,
+           lkey_sep    =  0.05,
+           lkey_pos    = 'top',
            plot_margin =  0.0,
            units       = 'inches') {
-
     def_null <- element_blank()
 
     def_line <- element_line(linewidth     =  line_width,
@@ -233,7 +271,6 @@ decl_lazy('draw_lite', c('ggplot2'),
     def_tick_major  <- unit(tick_major,  units)
     def_tick_minor  <- unit(tick_minor,  units)
 
-    def_lkey_space  <- unit(lkey_space,  units)
     def_lkey_height <- unit(lkey_height, units)
     def_lkey_width  <- unit(lkey_width,  units)
     def_lkey_sep    <- unit(lkey_sep,    units)
@@ -264,7 +301,7 @@ decl_lazy('draw_lite', c('ggplot2'),
                  axis.ticks.length       =  def_tick_major,
                  axis.minor.ticks.length =  def_tick_minor,
                  legend.margin           =  def_marg_zero,
-                 legend.spacing          =  def_lkey_space,
+                 legend.spacing          =  def_lkey_sep,
                  legend.key.size         =  def_unit_zero,
                  legend.key.height       =  def_lkey_height,
                  legend.key.width        =  def_lkey_width,
@@ -272,7 +309,7 @@ decl_lazy('draw_lite', c('ggplot2'),
                  legend.text             =  def_text,
                  legend.text.position    = 'right',
                  legend.title            =  def_null,
-                 legend.position         = 'top',
+                 legend.position         =  lkey_pos,
                  legend.direction        = 'horizontal',
                  legend.byrow            =  TRUE,
                  legend.location         = 'panel',
@@ -306,7 +343,6 @@ decl_lazy('draw_save', c('ggplot2'),
            height =  1.75,
            units  = 'in',
            dpi    =  72) {
-
     ggsave(name,
            plot,
            device =  device,
