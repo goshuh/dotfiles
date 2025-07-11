@@ -844,8 +844,8 @@ ShellRoot {
 
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-      onClicked: event => {
-        if (event.button === Qt.LeftButton)
+      onClicked: evt => {
+        if (evt.button === Qt.LeftButton)
           master.modelData.activate()
 
         else if (master.modelData.menu)
@@ -866,6 +866,43 @@ ShellRoot {
         }
 
         PanelTrayItem {}
+      }
+    }
+  }
+
+  component PanelAudio: Item {
+    id: master
+
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
+
+    IconImage {
+      id: widget
+
+      implicitSize: config.iconSize
+
+      source: {
+        const vol =  helper.vol
+        const src = (vol === 0   ) ? 'audio-volume-muted'  :
+                    (vol  <  0.33) ? 'audio-volume-low'    :
+                    (vol  <  0.66) ? 'audio-volume-medium' :
+                                     'audio-volume-high'
+
+        return helper.getIcon(src)
+      }
+    }
+
+    MouseArea {
+      anchors.fill: parent
+
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+      onClicked: {
+        volume.init(0)
+      }
+
+      onWheel: evt => {
+        volume.init(evt.angleDelta.y > 0 ? 10 : -10)
       }
     }
   }
@@ -1066,6 +1103,12 @@ ShellRoot {
       PanelTray {
         Layout.alignment:    Qt.AlignHCenter
       }
+
+      PanelAudio {
+        Layout.alignment:    Qt.AlignHCenter
+      }
+
+      // network will soon happen
 
       PanelCalendar {
         Layout.alignment:    Qt.AlignHCenter
@@ -1333,7 +1376,8 @@ ShellRoot {
 
       anchors.fill: parent
 
-      source: screen
+      enabled: screen.hasContent
+      source:  screen
 
       autoPaddingEnabled: false
 
@@ -1885,6 +1929,8 @@ ShellRoot {
 
   component Volume: CustomPopoutWindow {
     id: master
+
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors.bottom: true
 
