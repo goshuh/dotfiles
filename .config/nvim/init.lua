@@ -560,7 +560,7 @@ require('lazy').setup({
         ['<s-tab>'] = { 'select_prev', 'snippet_backward', 'fallback' },
         ['<up>'   ] = { 'select_prev',                     'fallback' },
         ['<down>' ] = { 'select_next',                     'fallback' },
-        ['<cr>'   ] = { 'select_and_accept',               'fallback' },
+        ['<cr>'   ] = { 'accept',                          'fallback' },
         ['<esc>'  ] = {  function (cmp) cmp.hide() end,    'fallback' }
       },
       completion = { list = { selection = {
