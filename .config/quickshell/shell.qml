@@ -1075,6 +1075,7 @@ ShellRoot {
 
     WlrLayershell.exclusionMode: ExclusionMode.Auto
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    WlrLayershell.layer:         WlrLayer.Bottom
 
     anchors.left:   true
     anchors.top:    true
