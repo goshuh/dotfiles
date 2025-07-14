@@ -478,7 +478,8 @@ require('lazy').setup({
         'python',
         'rust',
         'scala',
-        'systemverilog'
+        'verilog',
+        'zig'
       }
     },
   },
