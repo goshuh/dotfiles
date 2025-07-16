@@ -164,6 +164,7 @@ def runq(env, *opts):
 
     # defaults
     env['smp'] = '1'
+    env['mem'] = '32G'
 
     for op in opts:
         if op.startswith('+'):
