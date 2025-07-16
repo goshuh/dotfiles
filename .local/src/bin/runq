@@ -162,10 +162,6 @@ def kick(env, args):
 def runq(env, *opts):
     real = []
 
-    # defaults
-    env['smp'] = '1'
-    env['mem'] = '32G'
-
     for op in opts:
         if op.startswith('+'):
             if sp := op[1:].split('='):
