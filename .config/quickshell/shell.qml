@@ -165,6 +165,8 @@ ShellRoot {
     readonly property string iconDefault:          'gnome-settings'
 
     readonly property string fontFamily:           'Cantarell'
+    readonly property string fontFamilyMono:       'Fira Code'
+    readonly property int    fontSizeSmall:         9
     readonly property int    fontSize:              10
     readonly property int    fontSizeLarge:         12
     readonly property int    fontSizeHuge:          64
@@ -1046,7 +1048,12 @@ ShellRoot {
     CustomText {
       id: widget
 
-      text: helper.fmtDate('hh:mm')
+      horizontalAlignment: Text.AlignHCenter
+
+      font.family:    config.fontFamilyMono
+      font.pointSize: config.fontSizeSmall
+
+      text: helper.fmtDate('hh:mm\nMM-dd')
     }
 
     CustomPopout {
