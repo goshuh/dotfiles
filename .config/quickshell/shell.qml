@@ -180,6 +180,7 @@ ShellRoot {
     readonly property int    itemHeightGigantic:    56
     readonly property int    itemShown:             5
 
+    readonly property int    paddingSmall:          2
     readonly property int    padding:               4
     readonly property int    paddingLarge:          6
     readonly property int    paddingHuge:           8
@@ -1048,12 +1049,7 @@ ShellRoot {
     CustomText {
       id: widget
 
-      horizontalAlignment: Text.AlignHCenter
-
-      font.family:    config.fontFamilyMono
-      font.pointSize: config.fontSizeSmall
-
-      text: helper.fmtDate('hh:mm\nMM-dd')
+      text: helper.fmtDate('hh:mm')
     }
 
     CustomPopout {
