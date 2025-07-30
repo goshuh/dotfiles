@@ -15,7 +15,7 @@ def find(fn):
     if not os.path.isdir(dn):
         return None
 
-    fn = os.path.abspath(os.path.join(dn, fn))
+    fn = os.path.join(os.path.abspath(dn), os.path.basename(fn))
 
     if os.path.isfile(fn):
         return fn
