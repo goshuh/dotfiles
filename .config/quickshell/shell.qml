@@ -1046,10 +1046,30 @@ ShellRoot {
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
 
-    CustomText {
+    ColumnLayout {
       id: widget
 
-      text: helper.fmtDate('hh:mm')
+      anchors.horizontalCenter: parent.horizontalCenter
+
+      spacing: 0
+
+      CustomText {
+        Layout.alignment: Qt.AlignHCenter
+
+        font.bold:   true
+        font.family: config.fontFamilyMono
+
+        text: helper.fmtDate('hh')
+      }
+
+      CustomText {
+        Layout.alignment: Qt.AlignHCenter
+
+        font.bold:   true
+        font.family: config.fontFamilyMono
+
+        text: helper.fmtDate('mm')
+      }
     }
 
     CustomPopout {
