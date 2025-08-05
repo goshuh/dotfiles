@@ -183,7 +183,7 @@ def runq(env, *opts):
         return
 
     # always provided
-    env['root'] = os.path.dirname(os.path.abspath(conf))
+    env['cwd'] = os.path.dirname(os.path.abspath(conf))
 
     args = [qemu]
     curr = []
