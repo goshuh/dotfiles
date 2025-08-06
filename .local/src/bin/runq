@@ -5,7 +5,84 @@ import sys
 
 import re
 import shlex
+import signal
+import datetime
 import subprocess
+
+
+class Test:
+    PRIO = {'IS':  60,
+            'NOT': 50,
+            'AND': 40,
+            'OR':  30};
+
+    def __init__(self, env, opt):
+        self.env = env
+        self.opt = opt + ['']
+        self.pos = 0
+
+    def prio(self, opt):
+        return Test.PRIO.get(opt, 0)
+
+    def cons(self, cmp = ''):
+        opt = self.opt[self.pos]
+        self.pos += 1
+
+        if self.pos >= len(self.opt) or cmp and opt != cmp:
+            raise Exception()
+
+    def expr(self, rbp = 0):
+        opt = self.opt[self.pos]
+        self.cons()
+
+        if opt == '(':
+            val = self.expr()
+            self.cons(')')
+        elif opt == 'NOT':
+            val = not self.expr(self.prio(opt))
+        else:
+            val = opt in self.env
+
+        while rbp < self.prio(self.opt[self.pos]):
+            mid = self.opt[self.pos]
+            self.cons()
+
+            if mid == 'IS':
+                val = self.env.get(opt, '') == self.opt[self.pos]
+                self.cons()
+            elif mid == 'AND':
+                new = self.expr(self.prio(mid))
+                val = val and new
+            elif mid == 'OR':
+                new = self.expr(self.prio(mid))
+                val = val or  new
+            else:
+                raise Exception()
+
+        return val
+
+
+class Task(object):
+    def __init__(self, desc, func, args, deps, envs):
+        self.desc = desc
+        self.func = func
+        self.args = args
+        self.deps = deps
+        self.envs = envs
+
+    def __call__(self):
+        now = datetime.datetime.now()
+
+        os.environ.update(self.envs)
+
+        while True:
+            try:
+                print(now.strftime('%m-%d %H:%M:%S'), self.desc)
+                break
+            except BlockingIOError:
+                pass
+
+        self.func(*self.args)
 
 
 def find(fn):
@@ -53,57 +130,6 @@ def norm(env, fn):
 
 
 def test(env, cs, opts):
-    class Test:
-        PRIO = {'IS':  60,
-                'NOT': 50,
-                'AND': 40,
-                'OR':  30};
-
-        def __init__(self, env, opt):
-            self.env = env
-            self.opt = opt + ['']
-            self.pos = 0
-
-        def prio(self, opt):
-            return Test.PRIO.get(opt, 0)
-
-        def cons(self, cmp = ''):
-            opt = self.opt[self.pos]
-            self.pos += 1
-
-            if self.pos >= len(self.opt) or cmp and opt != cmp:
-                raise Exception()
-
-        def expr(self, rbp = 0):
-            opt = self.opt[self.pos]
-            self.cons()
-
-            if opt == '(':
-                val = self.expr()
-                self.cons(')')
-            elif opt == 'NOT':
-                val = not self.expr(self.prio(opt))
-            else:
-                val = opt in self.env
-
-            while rbp < self.prio(self.opt[self.pos]):
-                mid = self.opt[self.pos]
-                self.cons()
-
-                if mid == 'IS':
-                    val = self.env.get(opt, '') == self.opt[self.pos]
-                    self.cons()
-                elif mid == 'AND':
-                    new = self.expr(self.prio(mid))
-                    val = val and new
-                elif mid == 'OR':
-                    new = self.expr(self.prio(mid))
-                    val = val or  new
-                else:
-                    raise Exception()
-
-            return val
-
     last = cs[-1] if cs else True
 
     try:
@@ -112,32 +138,51 @@ def test(env, cs, opts):
         cs.append(False)
 
 
-def kick(env, args):
+def main(env, args):
+    def prep(name):
+        if name and name != '-':
+            os.makedirs(os.path.dirname(name), exist_ok = True)
+
     if 'expect' in env:
         import pexpect
 
-        log = env.get('logfile', '')
+        if log := env.get('logfile', ''):
+            prep(log)
 
-        return pexpect.spawn(args[0],
-                    args    = args[1:],
+        return pexpect.spawn(args[0], args[1:],
                     timeout = None,
                     logfile = open(log, 'wb') if log else None)
 
-    out = env.get('stdout', '')
-    err = env.get('stderr', '')
     fdo = 0
     fde = 0
 
-    if out:
-        fdo = os.open(out, os.O_RDWR | os.O_CREAT)
-    if err == out or err == '-':
-        fde = fdo
-    elif err:
-        fde = os.open(err, os.O_RDWR | os.O_CREAT)
+    if 'daemon' in env:
+        fdo = fde = os.open(os.devnull, os.O_RDWR)
 
-    if fdo:
+    out = env.get('stdout', '')
+    err = env.get('stderr', '')
+
+    prep(out)
+    prep(err)
+
+    if out and not fdo:
+        fdo = os.open(out, os.O_RDWR | os.O_CREAT, 0o644)
+    if err == '-':
+        fde = fdo
+    elif err and not fde:
+        fde = os.open(err, os.O_RDWR | os.O_CREAT, 0o644)
+
+    if not fdo:
+        fdo = 1
+    if not fde:
+        fde = 2
+
+    if 'wait' in env:
+        return subprocess.run(args, stdout = fdo, stderr = fde)
+
+    if fdo != 1:
         os.dup2(fdo, 1)
-    if fde:
+    if fde != 2:
         os.dup2(fde, 2)
 
     if 'daemon' in env:
@@ -153,10 +198,7 @@ def kick(env, args):
         elif pid > 0:
             return
 
-    if 'wait' in env:
-        return subprocess.run(args, stdout = fdo, stderr = fde)
-    else:
-        os.execvp(args[0], args)
+    os.execvp(args[0], args)
 
 
 def runq(env, *opts):
@@ -170,6 +212,12 @@ def runq(env, *opts):
             real.append(op)
 
     flag = not real or real[0].startswith('-')
+
+    if 'cwd' in env:
+        try:
+            os.chdir(env['cwd'])
+        except:
+            env.pop('cwd')
 
     qemu = find('qemu')
     conf = find('qemu.cfg' if flag else real[0])
@@ -242,11 +290,77 @@ def runq(env, *opts):
     if 'dry' in env:
         print(' '.join(args))
     else:
-        return kick(env, args)
+        return main(env, args)
+
+
+def pool(core, task):
+    desc = {}
+    umap = {}
+    dmap = {}
+    pids = {}
+    curr = []
+
+    def wipe(sig, frame):
+        for p in pids:
+            try:
+                os.kill(p, signal.SIGKILL)
+                os.waitpid(p, 0)
+            except:
+                pass
+
+        os._exit(1)
+
+    def wait():
+        s = pids.pop(os.waitpid(-1, 0)[0])
+
+        for d in dmap[s]:
+            umap[d].remove(s)
+
+            if not umap[d]:
+                curr.append(d)
+
+    for t in task:
+        desc[t.desc] = t
+
+    for t in task:
+        # dependency can be non-existing
+        t.deps = list(filter(lambda x: x in desc, t.deps))
+
+        umap.setdefault(t.desc, set(t.deps))
+        dmap.setdefault(t.desc, set())
+
+        if not t.deps:
+            curr.append(t.desc)
+
+        for d in t.deps:
+            dmap.setdefault(d, set()).add(t.desc)
+
+    signal.signal(signal.SIGINT,  wipe)
+    signal.signal(signal.SIGTERM, wipe)
+
+    while curr:
+        while curr:
+            if len(pids) == core:
+                wait()
+
+            s = curr.pop()
+
+            if not (pid := os.fork()):
+                desc[s]()
+                os._exit(0)
+
+            pids[pid] = s
+
+        # a finished task can wake up other tasks
+        while pids:
+            wait()
+
+            if curr:
+                break
 
 
 if __name__ == '__main__':
-    env = {}
-    env.update(os.environ)
+    envs = {}
+    envs.update(os.environ)
 
-    runq(env, *sys.argv[1:])
+    runq(envs, *sys.argv[1:])
