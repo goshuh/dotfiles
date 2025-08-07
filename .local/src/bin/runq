@@ -4,6 +4,7 @@ import os
 import sys
 
 import re
+import time
 import shlex
 import signal
 import datetime
@@ -71,16 +72,7 @@ class Task(object):
         self.envs = envs
 
     def __call__(self):
-        now = datetime.datetime.now()
-
         os.environ.update(self.envs)
-
-        while True:
-            try:
-                print(now.strftime('%m-%d %H:%M:%S'), self.desc)
-                break
-            except BlockingIOError:
-                pass
 
         self.func(*self.args)
 
@@ -300,6 +292,15 @@ def pool(core, task):
     pids = {}
     curr = []
 
+    def info(s):
+        while True:
+            try:
+                now = datetime.datetime.now()
+                print(now.strftime('%m-%d %H:%M:%S'), s)
+                break
+            except BlockingIOError:
+                pass
+
     def wipe(sig, frame):
         for p in pids:
             try:
@@ -311,7 +312,14 @@ def pool(core, task):
         os._exit(1)
 
     def wait():
-        s = pids.pop(os.waitpid(-1, 0)[0])
+        r = os.waitpid(-1, 0)
+        s = pids.pop(r[0])
+
+        try:
+            v = os.waitstatus_to_exitcode(r[1])
+            info(f'{s} done {v}')
+        except:
+            info(f'{s} error')
 
         for d in dmap[s]:
             umap[d].remove(s)
@@ -338,18 +346,24 @@ def pool(core, task):
     signal.signal(signal.SIGINT,  wipe)
     signal.signal(signal.SIGTERM, wipe)
 
+    inum = 0
+
     while curr:
         while curr:
-            if len(pids) == core:
+            if len(pids) >= core:
                 wait()
 
             s = curr.pop()
 
+            time.sleep(3)
+
             if not (pid := os.fork()):
+                info(f'{s} ({inum}/{len(desc)})')
                 desc[s]()
                 os._exit(0)
 
             pids[pid] = s
+            inum += 1
 
         # a finished task can wake up other tasks
         while pids:
