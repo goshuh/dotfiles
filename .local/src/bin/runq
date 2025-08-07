@@ -346,7 +346,7 @@ def pool(core, task):
     signal.signal(signal.SIGINT,  wipe)
     signal.signal(signal.SIGTERM, wipe)
 
-    inum = 0
+    inum = 1
 
     while curr:
         while curr:
