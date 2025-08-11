@@ -11,7 +11,7 @@ import datetime
 import subprocess
 
 
-class Test:
+class Test(object):
     PRIO = {'IS':  60,
             'NOT': 50,
             'AND': 40,
