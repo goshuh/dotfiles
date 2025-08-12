@@ -34,6 +34,7 @@ ShellRoot {
   component CustomPopoutWindow: CustomWindow {
     id: master
 
+    WlrLayershell.exclusionMode: ExclusionMode.Normal
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     required property var popout
@@ -255,70 +256,6 @@ ShellRoot {
                        e[1].score * 0.1) : 0
 
       }).map(e => e.obj.entry)
-    }
-    function exec(ent: DesktopEntry): void {
-      let arr = []
-      let cur = ''
-      let fsm = ''
-
-      for (const c of ent.execString) {
-        switch (fsm) {
-          case '\\':
-            switch (c) {
-              case 't':
-                cur += '\t'
-                break
-              case 'r':
-                cur += '\r'
-                break
-              case 'n':
-                cur += '\n'
-                break
-              case '\\':
-              case '\'':
-              case '"':
-                cur += c
-                break
-            }
-          case '%':
-            fsm = ''
-            break
-
-          case '\'':
-          case '"':
-          case '`':
-            if (c === fsm)
-              fsm  = ''
-            else
-              cur += c
-            break
-
-          default:
-            switch (c) {
-              case '\\':
-              case '\'':
-              case '%':
-              case '"':
-              case '`':
-                fsm = c
-                break
-
-              case ' ':
-                if (cur.length)
-                  arr.push(cur)
-                cur = ''
-                break
-
-              default:
-                cur += c
-            }
-        }
-      }
-
-      if (cur.length)
-        arr.push(cur)
-
-      Quickshell.execDetached(arr)
     }
 
     // time
@@ -1235,7 +1172,7 @@ ShellRoot {
       list.currentIndex = index
     }
     onClicked: {
-      helper.exec(master.modelData)
+      master.modelData.execute()
       list.popout.done()
     }
 
@@ -1308,7 +1245,6 @@ ShellRoot {
     id: master
 
     anchors.bottom: true
-
     margins.bottom: config.clientGap / screen.devicePixelRatio
 
     implicitWidth:  widget.implicitWidth
@@ -1333,7 +1269,7 @@ ShellRoot {
             const curr = list.currentItem
 
             if (curr) {
-              helper.exec(curr.modelData)
+              curr.modelData.execute()
               master.popout.done()
             }
           }
@@ -1898,9 +1834,9 @@ ShellRoot {
 
     name: 'picker'
 
-    WlrLayershell.layer:         WlrLayer.Overlay
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+    WlrLayershell.layer:         WlrLayer.Overlay
 
     anchors.top:    true
     anchors.bottom: true
