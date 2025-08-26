@@ -1092,7 +1092,7 @@ ShellRoot {
     anchors.bottom: true
 
     function getRand() {
-      return model.get(Math.floor(Math.random() % model.count), 'fileURL')
+      return model.get(Math.floor(Math.random() * model.count), 'fileURL')
     }
 
     FolderListModel {
