@@ -813,6 +813,8 @@ ShellRoot {
   component PanelAudio: Item {
     id: master
 
+    required property var screen
+
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
 
@@ -838,11 +840,11 @@ ShellRoot {
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
       onClicked: {
-        volume.init(0)
+        volume.init(0, screen)
       }
 
       onWheel: evt => {
-        volume.init(evt.angleDelta.y > 0 ? 10 : -10)
+        volume.init(evt.angleDelta.y > 0 ? 10 : -10, screen)
       }
     }
   }
@@ -1067,6 +1069,8 @@ ShellRoot {
 
       PanelAudio {
         Layout.alignment:    Qt.AlignHCenter
+
+        screen: master.screen
       }
 
       // network will soon happen
@@ -1890,6 +1894,8 @@ ShellRoot {
   component Volume: CustomPopoutWindow {
     id: master
 
+    required property var panel
+
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors.bottom: true
@@ -1928,19 +1934,31 @@ ShellRoot {
           master.popout.done()
       }
     }
+
+    Component.onCompleted: {
+      if (master.panel)
+        master.screen = master.panel
+    }
   }
 
   CustomPopout {
     id: volume
 
-    function init(val: int): void {
+    property var screen
+
+    function init(val: int, screen: var): void {
       helper.setVol(val)
+
+      if (loader.active == false)
+        volume.screen = screen
+
       loader.active = true
     }
 
     delegate: Component {
       Volume {
         popout: volume
+        panel:  volume.screen
       }
     }
   }

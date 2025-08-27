@@ -1,4 +1,5 @@
 {
+  "disable_ai": true,
   "restore_on_startup": "none",
   "auto_update": false,
   "base_keymap": "VSCode",
