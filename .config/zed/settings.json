@@ -1,6 +1,5 @@
 {
-  "disable_ai": true,
-  "restore_on_startup": "none",
+  "always_treat_brackets_as_autoclosed": true,
   "auto_update": false,
   "base_keymap": "VSCode",
   "buffer_font_family": "Fira Code",
@@ -10,8 +9,23 @@
     "custom": 1.5
   },
   "cursor_blink": false,
+  "disable_ai": true,
+  "format_on_save": "off",
+  "hard_tabs": false,
   "hide_mouse": "never",
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "ignore_system_version": false
+      }
+    }
+  },
   "preferred_line_length": 120,
+  "remove_trailing_whitespace_on_save": true,
+  "restore_on_startup": "none",
+  "search": {
+    "regex": true
+  },
   "tab_bar": {
     "show": true,
     "show_nav_history_buttons": false,
@@ -20,24 +34,6 @@
   "tabs": {
     "file_icons": true,
     "git_status": true
-  },
-  "toolbar": {
-    "breadcrumbs": false,
-    "quick_actions": false,
-    "selections_menu": false
-  },
-  "lsp": {
-    "clangd": {
-      "binary": {
-        "ignore_system_version": false
-      }
-    }
-  },
-  "format_on_save": "off",
-  "always_treat_brackets_as_autoclosed": true,
-  "remove_trailing_whitespace_on_save": true,
-  "search": {
-    "regex": true
   },
   "telemetry": {
     "metrics": false,
@@ -48,8 +44,13 @@
     "light": "One Light",
     "dark": "One Dark"
   },
-  "vim_mode": true,
-  "ui_font_size": 15,
+  "toolbar": {
+    "breadcrumbs": false,
+    "quick_actions": false,
+    "selections_menu": false
+  },
   "ui_font_family": "Cantarell",
-  "ui_font_weight": 500
+  "ui_font_size": 15,
+  "ui_font_weight": 500,
+  "vim_mode": true
 }
