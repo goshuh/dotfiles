@@ -276,7 +276,7 @@ def runq(env, *opts):
     # especially for -S -s or -d ...
     args.extend(real[0 if flag else 1:])
 
-    if 'dbg' in env:
+    if 'gdb' in env:
         args = ['gdb', '--args'] + args
 
     if 'dry' in env:
