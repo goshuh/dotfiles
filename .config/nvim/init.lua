@@ -5,7 +5,6 @@ local init_keys = {
   { 'n', '<f2>',                ':cwindow<cr>'              },
   { 'n', '<f3>',                ':cprevious<cr>'            },
   { 'n', '<f4>',                ':cnext<cr>'                },
-  { 'n', '<f5>',                ':update<cr>'               },
   { 'n', '<f12>',               ':call '                    },
   { 'n', '<c-left>',            ':BufferNav -1<cr>'         },
   { 'n', '<c-right>',           ':BufferNav  1<cr>'         },
@@ -18,10 +17,10 @@ local init_keys = {
   { 'n', '<space>',             'i'                         },
   { 'n', '<leader>w',           ':bwipeout<cr>'             },
   { 'n', '<leader>q',           ':quit<cr>'                 },
-  { 'n', '<leader>c',           ':split<cr>'                },
+  { 'n', '<leader>h',           ':split<cr>'                },
   { 'n', '<leader>v',           ':vsplit<cr>'               },
-  { 'n', '<leader>h',           ':vsplit <cfile><cr>'       },
-  { 'n', '<leader>d',           '<c-w>f'                    },
+  { 'n', '<leader>H',           ':split <cfile><cr>'        },
+  { 'n', '<leader>V',           ':vsplit <cfile><cr>'       },
   { 'n', '<leader>1',           '<c-w>H'                    },
   { 'n', '<leader>2',           '<c-w>K'                    },
   { 'n', '<leader>3',           '<c-w>J'                    },
@@ -49,7 +48,6 @@ local init_keys = {
   { 'i', '<f2>',                '<c-o>:cwindow<cr>'         },
   { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
   { 'i', '<f4>',                '<c-o>:cnext<cr>'           },
-  { 'i', '<f5>',                '<c-o>:update<cr>'          },
   { 'i', '<leader>\'',          '<c-o>])'                   },
   { 'i', '<leader>[',           '<right>'                   },
   { 'i', '<leader>]',           '<end><cr>'                 },
@@ -63,8 +61,8 @@ local init_keys = {
   { 'i', '<m-r>',               '<c-o><c-r>'                },
   { 'i', '<m-, >',              '<c-o>N'                    },
   { 'i', '<m-.>',               '<c-o>n'                    },
-  { 'i', '<c-left>',            '<c-o>:bprevious<cr>'       },
-  { 'i', '<c-right>',           '<c-o>:bnext<cr>'           },
+  { 'i', '<c-left>',            '<c-o>:BufferNav -1<cr>'    },
+  { 'i', '<c-right>',           '<c-o>:BufferNav  1<cr>'    },
   { 'i', '<leader><cr>',        '<end>;<c-o>o'              },
   { 'i', '<leader><leader>',    '<esc>'                     },
   { 'i', '<m-leftmouse>',       '<4-leftmouse>'             },
@@ -78,9 +76,7 @@ local init_keys = {
 
 local init_keys_verbose = {
   { 'n', '<leader>\'',          ':edit '                    },
-  { 'n', '<leader>-',           ':new '                     },
   { 'n', '<leader>[',           ':new '                     },
-  { 'n', '<leader>/',           ':vnew '                    },
   { 'n', '<leader>]',           ':vnew '                    },
   { 'n', '<leader>\\',          ':tabnew '                  },
   { 'n', '<leader>=',           ':vertical diffsplit '      }
@@ -137,7 +133,7 @@ local init_opts = {
   foldlevel      =   0,
   foldmethod     =  'marker',
   formatoptions  =  'tcroqn2mB1j',
-  guifont        =  'FiraCode Nerd Font:h10',
+  guifont        =  'Fira Code:h10:#h-none',
   helpheight     =   12,
   hidden         =   true,
   history        =   100,
@@ -198,6 +194,32 @@ for k, v in pairs(init_opts) do
   vim.opt[k] = v
 end
 
+-- gui
+if vim.g.neovide then
+  local opts = {
+    padding_top                   = 4,
+    padding_bottom                = 4,
+    padding_right                 = 4,
+    padding_left                  = 4,
+
+    floating_shadow               = false,
+
+    position_animation_length     = 0,
+    scroll_animation_length       = 0,
+    scroll_animation_far_lines    = 0,
+    cursor_animation_length       = 0,
+    cursor_short_animation_length = 0,
+    cursor_trail_size             = 0,
+    cursor_animate_in_insert_mode = false,
+    cursor_animate_command_line   = false,
+    cursor_smooth_blink           = false
+  }
+
+  for k, v in pairs(opts) do
+    vim.g[string.format('neovide_%s', k)] = v
+  end
+end
+
 
 -- functions
 function set_indent(n)
@@ -206,17 +228,38 @@ function set_indent(n)
   vim.opt_local.tabstop     = n
 end
 
-function get_git_root()
-  local dirs = vim.fs.find('.git', {
-    upward = true,
-    path   = vim.loop.cwd()
-  })
+get_root_int = nil
 
-  for _, dir in ipairs(dirs) do
-    return { cwd = vim.fs.dirname(dir) }
+function get_root()
+  return { cwd = get_root_int(vim.loop.cwd()) }
+end
+
+function dap_start()
+  local dap = require('dap')
+
+  if next(dap.configurations) == nil then
+    local vsc = get_root_int(vim.loop.cwd()) .. '/.vscode/launch.json'
+
+    vim.print(vsc)
+
+    if vim.fn.filereadable(vsc) then
+        require('dap.ext.vscode').load_launchjs(vsc)
+    end
   end
 
-  return { cwd = vim.loop.cwd() }
+  require('telescope').extensions.dap.configurations()
+end
+
+function dap_toggle()
+  require('dap').toggle_breakpoint()
+end
+
+function dap_over()
+  require('dap').step_over()
+end
+
+function dap_into()
+  require('dap').step_into()
 end
 
 function tele_list()
@@ -226,11 +269,15 @@ function tele_list()
 end
 
 function tele_find()
-  require('telescope.builtin').find_files(get_git_root())
+  require('telescope.builtin').find_files(get_root())
 end
 
 function tele_grep()
-  require('telescope.builtin').live_grep (get_git_root())
+  require('telescope.builtin').live_grep (get_root())
+end
+
+function tele_buf()
+  require('telescope.builtin').buffers()
 end
 
 function tele_def()
@@ -245,12 +292,16 @@ function tele_sym()
   require('telescope.builtin').lsp_dynamic_workspace_symbols()
 end
 
-function tele_file()
-  require('telescope').extensions.file_browser.file_browser()
+function tele_diag()
+  require('telescope.builtin').diagnostics()
 end
 
-function tele_buf()
-  require('telescope').extensions.scope.buffers()
+function tele_res()
+  require('telescope.builtin').resume()
+end
+
+function file_show()
+  require('mini.files').open()
 end
 
 function status_pos()
@@ -333,54 +384,34 @@ function status_inact()
   })
 end
 
-function format_tab(buf, label)
-  if string.len(label) > 30 then
-    return string.format(" %-27s... ", string.sub(label, 1, 27))
-  else
-    return string.format(" %-30s ", label)
-  end
-end
-
 function buffer_nav(args)
-  local core = require('scope.core')
+  local norm = function (win)
+    return vim.api.nvim_win_get_config(win).relative == ''
+  end
 
-  core.revalidate()
-
-  local tab  = vim.api.nvim_get_current_tabpage()
-  local buf  = vim.api.nvim_get_current_buf()
-
-  local curr = core.cache[tab]
   local dir  = tonumber(args.fargs[1])
   local idx  = nil
 
-  if not curr then
-    return
-  end
+  local win  = vim.api.nvim_tabpage_get_win(0)
+  local wins = vim.tbl_filter(norm, vim.api.nvim_tabpage_list_wins(0))
 
-  for i, b in ipairs(curr) do
-    if b == buf then
+  for i, w in ipairs(wins) do
+    if w == win then
       local j = i + dir
 
-      if j > #curr then
+      if j > #wins then
         j = 1
       elseif j < 1 then
-        j = #curr
+        j = #wins
       end
 
-      idx = curr[j]
+      idx = wins[j]
       break
     end
   end
 
-  if idx and idx ~= buf then
-    local wins = vim.api.nvim_list_wins()
-
-    for _, w in ipairs(wins) do
-      if idx == vim.api.nvim_win_get_buf(w) then
-        vim.api.nvim_set_current_win(w)
-        break
-      end
-    end
+  if idx and idx ~= win then
+    vim.api.nvim_tabpage_set_win(0, idx)
   end
 end
 
@@ -427,7 +458,17 @@ require('lazy').setup({
         bgd = '#1e2227'
       },
       highlights = {
-        FloatTitle                 = { fg = '$bg1',   bg = '$bg1' },
+        FloatTitle    = { fg = '$bg1',   bg = '$bg1' },
+        WinSeparator  = {                bg = '$bg1' },
+
+        TabLineSel    = { fg = '$fg',    bg = '$bg2', fmt = 'bold' },
+        TabLineSelMod = { fg = '$fg',    bg = '$bg2', fmt = 'bold,italic' },
+        TabLine       = { fg = '$grey',  bg = '$bg1' },
+        TabLineMod    = { fg = '$grey',  bg = '$bg1', fmt = 'italic' },
+        TabLineFill   = {                bg = 'none' },
+
+        MiniStatuslineFilename = { fg = '$fg',    bg = '$bg1' },
+        MiniStatuslineInactive = { fg = '$grey',  bg = '$bg1' },
 
         TelescopeNormal            = {                bg = '$bg1' },
         TelescopePromptTitle       = { fg = '$bg1',   bg = '$bg1' },
@@ -441,21 +482,7 @@ require('lazy').setup({
         TelescopeResultsDiffDelete = { fg = '$diff_delete'        },
         TelescopePreviewTitle      = { fg = '$bg1',   bg = '$bg1' },
         TelescopePreviewBorder     = { fg = '$bg1',   bg = '$bg1' },
-        TelescopeSelection         = { fg = '$fg',    bg = '$bg2' },
-
-        WinSeparator               = {                bg = '$bg1' },
-
-        MiniStatuslineFilename     = { fg = '$fg',    bg = '$bg1' },
-        MiniStatuslineInactive     = { fg = '$grey',  bg = '$bg1' },
-
-        MiniTablineCurrent         = { fg = '$fg',    bg = '$bg2' },
-        MiniTablineVisible         = { fg = '$grey',  bg = '$bg1' },
-        MiniTablineHidden          = { fg = '$grey',  bg = '$bg1' },
-        MiniTablineModifiedCurrent = { fg = '$fg',    bg = '$bg2' },
-        MiniTablineModifiedVisible = { fg = '$grey',  bg = '$bg1' },
-        MiniTablineModifiedHidden  = { fg = '$grey',  bg = '$bg1' },
-        MiniTablineFill            = {                bg = 'none' },
-        MiniTablineTabpagesection  = { fg = '$fg',    bg = '$bg2' }
+        TelescopeSelection         = { fg = '$fg',    bg = '$bg2' }
       }
     },
 
@@ -478,8 +505,7 @@ require('lazy').setup({
         'python',
         'rust',
         'scala',
-        'verilog',
-        'zig'
+        'verilog'
       }
     },
   },
@@ -496,21 +522,52 @@ require('lazy').setup({
         lspconfig[lang].setup(conf)
       end
 
-      vim.diagnostic.enable(false)
+      vim.diagnostic.config({
+        signs        = false,
+        virtual_text = true
+      })
+
+      -- expose
+      get_root_int = lspconfig.util.root_pattern('.git', 'README.md')
     end,
-    opts = { servers = { clangd = { } } }
+    opts = { servers = {
+        clangd        = { },
+        rust_analyzer = { }
+      }
+    }
+  },
+
+  { 'igorlfs/nvim-dap-view',
+    dependencies = { 'mfussenegger/nvim-dap' },
+    config = function ()
+      require('dap-view').setup({
+        winbar = {
+          sections = { 'scopes',  'watches', 'breakpoints',
+                       'threads', 'repl',    'console' },
+          default_section = 'scopes',
+          base_sections = {
+            scopes      = { label = 'Local',   short_label = 'L' },
+            watches     = { label = 'Watch',   short_label = 'W' },
+            breakpoints = { label = 'Break',   short_label = 'B' },
+            threads     = { label = 'Thread',  short_label = 'T' },
+            repl        = { label = 'Repl',    short_label = 'R' },
+            console     = { label = 'Console', short_label = 'C' }
+          },
+          controls = { enabled = true }
+        },
+        auto_toggle = true
+      })
+    end,
+    keys = {
+      { '<f5>',  dap_start,  mode = { 'n' } },
+      { '<f9>',  dap_toggle, mode = { 'n' } },
+      { '<f10>', dap_over,   mode = { 'n' } },
+      { '<f11>', dap_into,   mode = { 'n' } }
+    }
   },
 
   { 'nvim-telescope/telescope.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
-    keys = {
-      { '*',            tele_list, mode = { 'n' } },
-      { '<leader>f',    tele_find, mode = { 'n' } },
-      { '<leader>g',    tele_grep, mode = { 'n' } },
-      { '<leader><cr>', tele_def,  mode = { 'n' } },
-      { '<leader>r',    tele_ref,  mode = { 'n' } },
-      { '<leader>p',    tele_sym,  mode = { 'n' } }
-    },
     config = function ()
       local telescope = require('telescope')
       local actions   = require('telescope.actions')
@@ -529,27 +586,25 @@ require('lazy').setup({
           }
         }
       })
-    end
-  },
-
-  { "nvim-telescope/telescope-file-browser.nvim",
-    dependencies = {
-      "nvim-telescope/telescope.nvim",
-      "nvim-lua/plenary.nvim"
-    },
+    end,
     keys = {
-      { '<leader>e', tele_file, mode = { 'n' } }
+      { '*',            tele_list, mode = { 'n' } },
+      { '<leader>f',    tele_find, mode = { 'n' } },
+      { '<leader>g',    tele_grep, mode = { 'n' } },
+      { '<leader>b',    tele_buf,  mode = { 'n' } },
+      { '<leader><cr>', tele_def,  mode = { 'n' } },
+      { '<leader>r',    tele_ref,  mode = { 'n' } },
+      { '<leader>p',    tele_sym,  mode = { 'n' } },
+      { '<leader>d',    tele_diag, mode = { 'n' } },
+      { '<leader>.',    tele_res,  mode = { 'n' } }
     }
   },
 
-  { 'tiagovla/scope.nvim',
-    dependencies = { "nvim-telescope/telescope.nvim" },
-    keys = {
-      { '<leader>b', tele_buf,  mode = { 'n' } }
-    },
+  { 'nvim-telescope/telescope-dap.nvim',
+    dependencies = { 'nvim-telescope/telescope.nvim',
+                     'mfussenegger/nvim-dap'},
     config = function ()
-      require('scope'    ).setup()
-      require('telescope').load_extension('scope')
+      require('telescope').load_extension('dap')
     end
   },
 
@@ -625,7 +680,43 @@ require('lazy').setup({
     end
   },
 
-  { 'echasnovski/mini.nvim',
+  { 'nanozuki/tabby.nvim',
+    config = function ()
+      -- for modified
+      vim.api.nvim_set_hl(0, 'TabLineSelMod', {})
+      vim.api.nvim_set_hl(0, 'TabLineMod',    {})
+
+      require('tabby').setup({
+        line = function (line)
+          return {
+            line.wins_in_tab(line.api.get_current_tab()).foreach(function (win)
+              local bn = win.buf_name()
+              local md = win.buf().is_changed()
+
+              return {
+                string.len(bn) > 30 and
+                  string.format(' %-27s... ', string.sub(bn, 1, 27)) or
+                  string.format(' %-30s ',    bn),
+                hl = win.is_current() and
+                      (md and 'TabLineSelMod' or 'TabLineSel') or
+                      (md and 'TabLineMod'    or 'TabLine')
+              }
+            end),
+            line.spacer(),
+            line.tabs().foreach(function (tab)
+              return {
+                string.format(' %d ', tab.id),
+                hl = tab.is_current() and 'TabLineSel' or 'TabLine'
+              }
+            end)
+          }
+        end,
+        option = {}
+      })
+    end
+  },
+
+  { 'nvim-mini/mini.nvim',
     config = function ()
       require('mini.align'     ).setup()
       require('mini.bracketed' ).setup()
@@ -634,6 +725,20 @@ require('lazy').setup({
         delay = 500
       })
       require('mini.diff'      ).setup()
+      require('mini.files'     ).setup({
+        options = { use_as_default_explorer = true },
+        windows = {
+          preview = false,
+
+          width_focus   = 40,
+          width_nofocus = 40
+        },
+        mappings = {
+          go_in_plus  = '<cr>',
+          go_out_plus = '<esc>'
+        }
+      })
+      require('mini.git'       ).setup()
       require('mini.hipatterns').setup({
         highlighters = {
           fixme = { pattern = '%f[%w]()FIXME()%f[%W]',
@@ -661,12 +766,10 @@ require('lazy').setup({
         set_vim_settings =  true
       })
       require('mini.surround'  ).setup()
-      require('mini.tabline'   ).setup({
-        show_icons      =  false,
-        format          =  format_tab,
-        tabpage_section = 'right'
-      })
       require('mini.trailspace').setup()
-    end
+    end,
+    keys = {
+      { '<leader>e', file_show, mode = { 'n' } }
+    }
   }
 })
