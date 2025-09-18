@@ -15,8 +15,8 @@ local init_keys = {
   { 'n', '<s-left>',            'v<left>'                   },
   { 'n', '<s-right>',           'v<right>'                  },
   { 'n', '<space>',             'i'                         },
-  { 'n', '<leader>w',           ':bwipeout<cr>'             },
-  { 'n', '<leader>q',           ':quit<cr>'                 },
+  { 'n', '<leader>w',           ':BufDel<cr>'               },
+  { 'n', '<leader>q',           ':BufDel<cr>'               },
   { 'n', '<leader>h',           ':split<cr>'                },
   { 'n', '<leader>v',           ':vsplit<cr>'               },
   { 'n', '<leader>H',           ':split <cfile><cr>'        },
@@ -31,6 +31,7 @@ local init_keys = {
   { 'n', '<leader>l',           ':set cursorcolumn!<cr>'    },
   { 'n', '<leader><leader>',    ':set relativenumber!<cr>'  },
   { 'n', 'ZA',                  ':set foldenable!<cr>'      },
+  { 'n', 'ZZ',                  ':BufDel!<cr>'              },
   { 'n', '<m-leftmouse>',       '<4-leftmouse>'             },
   { 'n', '<m-leftdrag>',        '<leftdrag>'                },
   { 'n', '<s-scrollwheelup>',   '<scrollwheelleft>'         },
@@ -385,7 +386,7 @@ function status_inact()
 end
 
 tabpage_bufs = setmetatable({}, {
-  __index = function (t, k)
+  __index = function(t, k)
     local v = {}
 
     t[k] = v
@@ -393,20 +394,15 @@ tabpage_bufs = setmetatable({}, {
   end
 })
 
-function win_norm(win)
-  return vim.api.nvim_win_get_config(win).relative == ''
-end
-
 function buf_nav(args)
-  local dir  = tonumber(args.fargs[1])
-
+  local tabc = vim.api.nvim_get_current_tabpage()
   local bufc = vim.api.nvim_get_current_buf()
-  local bufs = tabpage_bufs[vim.api.nvim_get_current_tabpage()]
+  local bufs = tabpage_bufs[tabc]
   local bufn = nil
 
   for i, b in ipairs(bufs) do
     if b == bufc then
-      local j = i + dir
+      local j = i + tonumber(args.args)
 
       if j > #bufs then
         j = 1
@@ -419,8 +415,71 @@ function buf_nav(args)
     end
   end
 
-  if bufn and bufn ~= bufc then
+  if bufn and bufn ~= bufc and vim.api.nvim_buf_is_valid(bufn) then
     vim.api.nvim_set_current_buf(bufn)
+    return true
+  end
+
+  return false
+end
+
+function buf_del(args)
+  local tabc = vim.api.nvim_get_current_tabpage()
+  local bufc = vim.api.nvim_get_current_buf()
+  local wins = vim.api.nvim_tabpage_list_wins(0)
+  local bufs = tabpage_bufs[tabc]
+
+  local n = 0
+  local m = 0
+  local t = 0
+
+  for _, w in ipairs(wins) do
+    if bufc == vim.api.nvim_win_get_buf(w) then
+      n = n + 1
+    end
+    if vim.api.nvim_win_get_config(w).relative == '' then
+      m = m + 1
+    end
+  end
+
+  if n > 1 then
+    vim.api.nvim_win_close(0, true)
+    return
+  end
+
+  if m > 1 then
+    vim.api.nvim_win_close(0, true)
+
+  elseif buf_nav({ args = '1' }) then
+    for i, b in ipairs(bufs) do
+      if b == bufc then
+        table.remove(bufs, i)
+        break
+      end
+    end
+
+  else
+    if args.bang and vim.api.nvim_buf_get_option(bufc, 'modified') then
+      vim.cmd('write')
+    end
+
+    tabpage_bufs[tabc] = nil
+    vim.cmd('quit')
+    return
+  end
+
+  for _, v in ipairs(tabpage_bufs) do
+    if vim.tbl_contains(v, bufc) then
+      t = t + 1
+    end
+  end
+
+  if t == 1 then
+    if args.bang and vim.api.nvim_buf_get_option(bufc, 'modified') then
+      vim.cmd('write')
+    end
+
+    vim.api.nvim_buf_delete(bufc, { force = args.bang })
   end
 end
 
@@ -428,7 +487,7 @@ end
 -- autocmds
 vim.api.nvim_create_autocmd('TermOpen', {
   pattern  = { '*' },
-  callback = function ()
+  callback = function()
     vim.cmd.startinsert()
 
     vim.opt_local.number   = false
@@ -436,14 +495,16 @@ vim.api.nvim_create_autocmd('TermOpen', {
   end
 })
 
--- scope.nvim does similar stuff but still not there
 vim.api.nvim_create_autocmd('BufEnter', {
-  callback = function (args)
-    if not win_norm(vim.api.nvim_get_current_win()) then
+  callback = function(args)
+    local tabc = vim.api.nvim_get_current_tabpage()
+    local winc = vim.api.nvim_get_current_win()
+
+    if vim.api.nvim_win_get_config(winc).relative ~= '' then
       return
     end
 
-    local bufs = tabpage_bufs[vim.api.nvim_get_current_tabpage()]
+    local bufs = tabpage_bufs[tabc]
 
     for _, b in ipairs(bufs) do
       if b == args.buf then
@@ -455,25 +516,10 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end
 })
 
-vim.api.nvim_create_autocmd('QuitPre', {
-  callback = function (args)
-    local bufs = tabpage_bufs[vim.api.nvim_get_current_tabpage()]
-
-    table.remove(bufs, args.buf)
-  end
-})
-
-vim.api.nvim_create_autocmd('BufWipeout', {
-  callback = function (args)
-    for _, v in pairs(tabpage_bufs) do
-      table.remove(v, args.buf)
-    end
-  end
-})
-
 
 -- commands
 vim.api.nvim_create_user_command('BufNav', buf_nav, { nargs = 1 })
+vim.api.nvim_create_user_command('BufDel', buf_del, { nargs = 0 })
 
 
 -- plugins
@@ -492,7 +538,7 @@ vim.opt.runtimepath:prepend(lazy_path)
 
 require('lazy').setup({
   { 'navarasu/onedark.nvim',
-    config = function (_, opts)
+    config = function(_, opts)
       require('onedark').setup(opts)
       vim.cmd('colorscheme onedark')
     end,
@@ -535,7 +581,7 @@ require('lazy').setup({
   },
 
   { 'nvim-treesitter/nvim-treesitter',
-    config = function (_, opts)
+    config = function(_, opts)
       require('nvim-treesitter.configs').setup(opts)
     end,
     opts = {
@@ -556,7 +602,7 @@ require('lazy').setup({
 
   { 'neovim/nvim-lspconfig',
     dependencies = { 'saghen/blink.cmp' },
-    config = function (_, opts)
+    config = function(_, opts)
       local lspconfig = require('lspconfig')
       local blink     = require('blink.cmp')
 
@@ -583,19 +629,19 @@ require('lazy').setup({
 
   { 'igorlfs/nvim-dap-view',
     dependencies = { 'mfussenegger/nvim-dap' },
-    config = function ()
+    config = function()
       require('dap-view').setup({
         winbar = {
           sections = { 'scopes',  'watches', 'breakpoints',
                        'threads', 'repl',    'console' },
           default_section = 'scopes',
           base_sections = {
-            scopes      = { label = 'Local',   short_label = 'L' },
-            watches     = { label = 'Watch',   short_label = 'W' },
-            breakpoints = { label = 'Break',   short_label = 'B' },
-            threads     = { label = 'Thread',  short_label = 'T' },
-            repl        = { label = 'Repl',    short_label = 'R' },
-            console     = { label = 'Console', short_label = 'C' }
+            scopes      = { label = 'Local',  short_label = 'L' },
+            watches     = { label = 'Watch',  short_label = 'W' },
+            breakpoints = { label = 'Break',  short_label = 'B' },
+            threads     = { label = 'Thread', short_label = 'T' },
+            repl        = { label = 'Repl',   short_label = 'R' },
+            console     = { label = 'Term',   short_label = 'T' }
           },
           controls = { enabled = true }
         },
@@ -612,7 +658,7 @@ require('lazy').setup({
 
   { 'nvim-telescope/telescope.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
-    config = function ()
+    config = function()
       local telescope  = require('telescope')
       local actions    = require('telescope.actions')
       local action_set = require('telescope.actions.set')
@@ -644,7 +690,7 @@ require('lazy').setup({
   { 'nvim-telescope/telescope-dap.nvim',
     dependencies = { 'nvim-telescope/telescope.nvim',
                      'mfussenegger/nvim-dap'},
-    config = function ()
+    config = function()
       require('telescope').load_extension('dap')
     end
   },
@@ -658,7 +704,7 @@ require('lazy').setup({
         ['<up>'   ] = { 'select_prev',                     'fallback' },
         ['<down>' ] = { 'select_next',                     'fallback' },
         ['<cr>'   ] = { 'accept',                          'fallback' },
-        ['<esc>'  ] = {  function (cmp) cmp.hide() end,    'fallback' }
+        ['<esc>'  ] = {  function(cmp) cmp.hide() end,     'fallback' }
       },
       completion = { list = { selection = {
             preselect   = false,
@@ -676,7 +722,7 @@ require('lazy').setup({
           ['<cr>' ] = { 'fallback' },
           ['<esc>'] = {
             -- https://github.com/Saghen/blink.cmp/issues/547
-            function (cmp)
+            function(cmp)
               if cmp.is_visible() then
                 cmp.hide()
               else
@@ -696,17 +742,17 @@ require('lazy').setup({
         }
       }
     },
-    config = function (_, opts)
+    config = function(_, opts)
       local blink    = require('blink.cmp')
       local colorful = require('colorful-menu')
 
       opts.completion.menu = { draw = {
           columns = {
-            { 'kind_icon'      },
+            { 'kind_icon' },
             { 'label', gap = 1 }
           },
           components = { label = {
-              text      = function(ctx)
+              text = function(ctx)
                 return colorful.blink_components_text(ctx)
               end,
               highlight = function(ctx)
@@ -722,7 +768,7 @@ require('lazy').setup({
   },
 
   { 'nanozuki/tabby.nvim',
-    config = function ()
+    config = function()
       -- for modified
       vim.api.nvim_set_hl(0, 'TabLineSelMod',
         { link = 'TabLineSel', default = true })
@@ -730,7 +776,7 @@ require('lazy').setup({
         { link = 'TabLine',    default = true })
 
       require('tabby').setup({
-        line = function (line)
+        line = function(line)
           -- do our own stuff
           local bufs = {}
           local tabs = {}
@@ -740,24 +786,29 @@ require('lazy').setup({
 
           for _, b in ipairs(tabpage_bufs[tabc]) do
             if vim.api.nvim_buf_is_valid(b) then
-              local n = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ':t')
+              local n = vim.api.nvim_buf_get_name  (b)
               local m = vim.api.nvim_buf_get_option(b, 'modified')
+              local h = b == bufc and
+                          (m and 'TabLineSelMod' or 'TabLineSel') or
+                          (m and 'TabLineMod'    or 'TabLine')
+
+              -- can contain more info later
+              n = vim.fn.fnamemodify(n , ':t')
 
               bufs[#bufs + 1] = {
                 string.len(n) > 30 and
                   string.format(' %-27s... ', string.sub(n, 1, 27)) or
                   string.format(' %-30s ',    n),
-                hl = b == bufc and
-                      (m and 'TabLineSelMod' or 'TabLineSel') or
-                      (m and 'TabLineMod'    or 'TabLine')
+                click = { 'to_buf', b }, hl = h
               }
             end
           end
 
           for i, t in ipairs(vim.api.nvim_list_tabpages()) do
+            local h = t == tabc and 'TabLineSel' or 'TabLine'
+
             tabs[#tabs + 1] = {
-              string.format(' %d ', i),
-              hl = t == tabc and 'TabLineSel' or 'TabLine'
+              string.format(' %d ', i), click = { 'to_tab', t }, hl = h
             }
           end
 
@@ -769,7 +820,7 @@ require('lazy').setup({
   },
 
   { 'nvim-mini/mini.nvim',
-    config = function ()
+    config = function()
       require('mini.align'     ).setup()
       require('mini.bracketed' ).setup()
       require('mini.comment'   ).setup()
@@ -807,6 +858,7 @@ require('lazy').setup({
       })
       require('mini.jump'      ).setup()
       require('mini.move'      ).setup()
+      require('mini.notify'    ).setup()
       require('mini.pairs'     ).setup()
       require('mini.splitjoin' ).setup()
       require('mini.statusline').setup({
