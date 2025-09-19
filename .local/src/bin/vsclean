@@ -1,6 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
+import sys
 import json
 import sqlite3
 
@@ -131,7 +132,9 @@ def clean(dn):
 
 
 def main():
-    dn = os.path.expanduser('~/.config/Code/User/workspaceStorage')
+    dn = os.path.expanduser('~/Library/Application Support/Code/User/workspaceStorage'
+                               if sys.platform == 'darwin' else
+                            '~/.config/Code/User/workspaceStorage')
 
     if not os.path.isdir(dn):
         return

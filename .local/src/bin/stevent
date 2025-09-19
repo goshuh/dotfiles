@@ -3,15 +3,18 @@
 import os
 import sys
 import argparse
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))
+
 import requests
 
 import xml.etree.ElementTree as et
 
 
 def main(args):
-    dir = '~/Library/Application Support/Syncthing' \
-              if sys.platform == 'darwin' else      \
-          '~/.local/state/syncthing'
+    dir = os.path.expanduser('~/Library/Application Support/Syncthing'
+                                if sys.platform == 'darwin' else
+                             '~/.local/state/syncthing')
 
     key = et.parse(os.path.expanduser(os.path.join(dir, "config.xml"))) \
             .getroot() \

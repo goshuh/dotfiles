@@ -519,7 +519,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
 
 -- commands
 vim.api.nvim_create_user_command('BufNav', buf_nav, { nargs = 1 })
-vim.api.nvim_create_user_command('BufDel', buf_del, { nargs = 0 })
+vim.api.nvim_create_user_command('BufDel', buf_del, { nargs = 0, bang = true })
 
 
 -- plugins
