@@ -229,10 +229,8 @@ function set_indent(n)
   vim.opt_local.tabstop     = n
 end
 
-get_root_int = nil
-
 function get_root()
-  return { cwd = get_root_int(vim.loop.cwd()) }
+  return { cwd = vim.fs.root(0, { '.git' }) }
 end
 
 function dap_start()
@@ -603,22 +601,19 @@ require('lazy').setup({
   { 'neovim/nvim-lspconfig',
     dependencies = { 'saghen/blink.cmp' },
     config = function(_, opts)
-      local lspconfig = require('lspconfig')
-      local blink     = require('blink.cmp')
+      local blink = require('blink.cmp')
 
       for lang, conf in pairs(opts.servers) do
         conf.capabilities = blink.get_lsp_capabilities(conf.capabilities)
 
-        lspconfig[lang].setup(conf)
+        vim.lsp.config(lang, conf)
+        vim.lsp.enable(lang)
       end
 
       vim.diagnostic.config({
         signs        = false,
         virtual_text = true
       })
-
-      -- expose
-      get_root_int = lspconfig.util.root_pattern('.git', 'README.md')
     end,
     opts = { servers = {
         clangd        = { },
