@@ -2,7 +2,6 @@
 vim.g.mapleader = ';'
 
 local init_keys = {
-  { 'n', '<f2>',                ':cwindow<cr>'              },
   { 'n', '<f3>',                ':cprevious<cr>'            },
   { 'n', '<f4>',                ':cnext<cr>'                },
   { 'n', '<f12>',               ':call '                    },
@@ -46,7 +45,6 @@ local init_keys = {
   { 'v', '<leader><leader>',    '<esc>'                     },
   { 'v', '<c-y>',               '"+y'                       },
 
-  { 'i', '<f2>',                '<c-o>:cwindow<cr>'         },
   { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
   { 'i', '<f4>',                '<c-o>:cnext<cr>'           },
   { 'i', '<leader>\'',          '<c-o>])'                   },
@@ -619,6 +617,9 @@ require('lazy').setup({
         clangd        = { },
         rust_analyzer = { }
       }
+    },
+    keys = {
+      { '<f2>', vim.lsp.buf.rename, mode = { 'n' } }
     }
   },
 
