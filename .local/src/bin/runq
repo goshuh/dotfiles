@@ -234,12 +234,6 @@ def runq(env, *opts):
             if cs.startswith(('#', '//')):
                 continue
 
-            if cs.startswith('DEF '):
-                if sp := cs.split()[1:]:
-                    if sp[0] not in env:
-                        env[sp[0]] = ' '.join(sp[1:])
-                continue
-
             if cs.startswith('IF '):
                 test(env, cond, cs.split()[1:])
                 continue
@@ -255,6 +249,12 @@ def runq(env, *opts):
                 continue
 
             if cond and not cond[-1]:
+                continue
+
+            if cs.startswith('DEF '):
+                if sp := cs.split()[1:]:
+                    if sp[0] not in env:
+                        env[sp[0]] = ' '.join(sp[1:])
                 continue
 
             if not (sp := shlex.split(cs)):
