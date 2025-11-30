@@ -47,131 +47,6 @@ end
 Hotkey.bind('ctrl-alt', 'r', function() createTmpFS('/tmp/ram', 8192) end)
 --]]
 
-
---[[
--- alt-tab
-Window.switcher.ui.highlightColor        = {0.4, 0.4, 0.4}
-Window.switcher.ui.backgroundColor       = {0.9, 0.9, 0.9}
-Window.switcher.ui.showTitles            =  false
-Window.switcher.ui.showSelectedTitle     =  false
-Window.switcher.ui.showThumbnails        =  false
-Window.switcher.ui.showSelectedThumbnail =  false
-
-local switcher = Window.switcher.new(Window.filter.new():setCurrentSpace(true):setDefaultFilter({}))
-
-Hotkey.bind('alt',       'tab', function() switcher:next()     end)
-Hotkey.bind('alt-shift', 'tab', function() switcher:previous() end)
---]]
-
-
---[[
--- sending Window to other spaces
-function moveWindowToSpace(n)
-  local win = Window.focusedWindow()
-
-  if not win or not win:isStandard() or win:isFullScreen() then
-    return
-  end
-
-  -- the canonical way of getting spaces
-  --   spaces.spaceForScreen(Window:screen())
-  -- doesn't work on ventura 13.2.1
-  -- Spaces.moveWindowToSpace(win, n)
-
-  -- https://github.com/ianyh/Amethyst/issues/1676
-  local geo = win:frame()
-  local pos = Mouse.absolutePosition()
-  local mov = {
-    x = geo.x + geo.w / 2,
-    y = geo.y + 5
-  }
-
-  -- good (for gc) to bind a name
-  local lmd = EventTap.event.newMouseEvent(
-              EventTap.event.types.leftMouseDown, mov)
-  local lmu = EventTap.event.newMouseEvent(
-              EventTap.event.types.leftMouseUp,   mov)
-
-  lmd:post()
-
-  -- there must be something good that we can exploit
-  EventTap.keyStroke({ 'ctrl' }, tostring(n))
-
-  lmu:post()
-
-  Mouse.absolutePosition(pos)
-end
-
-Hotkey.bind('ctrl-alt', '1', 'Move window to space 1', function() moveWindowToSpace(1) end)
-Hotkey.bind('ctrl-alt', '2', 'Move window to space 2', function() moveWindowToSpace(2) end)
-Hotkey.bind('ctrl-alt', '3', 'Move window to space 3', function() moveWindowToSpace(3) end)
-Hotkey.bind('ctrl-alt', '4', 'Move window to space 4', function() moveWindowToSpace(4) end)
-Hotkey.bind('ctrl-alt', '5', 'Move window to space 5', function() moveWindowToSpace(5) end)
-Hotkey.bind('ctrl-alt', '6', 'Move window to space 6', function() moveWindowToSpace(6) end)
-Hotkey.bind('ctrl-alt', '7', 'Move window to space 7', function() moveWindowToSpace(7) end)
-Hotkey.bind('ctrl-alt', '8', 'Move window to space 8', function() moveWindowToSpace(8) end)
-Hotkey.bind('ctrl-alt', '9', 'Move window to space 9', function() moveWindowToSpace(9) end)
---]]
-
-
--- maximize when creating and quit when closing the last Window
-local whitelist = {
-  -- no suiside after closing the console
-  ['org.hammerspoon.Hammerspoon'] = true,
-  -- the better window manager
-  ['com.amethyst.Amethyst'      ] = true,
-  -- unstable after killed and restarted multiple times
-  ['com.apple.finder'           ] = true,
-  -- long-running stuff
-  ['com.tencent.xinWeChat'      ] = true,
-  ['com.tinyspeck.slackmacgap'  ] = true,
-  ['com.microsoft.Outlook'      ] = true,
-  ['com.microsoft.OneDrive'     ] = true,
-  ['com.cisco.anyconnect.gui'   ] = true,
-  ['ru.keepcode.Telegram'       ] = true
-}
-
-local filter = Window.filter.new():setDefaultFilter({})
-
-filter:subscribe({
-  --[[
-  [Window.filter.windowCreated  ] = function(win, name, evt)
-    if win:isMaximizable() then
-      win:maximize()
-    end
-  end,
-  --]]
-
-  [Window.filter.windowDestroyed] = function(win, name, evt)
-    local app = win:application()
-
-    if not app then
-      return
-    end
-
-    local bid = app:bundleID()
-
-    if not bid or whitelist[bid] then
-      return
-    end
-
-    Timer.doAfter(3, function()
-      if app and app:isRunning() then
-        -- not only in the current space
-        for _, w in ipairs(filter:getWindows()) do
-          if w:application():bundleID() == bid then
-            return
-          end
-        end
-
-        -- no windows, kill
-        app:kill()
-      end
-    end)
-  end
-})
-
-
 --[[
 -- interface with yabai
 local yabai = string.format("/tmp/yabai_%s.socket", os.getenv("USER"))
@@ -228,29 +103,6 @@ Hotkey.bind('ctrl-alt', '9', function() sendToYabai('window', '--space',  '9'   
 Hotkey.bind('ctrl-alt', '0', function() sendToYabai('window', '--space',  '10'   ) end)
 --]]
 
-
---[[
--- xwm
-hs.loadSpoon('XWM'):start():bindHotkeys({
-  toggle      = { { 'ctrl', 'alt' }, 'e'      },
-  tile        = { { 'ctrl', 'alt' }, 'q'      },
-
-  swap_prev   = { { 'ctrl', 'alt' }, 'up'     },
-  swap_next   = { { 'ctrl', 'alt' }, 'down'   },
-  swap_master = { { 'ctrl', 'alt' }, 'return' },
-
-  skid        = { { 'ctrl', 'alt' }, 'tab'    },
-
-  jump_1      = { { 'ctrl', 'alt' }, '1'      },
-  jump_2      = { { 'ctrl', 'alt' }, '2'      },
-  jump_3      = { { 'ctrl', 'alt' }, '3'      },
-  jump_4      = { { 'ctrl', 'alt' }, '4'      },
-  jump_5      = { { 'ctrl', 'alt' }, '5'      },
-  jump_6      = { { 'ctrl', 'alt' }, '6'      }
-})
---]]
-
-
 --[[
 -- mouse wheel
 -- this stuff works, but it also makes the scroll lagging
@@ -269,3 +121,28 @@ wheel:start()
 
 Hotkey.bind('ctrl-alt', 'm', function() print(wheel:isEnabled()) end)
 --]]
+
+
+-- xwm
+hs.loadSpoon('XWM'):start():bindHotkeys({
+  retile      = { { 'ctrl',  'alt' }, 'q'      },
+
+  swap_prev   = { { 'ctrl',  'alt' }, 'up'     },
+  swap_next   = { { 'ctrl',  'alt' }, 'down'   },
+  swap_master = { { 'ctrl',  'alt' }, 'return' },
+
+  skid        = { { 'ctrl',  'alt' }, 'tab'    },
+
+  prev        = { { 'shift', 'alt' }, 'tab'    },
+  next        = { {          'alt' }, 'tab'    },
+
+  jump_1      = { { 'ctrl',  'alt' }, '1'      },
+  jump_2      = { { 'ctrl',  'alt' }, '2'      },
+  jump_3      = { { 'ctrl',  'alt' }, '3'      },
+  jump_4      = { { 'ctrl',  'alt' }, '4'      },
+  jump_5      = { { 'ctrl',  'alt' }, '5'      },
+  jump_6      = { { 'ctrl',  'alt' }, '6'      },
+  jump_7      = { { 'ctrl',  'alt' }, '7'      },
+  jump_8      = { { 'ctrl',  'alt' }, '8'      },
+  jump_9      = { { 'ctrl',  'alt' }, '9'      }
+})
