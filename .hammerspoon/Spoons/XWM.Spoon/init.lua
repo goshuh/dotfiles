@@ -178,6 +178,13 @@ function _M:handler(window, event)
       Timer.doAfter(0.1, function()
         self:handler(window, event)
       end)
+    else
+      local n = Spaces.windowSpaces(window)[1]
+
+      if n and n ~= s then
+        self:delete(window)
+        self.insert(window)
+      end
     end
 
   elseif event == 'windowNotVisible' then
