@@ -376,20 +376,16 @@ ShellRoot {
     CustomText {
       id: text
 
-      width: config.iconSize
+      text:  metric.elidedText
+      width: master.width
 
-      transform: Rotation {
-        angle: 90
-
-        origin.x: text.width  / 2
-        origin.y: text.height / 2
-      }
-
-      text: metric.text
+      rotation: 90
     }
 
     CustomTextMetrics {
       id: metric
+
+      elideWidth: master.height - config.paddingGigantic * 2
 
       onTextChanged: {
         master.icon = helper.getIcon(
@@ -491,88 +487,32 @@ ShellRoot {
             implicitHeight: config.iconSize
 
             Loader {
-              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenter:   parent.verticalCenter
+              anchors.horizontalCenter: parent.horizontalCenter
 
               active: master.modelData.buttonType ===
                         QsMenuButtonType.CheckBox
 
-              sourceComponent: Canvas {
-                implicitWidth:  config.iconSize
-                implicitHeight: config.iconSize
-
-                onPaint: {
-                  var ctx = getContext('2d')
-                  ctx.clearRect(0, 0, width, height)
-
-                  ctx.strokeStyle =  config.colorForegroundDark
-                  ctx.lineWidth   =  config.lineWidth
-                  ctx.lineCap     = 'round'
-                  ctx.lineJoin    = 'round'
-
-                  ctx.strokeRect(config.padding,
-                                 config.padding,
-                                 width  - config.padding * 2,
-                                 height - config.padding * 2)
-
-                  if (master.modelData.checkState === Qt.Checked) {
-                    ctx.beginPath()
-                    ctx.moveTo(width * 0.8,  height * 0.2)
-                    ctx.lineTo(width * 0.35, height * 0.8)
-                    ctx.lineTo(width * 0.2,  height * 0.6)
-                    ctx.stroke()
-                  }
-                }
-
-                Component.onCompleted: {
-                  requestPaint()
-                }
+              sourceComponent: CheckBox {
+                checked: master.modelData.checkState === Qt.Checked
               }
             }
 
             Loader {
-              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenter:   parent.verticalCenter
+              anchors.horizontalCenter: parent.horizontalCenter
 
               active: master.modelData.buttonType ===
                         QsMenuButtonType.RadioButton
 
-              sourceComponent: Canvas {
-                implicitWidth:  config.iconSize
-                implicitHeight: config.iconSize
-
-                onPaint: {
-                  var ctx = getContext('2d')
-                  ctx.clearRect(0, 0, width, height)
-
-                  ctx.strokeStyle =  config.colorForegroundDark
-                  ctx.fillStyle   =  config.colorForegroundDark
-                  ctx.lineWidth   =  config.lineWidth
-                  ctx.lineCap     = 'round'
-                  ctx.lineJoin    = 'round'
-
-                  const x = width  / 2
-                  const y = height / 2
-                  const r = x - config.padding
-                  const d = 2 * Math.PI
-
-                  ctx.beginPath()
-                  ctx.arc(x, y, r, 0, d)
-                  ctx.stroke()
-
-                  if (master.modelData.checkState === Qt.Checked) {
-                    ctx.beginPath()
-                    ctx.arc(x, y, r / 2 - 0.5, 0, d)
-                    ctx.fill()
-                  }
-                }
-
-                Component.onCompleted: {
-                  requestPaint()
-                }
+              sourceComponent: RadioButton {
+                checked: master.modelData.checkState === Qt.Checked
               }
             }
 
             Loader {
-              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenter:   parent.verticalCenter
+              anchors.horizontalCenter: parent.horizontalCenter
 
               active: master.modelData.icon.length &&
                      (master.modelData.buttonType ===

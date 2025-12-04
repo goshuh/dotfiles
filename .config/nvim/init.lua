@@ -43,7 +43,7 @@ local init_keys = {
   { 'v', '<s-left>',            '<left>'                    },
   { 'v', '<s-right>',           '<right>'                   },
   { 'v', '<leader><leader>',    '<esc>'                     },
-  { 'v', '<c-y>',               '"+y'                       },
+  { 'v', '<c-c>',               '"+y'                       },
 
   { 'i', '<f3>',                '<c-o>:cprevious<cr>'       },
   { 'i', '<f4>',                '<c-o>:cnext<cr>'           },
