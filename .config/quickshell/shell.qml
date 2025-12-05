@@ -167,6 +167,8 @@ ShellRoot {
 
     readonly property string fontFamily:           'Cantarell'
     readonly property string fontFamilyMono:       'Fira Code'
+    readonly property int    fontSizeMini:          7
+    readonly property int    fontSizeTiny:          8
     readonly property int    fontSizeSmall:         9
     readonly property int    fontSize:              10
     readonly property int    fontSizeLarge:         12
@@ -930,24 +932,24 @@ ShellRoot {
 
       anchors.horizontalCenter: parent.horizontalCenter
 
-      spacing: 0
+      spacing: config.padding
 
       CustomText {
         Layout.alignment: Qt.AlignHCenter
 
-        font.bold:   true
-        font.family: config.fontFamilyMono
+        font.family:    config.fontFamilyMono
+        font.pointSize: config.fontSizeTiny
 
-        text: helper.fmtDate('hh')
+        text: helper.fmtDate('hh:mm')
       }
 
       CustomText {
         Layout.alignment: Qt.AlignHCenter
 
-        font.bold:   true
-        font.family: config.fontFamilyMono
+        font.family:    config.fontFamilyMono
+        font.pointSize: config.fontSizeMini
 
-        text: helper.fmtDate('mm')
+        text: helper.fmtDate('MMM dd')
       }
     }
 
