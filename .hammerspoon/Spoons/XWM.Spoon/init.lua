@@ -338,7 +338,7 @@ function _M:insert(window)
 
   local d = self.windows[window:id()]
 
-  if d then
+  if d or not window:isStandard() then
     return d.space
   end
 
@@ -473,7 +473,6 @@ function _M:move(window, curr, next, str)
 
   local o = Mouse.getRelativePosition()
   local p = Geometry.rect(window:zoomButtonRect()):move({ -1, -1 }).topleft
-  local t = nil
 
   EventTap.event.newMouseEvent(
     EventTap.event.types.leftMouseDown, p):post()
