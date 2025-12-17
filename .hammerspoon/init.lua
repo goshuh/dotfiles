@@ -125,7 +125,8 @@ Hotkey.bind('ctrl-alt', 'm', function() print(wheel:isEnabled()) end)
 
 -- xwm
 hs.loadSpoon('XWM'):start():bindHotkeys({
-  retile      = { { 'ctrl',  'alt' }, 'q'      },
+  reinit      = { { 'ctrl',  'alt' }, 'r'      },
+  retile      = { { 'ctrl',  'alt' }, 't'      },
 
   swap_prev   = { { 'ctrl',  'alt' }, 'up'     },
   swap_next   = { { 'ctrl',  'alt' }, 'down'   },

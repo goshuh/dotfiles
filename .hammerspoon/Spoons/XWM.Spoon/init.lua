@@ -141,6 +141,7 @@ end
 
 function _M:bindHotkeys(mapping)
   local spec = {
+    reinit      = FnUtils.partial(self.reinit, self),
     retile      = FnUtils.partial(self.retile, self),
 
     swap_prev   = FnUtils.partial(self.swap,   self, -1),
@@ -178,7 +179,7 @@ function _M:handler(window, event)
       Timer.doAfter(0.1, function()
         self:handler(window, event)
       end)
-    else
+    elseif s >= 0 then
       local n = Spaces.windowSpaces(window)[1]
 
       if n and n ~= s then
@@ -248,57 +249,69 @@ function _M:retile(space)
   end
 
   local p = self.spaces[space]
+  local n = 0
 
   if not p or Spaces.spaceType(space) ~= 'user' then
     return
   end
 
-  -- best effort for multi-tab windows (where each tab can be reported as a
-  -- window): allow each app to be appeared only once
-  local pids = {}
-  local wins = {}
+  repeat
+    -- best effort for multi-tab windows (where each tab can be reported as a
+    -- window): allow each app to be appeared only once
+    local pids = {}
+    local wins = {}
 
-  for _, w in ipairs(p.windows) do
-    local a = w:application()
+    for _, w in ipairs(p.windows) do
+      local a = w:application()
 
-    if a then
-      local d = a:pid()
+      if a then
+        local d = a:pid()
 
-      if not pids[d] then
-        pids[d] = true
+        if not pids[d] then
+          pids[d] = true
 
-        table.insert(wins, w)
+          table.insert(wins, w)
+        end
       end
     end
-  end
 
-  for i, w in ipairs(wins) do
-    local f = self:layout(wins, i, p.frame)
+    n = #wins
 
-    if w:frame() ~= f then
-      -- https://github.com/Hammerspoon/hammerspoon/issues/3224
-      local e = AXUIElem.applicationElement(w:application())
-      local x = e.AXEnhancedUserInterface
-      local d = self.windows[w:id()]
+    for i, w in ipairs(wins) do
+      local f = self:layout(wins, i, p.frame)
+      local a = w:application()
 
-      d.watcher:stop()
-
-      if x then
-        e.AXEnhancedUserInterface = false
+      if not a then
+        break
       end
 
-      w:setFrame(f, 0)
+      n = n - 1
 
-      if x then
-        e.AXEnhancedUserInterface = true
+      if w:frame() ~= f then
+        -- https://github.com/Hammerspoon/hammerspoon/issues/3224
+        local e = AXUIElem.applicationElement(a)
+        local x = e.AXEnhancedUserInterface
+        local d = self.windows[w:id()]
+
+        d.watcher:stop()
+
+        if x then
+          e.AXEnhancedUserInterface = false
+        end
+
+        w:setFrame(f, 0)
+
+        if x then
+          e.AXEnhancedUserInterface = true
+        end
+
+        d.watcher:start({
+          Watcher.windowMoved,
+          Watcher.windowResized
+        })
       end
-
-      d.watcher:start({
-        Watcher.windowMoved,
-        Watcher.windowResized
-      })
     end
-  end
+  until n == 0
 end
 
 local whitelist = {
@@ -315,7 +328,7 @@ local whitelist = {
   ['ru.keepcode.Telegram'       ] = true
 }
 
-function _M:insert(window)
+function _M:insert(window, sub)
   -- Windows.addWindow
   local s = Spaces.windowSpaces(window)[1]
   local c = window:tabCount()
@@ -327,10 +340,10 @@ function _M:insert(window)
   if c > 0 then
     local a = window:application()
 
-    if a then
+    if a and not sub then
       for _, w in ipairs(a:allWindows()) do
         if w ~= window then
-          self:insert(w)
+          self:insert(w, true)
         end
       end
     end
@@ -338,8 +351,12 @@ function _M:insert(window)
 
   local d = self.windows[window:id()]
 
-  if d or not window:isStandard() then
+  if d then
     return d.space
+  end
+
+  if not window:isStandard() then
+    return -1
   end
 
   -- State.uiWatcherCreate
@@ -480,9 +497,7 @@ function _M:move(window, curr, next, str)
   -- only for me
   EventTap.keyStroke({ 'ctrl' }, str)
 
-  Timer.waitUntil(function()
-    return Spaces.windowSpaces(window)[1] == next
-  end, function()
+  Timer.doAfter(0.5, function()
     EventTap.event.newMouseEvent(
       EventTap.event.types.leftMouseUp, p):post()
 
@@ -490,7 +505,7 @@ function _M:move(window, curr, next, str)
 
     self:insert(window)
     self:retile(next)
-  end, 0.05)
+  end)
 end
 
 function _M:jump(index)
