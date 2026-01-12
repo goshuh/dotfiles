@@ -289,21 +289,10 @@ function _M:retile(space)
 
       if w:frame() ~= f then
         -- https://github.com/Hammerspoon/hammerspoon/issues/3224
-        local e = AXUIElem.applicationElement(a)
-        local x = e.AXEnhancedUserInterface
         local d = self.windows[w:id()]
 
         d.watcher:stop()
-
-        if x then
-          e.AXEnhancedUserInterface = false
-        end
-
         w:setFrame(f, 0)
-
-        if x then
-          e.AXEnhancedUserInterface = true
-        end
 
         d.watcher:start({
           Watcher.windowMoved,
