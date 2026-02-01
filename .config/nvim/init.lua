@@ -598,6 +598,7 @@ require('lazy').setup({
 
   { 'neovim/nvim-lspconfig',
     dependencies = { 'saghen/blink.cmp' },
+    lazy   = false,
     config = function(_, opts)
       local blink = require('blink.cmp')
 
@@ -816,6 +817,7 @@ require('lazy').setup({
   },
 
   { 'nvim-mini/mini.nvim',
+    lazy   = false,
     config = function()
       require('mini.align'     ).setup()
       require('mini.bracketed' ).setup()
