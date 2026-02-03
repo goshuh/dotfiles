@@ -577,6 +577,7 @@ require('lazy').setup({
   },
 
   { 'nvim-treesitter/nvim-treesitter',
+    branch = 'main',
     config = function(_, opts)
       require('nvim-treesitter.config').setup(opts)
     end,
@@ -616,7 +617,8 @@ require('lazy').setup({
     end,
     opts = { servers = {
         clangd        = { },
-        rust_analyzer = { }
+        rust_analyzer = { },
+        ty            = { }
       }
     },
     keys = {
