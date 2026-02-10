@@ -1,0 +1,83 @@
+#!/usr/bin/python3
+
+import re
+import subprocess
+
+
+def main():
+    all = subprocess.run(["dpkg-query", "-W", "-f=${Package}\n"],
+                         capture_output = True,
+                         check          = False,
+                         text           = True).stdout.strip().split('\n')
+
+    out = subprocess.run(['apt-cache', 'depends', *all],
+                         capture_output = True,
+                         check          = False,
+                         text           = True).stdout.strip().split('\n')
+
+    all = set(all)
+    pat = re.compile(r'<?([^\<\>\s:]+)(?::\S+)?>?')
+
+    bwd = {p: set() for p in all}
+    fwd = {p: set() for p in all}
+
+    pkg = ''
+    par = False
+
+    for cs in out:
+        cs = cs.rstrip()
+
+        if not cs:
+            continue
+
+        if cs[0] != ' ':
+            if (mat := pat.match(cs)):
+                pkg = mat.group(1)
+
+            par = False
+
+        elif len(cs) < 2:
+            continue
+
+        elif cs[2:].startswith(('Depends:', 'PreDepends:')):
+            if (mat := pat.match(cs.split()[1])):
+                if (dep := mat.group(1)) in all:
+                    bwd[pkg].add(dep)
+                    fwd[dep].add(pkg)
+
+            par = True
+
+        elif par and cs.startswith('    '):
+            if (mat := pat.match(cs[4:])):
+                if (dep := mat.group(1)) in all:
+                    bwd[pkg].add(dep)
+                    fwd[dep].add(pkg)
+
+        else:
+            par = False
+
+    top = set([p for p in all if not fwd[p]])
+
+    # also mark the package manager
+    if 'apt' in all:
+        top.add('apt')
+
+    exp = set(top)
+
+    while True:
+        cur = set(exp)
+
+        for p in exp:
+            cur |= bwd[p]
+
+        if len(cur) > len(exp):
+            exp = cur
+        else:
+            break
+
+    print(f'leaf pkgs:\n  {" ".join(sorted(top))}')
+    print(f'safe pkgs:\n  {" ".join(sorted(set(all) - exp))}')
+
+
+if __name__ == "__main__":
+    main()
