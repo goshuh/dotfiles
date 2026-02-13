@@ -237,7 +237,7 @@ class Updater(object):
         self.copy('usr/share/pixmaps/Zoom.png',
                    func = lambda x: 'zoom.png')
 
-    @reg(r'Zotero.*\.tar\.bz2')
+    @reg(r'Zotero.*\.tar\.xz')
     def upd_zotero(self):
         self.sync('Zotero_linux-x86_64',
                    excl = 'zotero')
