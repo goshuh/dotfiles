@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys
@@ -329,15 +329,11 @@ class Cleaner(object):
 
         # waydroid: stop creating desktop files
         prog = self.merge('''
-            /def makeDesktopFile/ {
+            /def updateDesktopFile/ {
                 flag = 1;
                 print;
-                print "        return 0";
-            }
-
-            /def makeWaydroidDesktopFile/ {
-                print;
                 print "        return";
+                print "";
             }
 
             /def userUnlocked/ {

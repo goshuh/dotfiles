@@ -38,7 +38,7 @@ def set_value(con, key, val):
         con.commit()
 
     except Exception:
-        conn.rollback()
+        con.rollback()
 
 
 def delete(con, key):
