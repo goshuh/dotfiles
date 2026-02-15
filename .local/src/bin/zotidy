@@ -1,0 +1,444 @@
+#!/usr/bin/python3
+
+import os
+import sys
+
+import base64
+import sqlite3
+import argparse
+
+
+class Node:
+    def __init__(self):
+        self.id   = []
+        self.doc  = []
+        self.meta = []
+
+    def __call__(self, i, doc, meta):
+        self.id  .append(i)
+        self.doc .append(doc)
+        self.meta.append(meta)
+
+
+class ChromaDB:
+    def __init__(self, path, n):
+        import chromadb
+
+        self.path = path
+        self.nres = n
+
+        self.conn = chromadb.PersistentClient(path = path)
+        self.coll = self.conn.get_or_create_collection('default')
+
+    def __iadd__(self, node):
+        self.coll.upsert(documents = node.doc,
+                         metadatas = node.meta,
+                         ids       = node.id)
+        return self
+
+    def __isub__(self, node):
+        self.coll.delete(ids = node.id)
+
+    def __call__(self, query):
+        return self.coll.query(query_texts = query,
+                               n_results   = self.nres)
+
+    def get_items(self):
+        return self.coll.get(include = [])
+
+
+class ZoteroDB:
+    def __init__(self, file, dry):
+        self.path = os.path.split(file)[0]
+        self.dry  = dry
+
+        try:
+            self.conn = sqlite3.connect(file)
+            self.conn.row_factory = sqlite3.Row
+        except Exception as e:
+            sys.exit(repr(e))
+
+        self.curr = self.conn.cursor()
+
+        self.creators = {}
+        self.fields   = {}
+        self.items    = {}
+
+        for row in self("""
+                        SELECT creatorTypeID, creatorType
+                        FROM   creatorTypes
+                        """):
+            n = row['creatorType']
+            i = row['creatorTypeID']
+
+            self.creators[i] = n
+            self.creators[n] = i
+
+        for row in self("""
+                        SELECT fieldID, fieldName
+                        FROM   fieldsCombined
+                        """):
+            n = row['fieldName']
+            i = row['fieldID']
+
+            self.fields[i] = n
+            self.fields[n] = i
+
+        for row in self("""
+                        SELECT itemTypeID, typeName
+                        FROM   itemTypes
+                        """):
+            n = row['typeName']
+            i = row['itemTypeID']
+
+            self.items[i] = n
+            self.items[n] = i
+
+    def __call__(self, query, *args, one = False):
+        select = query.lstrip().startswith('SELECT')
+
+        if not select:
+            print(' '.join(query.replace('?', '{}').format(*args).split()))
+
+        if not self.dry or select:
+            self.curr.execute(query, (*args, ))
+
+        if select:
+            if one:
+                return self.curr.fetchone()
+            else:
+                return self.curr.fetchall()
+        else:
+            return []
+
+    def get_item_fields(self, iid):
+        return {self.fields[row['fieldID']]: row['value']
+                for row in self("""
+                                SELECT d.fieldID, v.value
+                                FROM   itemData       d
+                                JOIN   itemDataValues v ON v.valueID = d.valueID
+                                WHERE  itemID = ?
+                                """, iid)}
+
+    def get_item_authors(self, iid):
+        return [' '.join([row['firstName'], row['lastName']])
+                for row in self("""
+                                SELECT c.firstName, c.lastName
+                                FROM   itemCreators i
+                                JOIN   creators     c ON c.creatorID = i.creatorID
+                                WHERE  i.itemID = ? AND i.creatorTypeID = ?
+                                ORDER  BY i.orderIndex
+                                """, iid, self.creators['author'])]
+
+    def get_item_attachments(self, iid):
+        return [(row['itemID'], row['value'], row['path'], row['key'])
+                for row in self("""
+                                SELECT a.itemID, v.value, a.path, i.key
+                                FROM   itemAttachments a
+                                JOIN   items           i ON i.itemID  = a.itemID
+                                JOIN   itemData        d ON d.itemID  = a.itemID
+                                JOIN   itemDataValues  v ON v.valueID = d.valueID
+                                WHERE  a.parentItemID = ? AND d.fieldID = ?
+                                """, iid, self.fields['title'])]
+
+    def get_item_annotations(self, iid):
+        return [(row['itemID'], row['text'], row['comment'], row['pageLabel'])
+                for row in self("""
+                                SELECT a.itemID, a.text, a.comment, a.pageLabel
+                                FROM   itemAnnotations a
+                                JOIN   itemAttachments t ON t.itemID = a.parentItemID
+                                WHERE  t.parentItemID = ?
+                                """, iid)]
+
+    def get_item_notes(self, iid):
+        return [(row['itemID'], row['title'], row['note'])
+                for row in self("""
+                                SELECT itemID, title, note
+                                FROM   itemNotes
+                                WHERE  parentItemID = ?
+                                """, iid)]
+
+    def get_item_markdown(self, key, dic, path):
+        base = os.path.join(path, 'marker', key)
+        name = dic['path'].replace('storage:', '')
+
+        if not os.path.isdir(base):
+            orig = os.path.join(path, 'marker', name.replace('.pdf', ''))
+
+            if not os.path.isdir(orig):
+                return None
+
+            print(f'renaming {orig} -> {base}')
+            os.rename(orig, base)
+
+        file = os.path.join(base, name.replace('.pdf', '.md'))
+
+        if not os.path.isfile(file):
+            return None
+
+        with open(file) as fd:
+            file = fd.read()
+
+        for f in os.listdir(base):
+            if f.endswith('.jpeg'):
+                with open(os.path.join(base, f), 'rb') as fd:
+                    dic[f] = base64.b64encode(fd.read()).decode()
+
+        return file, dic
+
+    def get_items(self):
+        res = {}
+
+        for row in self("""
+                        SELECT itemID, itemTypeID, key
+                        FROM   items
+                        WHERE  itemTypeID NOT IN (?, ?, ?)
+                        """, self.items['annotation'],
+                             self.items['attachment'],
+                             self.items['note']):
+            iid = row["itemID"]
+            sub = res.setdefault(iid, {})
+
+            etc = self.get_item_fields(iid)
+
+            sub['date'       ] = etc.get('date', '')
+            sub['title'      ] = etc.get('title')
+            sub['authors'    ] = self.get_item_authors(iid)
+            sub['type'       ] = self.items[row['itemTypeID']]
+
+            sub['notes'      ] = {nid: {'title': t, 'note': c}
+                                  for nid, t, c    in self.get_item_notes(iid)}
+            sub['attachments'] = {aid: {'title': t, 'path': p, 'key':  k}
+                                  for aid, t, p, k in self.get_item_attachments(iid)}
+            sub['annotations'] = {aid: {'text':  t, 'note': c, 'page': p}
+                                  for aid, t, c, p in self.get_item_annotations(iid)}
+
+        return res
+
+    def output_items(self):
+        for iid, dic in self.get_items().items():
+            print(f'#{iid}')
+            print(f'  Date:    {dic["date" ]}')
+            print(f'  Title:   {dic["title"]}')
+            print(f'  Authors: {", ".join(dic["authors"])}')
+
+            for nid, d in dic['notes'].items():
+                print(f'  Note #{nid}')
+                print(f'    Title: {d["title"]}')
+                print(f'    Note:  {d["note" ]}')
+
+            for aid, d in dic['attachments'].items():
+                print(f'  Attachment #{aid}')
+                print(f'    Title: {d["title"]}')
+                print(f'    Path:  {d["path" ]}')
+                print(f'    Key:   {d["key"  ]}')
+
+            for aid, d in dic['annotations'].items():
+                print(f'  Annotation #{aid}')
+                print(f'    Text:  {d["text" ]}')
+                print(f'    Note:  {d["note" ]}')
+                print(f'    Page:  {d["page" ]}')
+
+            print()
+
+    def update_attachment_title(self, vid, aid, file):
+        # some fields (e.g., "Full Text PDF") might be referenced multiple times
+        if vid and self("""
+                        SELECT COUNT(*) as cnt
+                        FROM   itemData
+                        WHERE  valueID = ?
+                        """, vid, one = True)['cnt'] == 1:
+            self("""
+                 UPDATE itemDataValues
+                 SET    value   = ?
+                 WHERE  valueID = ?
+                 """, file, vid)
+        else:
+            print(aid, self.curr.lastrowid, file)
+
+            self("""
+                 INSERT
+                 INTO   itemDataValues (value)
+                 VALUES (?)
+                 """, file)
+
+            self("""
+                 UPDATE itemData
+                 SET    valueID = ?
+                 WHERE  fieldID = ? AND itemID = ?
+                 """, self.curr.lastrowid, self.fields['title'], aid)
+
+    def rename_attachment_title(self, ref):
+        for row in self("""
+                        SELECT a.itemID, a.path, i.key, d.valueID, v.value
+                        FROM   itemAttachments a
+                        JOIN   items           i ON i.itemID  = a.itemID
+                        JOIN   itemData        d ON d.itemID  = a.itemID
+                        JOIN   itemDataValues  v ON v.valueID = d.valueID
+                        WHERE  d.fieldID = ?
+                        """, self.fields['title']):
+            path = row['path']
+
+            if not path.startswith('storage:'):
+                continue
+
+            file = os.path.split(path.replace('storage:', ''))[1]
+            path = os.path.join (self.path, 'storage', row['key'])
+
+            if ref:
+                for f in os.listdir(path):
+                    if file != f:
+                        self("""
+                             UPDATE itemAttachments
+                             SET    path   = ?
+                             WHERE  itemID = ?
+                             """, f'storage:{f}', row['itemID'])
+
+                        file = f
+                    break
+
+                full = os.path.join(path, file)
+
+                if not os.path.isfile(full):
+                    print(f'ERROR: file not found: {full}')
+
+            if file == row['value']:
+                continue
+
+            self.update_attachment_title(row['valueID'], row['itemID'], file)
+
+        if not self.dry:
+            self.commit()
+
+    def rename_attachment(self, aid, file):
+        self("""
+             UPDATE itemAttachments
+             SET    path   = ?
+             WHERE  itemID = ?
+             """, f'storage:{file}', aid)
+
+        row = self("""
+                   SELECT valueID
+                   FROM   itemData
+                   WHERE  itemID = ? AND fieldID = ?
+                   """, aid, self.fields['title'], one = True)
+
+        self.update_attachment_title(row['valueID'] if row else None, aid, file)
+
+        if not self.dry:
+            self.commit()
+
+    def marker(self, exts):
+        cat = ['conferencePaper', 'journalArticle', 'preprint']
+        cat.extend(exts)
+
+        for dic in self.get_items().values():
+            if dic['type'] not in cat:
+                continue
+
+            for att in dic['attachments'].values():
+                file = os.path.join(self.path, 'storage',
+                                    att['key' ],
+                                    att['path'].replace('storage:', ''))
+
+                if os.path.isfile(file):
+                    print(file)
+
+    def update_vector(self, back, aks, sks):
+        old = back.get_items() if not aks or not sks else {}
+        new = {}
+
+        for dic in self.get_items().values():
+            for att in dic['attachments'].values():
+                cur = new.setdefault(att.pop('key'), {})
+
+                cur['type'   ] = dic['type' ]
+                cur['date'   ] = dic['date' ]
+                cur['title'  ] = dic['title']
+                cur['path'   ] = att['path' ]
+                cur['authors'] = ', '.join(dic['authors'])
+
+        add = Node()
+        sub = Node()
+
+        if aks:
+            for i in aks:
+                if i in new:
+                    if ret := self.get_item_markdown(i, new[i], back.path):
+                        add(i, *ret)
+        else:
+            for i in new:
+                if i not in old:
+                    if ret := self.get_item_markdown(i, new[i], back.path):
+                        add(i, *ret)
+
+        if sks:
+            for i in sks:
+                sub(i, '', {})
+        else:
+            for i in old:
+                if i not in new:
+                    sub(i, '', {})
+
+        back += add
+        back -= sub
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description = 'zotidy')
+    parser.add_argument('-z', required =  True)
+    parser.add_argument('-d', action   = 'store_true')
+
+    s = parser.add_subparsers(dest = 'command', required = True)
+
+    l = s.add_parser('list')
+    r = s.add_parser('rename')
+    v = s.add_parser('vector')
+
+    r.add_argument('-a', action = 'store_true')
+    r.add_argument('-r', action = 'store_true')
+    r.add_argument('-i')
+    r.add_argument('-f')
+
+    v.add_argument('-m', action = 'store_true')
+    v.add_argument('-c', nargs  = '*',  default = [])
+    v.add_argument('-p')
+    v.add_argument('-n', type   =  int, default = 2)
+    v.add_argument('-a', nargs  = '*',  default = [])
+    v.add_argument('-s', nargs  = '*',  default = [])
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    z = ZoteroDB(args.z, args.d)
+
+    match args.command:
+        case 'list':
+            z.output_items()
+
+        case 'rename':
+            if args.a:
+                z.rename_attachment_title(args.r)
+            elif args.i and args.f:
+                z.rename_attachment(args.i, args.f)
+            else:
+                sys.exit('ERROR: invalid rename command')
+
+        case 'vector':
+            if args.m:
+                z.marker(args.c)
+            elif args.p:
+                z.update_vector(ChromaDB(args.p, args.n), args.a, args.d)
+            else:
+                sys.exit('ERROR: invalid vector command')
+
+    z.close()
