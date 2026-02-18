@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 
 # /// script
-# requires-python = "3.13"
-# de"endencies = [
+# requires-python = "==3.13"
+# dependencies = [
 #   "chromadb",
-#   "mcp"
+#   "mcp",
+#   "mistletoe"
 # ]
 # ///
 
 import os
 import sys
 
+import re
 import base64
 import sqlite3
 import argparse
@@ -18,36 +20,58 @@ import argparse
 from typing import List, Literal, Dict
 
 
-class Node:
-    def __init__(self):
-        self.id   = []
-        self.doc  = []
-        self.meta = []
+class Node(object):
+    def __init__(self, i = None, doc = None, meta = None):
+        self.id   = i    if i    else []
+        self.doc  = doc  if doc  else []
+        self.meta = meta if meta else []
 
     def append(self, i, doc, meta):
         self.id  .append(i)
         self.doc .append(doc)
         self.meta.append(meta)
 
+    def get(self):
+        b = 0
 
-class ChromaDB:
+        while b < len(self.id):
+            # there is a maximum batch size of 5461
+            n = min(4096, len(self.id) - b)
+            e = b + n
+
+            yield Node(self.id  [b:e],
+                       self.doc [b:e],
+                       self.meta[b:e])
+            b = e
+
+
+class ChromaDB(object):
     def __init__(self, path, n):
         import chromadb
 
-        self.path = path
+        self.path = os.path.join(path, 'chroma')
         self.nres = n
 
-        self.conn = chromadb.PersistentClient(path = path)
+        self.conn = chromadb.PersistentClient(path = self.path)
         self.coll = self.conn.get_or_create_collection('default')
 
     def update(self, node):
-        self.coll.upsert(documents = node.doc,
-                         metadatas = node.meta,
-                         ids       = node.id)
+        for n in node.get():
+            for i in n.id:
+                print(f'INFO: updating {i}')
+
+            self.coll.upsert(documents = n.doc,
+                             metadatas = n.meta,
+                             ids       = n.id)
         return self
 
     def delete(self, node):
-        self.coll.delete(ids = node.id)
+        for n in node.get():
+            for i in n.id:
+                print(f'INFO: deleting {i}')
+                raise Exception
+
+            self.coll.delete(where = {'key': {'$in': n.id}})
 
     async def query(self, query: List[str],
                     nres:      int         = 0,
@@ -71,7 +95,7 @@ class ChromaDB:
                              offset         = offset)
 
     def get_items(self):
-        return self.coll.get(include = [])
+        return self.coll.get(include = [])['ids']
 
     # https://github.com/chroma-core/chroma-mcp/blob/main/src/chroma_mcp/server.py
     # https://gofastmcp.com/v2/patterns/decorating-methods
@@ -87,7 +111,134 @@ class ChromaDB:
         sys.exit(0)
 
 
-class ZoteroDB:
+class Markdown(object):
+    # https://github.com/miyuchina/mistletoe/issues/262
+    rend = None
+
+    # level fix
+    pat2 = re.compile('(?:' + '|'.join([
+        # acm
+        r'\d ',
+        r'\d\. ',
+        # ieee
+        r'I\. ',   r'II\. ',   r'III\. ',   r'IV\. ',  r'V\. ',
+        r'VI\. ',  r'VII\. ',  r'VIII\. ',  r'IX\. ',  r'X\. ',
+        r'XI\. ',  r'XII\. ',  r'XIII\. ',  r'XIV\. ', r'XV\. ',
+        r'XVI\. ', r'XVII\. ', r'XVIII\. ', r'XIX\. ', r'XX\. ',
+        # common
+        r'Abstract$',
+        r'ABSTRACT$',
+        r'Introduction$',
+        r'INTRODUCTION$',
+        r'Background$',
+        r'BACKGROUND$',
+        r'Related Work$',
+        r'RELATED WORK$',
+        r'Conclusions?$',
+        r'CONCLUSIONS?$',
+        r'Acknowledgements?$',
+        r'ACKNOWLEDGEMENTS?$',
+        r'References?$',
+        r'REFERENCES?$'
+    ]) + ')')
+
+    pat3 = re.compile('(?:' + '|'.join([
+        # acm
+        r'\d\.\d ',
+        r'\d\.\d\. ',
+        # ieee
+        r'[A-H]\. '
+    ]) + ')')
+
+    patz = re.compile('(?:' + '|'.join([
+        # acm
+        r'CCS Concepts$',
+        r'CCS CONCEPTS$',
+        r'Keywords$',
+        r'KEYWORDS$',
+        r'ACM Reference Format',
+        r'ACM Reference format',
+    ]) + ')')
+
+    def __init__(self, file):
+        import mistletoe
+        import mistletoe.markdown_renderer as markdown_renderer
+
+        self.pos  = ['' for _ in range(8)]
+        self.tag  =  ''
+        self.blks =  []
+        self.segs =  []
+
+        with open(file) as fd:
+            self.doc  = mistletoe.Document(fd)
+
+        if not Markdown.rend:
+            Markdown.rend = markdown_renderer.MarkdownRenderer()
+
+    def post(self):
+        if not self.tag:
+            self.blks = []
+        if not self.blks:
+            return
+
+        self.segs.append((self.tag, self.blks))
+        self.blks = []
+
+    def get_text(self, node):
+        if type(node).__name__ == 'RawText':
+            return node.content
+
+        if children := getattr(node, 'children', None):
+            return ''.join(self.get_text(c) for c in children)
+
+        return ''
+
+    def walk(self, node):
+        match type(node).__name__:
+            case 'Heading':
+                # level is not always correct
+                text = self.get_text(node).strip()
+
+                if not self.blks and not self.segs:
+                    pos = 1
+                elif Markdown.pat2.match(text):
+                    pos = 2
+                elif Markdown.pat3.match(text):
+                    pos = 3
+                elif Markdown.patz.match(text):
+                    pos = 0
+                else:
+                    self.blks.append(f'{"#" * max(node.level, 4)} {text}')
+                    return
+
+                self.post()
+
+                if pos:
+                    self.pos[pos - 1] = text
+                    self.tag = ' | '.join(self.pos[:pos])
+                else:
+                    self.tag = ''
+
+            case 'Document':
+                if children := getattr(node, 'children', None):
+                    for c in children:
+                        self.walk(c)
+
+            case 'BlankLine':
+                pass
+
+            case _:
+                self.blks.append(Markdown.rend.render(node).strip())
+
+    def generate(self):
+        self.walk(self.doc)
+        self.post()
+
+        for c in self.segs:
+            yield c
+
+
+class ZoteroDB(object):
     def __init__(self, file, dry):
         self.path = os.path.split(file)[0]
         self.dry  = dry
@@ -202,7 +353,8 @@ class ZoteroDB:
         return [(row['itemID'], row['value'], row['valueID'],
                  row['path'  ], row['key'  ], row['synced' ])
                 for row in self.query("""
-                        SELECT a.itemID, v.valueID, v.value, a.path, i.key, i.synced
+                        SELECT a.itemID, v.valueID, v.value, a.path, i.key,
+                               i.synced
                         FROM   itemAttachments a
                         JOIN   items           i ON i.itemID  = a.itemID
                         JOIN   itemData        d ON d.itemID  = a.itemID
@@ -218,27 +370,63 @@ class ZoteroDB:
                         WHERE  parentItemID = ?
                         """, iid)]
 
-    def get_item_marker(self, key, dic):
+    def get_item_marker(self, top, key, dic):
         name = dic['path'].replace('storage:', '')
 
         if not (base := self.get_marker_path(key, name)):
-            return None
+            return
 
         file = os.path.join(base, name.replace('.pdf', '.md'))
+        figs = {}
 
         if not os.path.isfile(file):
-            return None
-
-        with open(file) as fd:
-            file = fd.read()
+            return
 
         for f in os.listdir(base):
             # marker's convention
             if f.endswith('.jpeg'):
                 with open(os.path.join(base, f), 'rb') as fd:
-                    dic[f] = base64.b64encode(fd.read()).decode()
+                    figs[f] = base64.b64encode(fd.read()).decode()
 
-        return file, dic
+        print(f'INFO: parsing {file}')
+
+        mark = Markdown(file)
+        curr = []
+        toks = 0
+
+        for i, (tag, segs) in enumerate(mark.generate()):
+            # further split depending on tokens
+            j = 0
+            m = len(segs) - 1
+
+            for k, s in enumerate(segs):
+                l = len(s.split())
+
+                curr.append(s)
+                toks += l
+
+                if toks < top and k < m:
+                    continue
+
+                # add a title
+                ptag = f'{tag} | Part {j}'
+                curr.insert(0, f'title: {ptag}\n\n-----')
+
+                text = '\n\n'.join(curr)
+                meta =  dic.copy()
+                curr = [curr[-1]]
+                toks =  l
+
+                meta['key'] = key
+                meta['tag'] = ptag
+
+                for f in figs:
+                    if f in text:
+                        meta[f] = figs[f]
+
+                yield f'{key}_{i}_{j}', text, meta
+
+                j += 1
 
     def get_items(self):
         res = {}
@@ -408,14 +596,14 @@ class ZoteroDB:
                 JOIN   itemData        d ON d.itemID = i.itemID
                 JOIN   itemAttachments a ON a.itemID = i.itemID
                 WHERE  i.key = ? AND d.fieldID = ?
-                """, key, self.fields['title'])
+                """, key, self.fields['title'], one = True)
 
         if row['path'].replace('storage:', '') != file:
             self.query("""
                     UPDATE itemAttachments
                     SET    path   = ?
                     WHERE  itemID = ?
-                    """, f'storage:{file}', key)
+                    """, f'storage:{file}', row['itemID'])
 
         if row['valueID'] != self.pdf:
             self.update_attachment_title(row['valueID'], '', row['itemID'])
@@ -432,7 +620,8 @@ class ZoteroDB:
 
     def marker(self, exts):
         new = set()
-        cat = ['conferencePaper', 'journalArticle', 'preprint']
+        cat = ['conferencePaper', 'journalArticle', 'preprint',
+               'report', 'patent']
         cat.extend(exts)
 
         for dic in self.get_items().values():
@@ -455,13 +644,13 @@ class ZoteroDB:
 
         if os.path.isdir(base):
             for d in os.listdir(base):
-                if d not in new:
-                    full = os.path.join(base, d)
+                full = os.path.join(base, d)
 
+                if os.path.isdir(full) and d not in new:
                     print(f'INFO: removing {full}')
                     os.rename(full, os.path.join(base, f'DELETED-{d}'))
 
-    def update_chroma(self, back, aks, sks):
+    def update_chroma(self, back, top, aks, sks):
         old = back.get_items() if not aks or not sks else {}
         new = {}
 
@@ -481,21 +670,21 @@ class ZoteroDB:
         if aks:
             for i in aks:
                 if i in new:
-                    if ret := self.get_item_marker(i, new[i]):
-                        add.append(i, *ret)
+                    for e in self.get_item_marker(top, i, new[i]):
+                        add.append(*e)
         else:
             for i in new:
-                if i not in old:
-                    if ret := self.get_item_marker(i, new[i]):
-                        add.append(i, *ret)
+                if f'{i}_0_0' not in old:
+                    for e in self.get_item_marker(top, i, new[i]):
+                        add.append(*e)
 
         if sks:
             for i in sks:
                 sub.append(i, '', {})
         else:
             for i in old:
-                if i not in new:
-                    sub.append(i, '', {})
+                if (j := i.split('_')[0]) not in new:
+                    sub.append(j, '', {})
 
         back.update(add)
         back.delete(sub)
@@ -524,10 +713,10 @@ def parse_args():
     r.add_argument('-f')
 
     c.add_argument('-m', action = 'store_true')
-    c.add_argument('-s', action = 'store_true')
+    c.add_argument('-u', action = 'store_true')
     c.add_argument('-c', nargs  = '*',  default = [])
-    c.add_argument('-p')
     c.add_argument('-n', type   =  int, default = 2)
+    c.add_argument('-t', type   =  int, default = 1024)
     c.add_argument('-a', nargs  = '*',  default = [])
     c.add_argument('-d', nargs  = '*',  default = [])
 
@@ -546,7 +735,7 @@ if __name__ == "__main__":
         case 'rename':
             if args.a:
                 z.rename_attachment_all(args.r)
-            elif args.i and args.f:
+            elif args.k and args.f:
                 z.rename_attachment_one(args.k, args.f)
             else:
                 sys.exit('ERROR: invalid rename command')
@@ -554,11 +743,10 @@ if __name__ == "__main__":
         case 'chroma':
             if args.m:
                 z.marker(args.c)
-            elif args.s and args.p:
-                ChromaDB(args.p, args.n).serve()
-            elif args.p:
-                z.update_chroma(ChromaDB(args.p, args.n), args.a, args.d)
+            elif args.u:
+                z.update_chroma(ChromaDB(z.path, args.n), args.t,
+                                args.a, args.d)
             else:
-                sys.exit('ERROR: invalid chroma command')
+                ChromaDB(z.path, args.n).serve()
 
     z.close()
