@@ -762,6 +762,12 @@ class ZoteroDB(object):
                         VALUES (?, ?, ?)
                         ''', cid, iid, idx)
 
+                self.query('''
+                        UPDATE items
+                        SET    synced = ?
+                        WHERE  itemID = ?
+                        ''', 0, iid)
+
                 self.ensure_venue(upd, '', cid)
 
         self.commit()
