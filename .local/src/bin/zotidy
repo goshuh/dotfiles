@@ -14,8 +14,11 @@ import sys
 
 import re
 import base64
+import random
 import sqlite3
 import argparse
+
+import dateutil.parser as dateparser
 
 from typing import List, Literal, Dict
 
@@ -230,7 +233,7 @@ class Markdown(object):
             case _:
                 self.blks.append(Markdown.rend.render(node).strip())
 
-    def generate(self):
+    def get(self):
         self.walk(self.doc)
         self.post()
 
@@ -239,9 +242,8 @@ class Markdown(object):
 
 
 class ZoteroDB(object):
-    def __init__(self, file, dry):
+    def __init__(self, file):
         self.path = os.path.split(file)[0]
-        self.dry  = dry
 
         try:
             self.conn = sqlite3.connect(file)
@@ -255,30 +257,30 @@ class ZoteroDB(object):
         self.fields   = {}
         self.items    = {}
 
-        for row in self.query("""
+        for row in self.query('''
                 SELECT creatorTypeID, creatorType
                 FROM   creatorTypes
-                """):
+                '''):
             n = row['creatorType']
             i = row['creatorTypeID']
 
             self.creators[i] = n
             self.creators[n] = i
 
-        for row in self.query("""
+        for row in self.query('''
                 SELECT fieldID, fieldName
                 FROM   fieldsCombined
-                """):
+                '''):
             n = row['fieldName']
             i = row['fieldID']
 
             self.fields[i] = n
             self.fields[n] = i
 
-        for row in self.query("""
+        for row in self.query('''
                 SELECT itemTypeID, typeName
                 FROM   itemTypes
-                """):
+                '''):
             n = row['typeName']
             i = row['itemTypeID']
 
@@ -286,18 +288,19 @@ class ZoteroDB(object):
             self.items[n] = i
 
         # https://www.zotero.org/support/kb/attachment_title_vs_filename
-        row = self.query("""
+        row = self.query('''
                 SELECT valueID
                 FROM   itemDataValues
                 WHERE  value = ?
-                """, 'PDF')
+                ''', 'PDF')
 
         if not row:
-            self.query("""
+            self.query('''
                     INSERT
                     INTO   itemDataValues (value)
                     VALUES (?)
-                    """, 'PDF')
+                    ''', 'PDF')
+            self.commit()
 
             self.pdf = self.curr.lastrowid
         else:
@@ -310,8 +313,7 @@ class ZoteroDB(object):
             print(f'INFO: perform ' +
                   ' '.join(query.replace('?', '{}').format(*args).split()))
 
-        if not self.dry or select:
-            self.curr.execute(query, (*args, ))
+        self.curr.execute(query, (*args, ))
 
         if select:
             if one:
@@ -321,38 +323,56 @@ class ZoteroDB(object):
         else:
             return []
 
+    def get_item_year(self, date):
+        if not date:
+            return 'n/a'
+
+        try:
+            return str(dateparser.parse(date, fuzzy = True).year)
+        except:
+            pass
+
+        # we only care about the year, which might come last
+        for d in reversed(date.split()):
+            try:
+                return str(dateparser.parse(d, fuzzy = True).year)
+            except:
+                pass
+
+        return 'n/a'
+
     def get_item_fields(self, iid):
         return {self.fields[row['fieldID']]: row['value']
-                for row in self.query("""
+                for row in self.query('''
                         SELECT d.fieldID, v.value
                         FROM   itemData       d
                         JOIN   itemDataValues v ON v.valueID = d.valueID
                         WHERE  itemID = ?
-                        """, iid)}
+                        ''', iid)}
 
     def get_item_authors(self, iid):
         return [' '.join([row['firstName'], row['lastName']])
-                for row in self.query("""
+                for row in self.query('''
                         SELECT c.firstName, c.lastName
                         FROM   itemCreators i
                         JOIN   creators     c ON c.creatorID = i.creatorID
                         WHERE  i.itemID = ? AND i.creatorTypeID = ?
                         ORDER  BY i.orderIndex
-                        """, iid, self.creators['author'])]
+                        ''', iid, self.creators['author'])]
 
     def get_item_annotations(self, iid):
         return [(row['itemID'], row['text'], row['comment'], row['pageLabel'])
-                for row in self.query("""
+                for row in self.query('''
                         SELECT a.itemID, a.text, a.comment, a.pageLabel
                         FROM   itemAnnotations a
                         JOIN   itemAttachments t ON t.itemID = a.parentItemID
                         WHERE  t.parentItemID = ?
-                        """, iid)]
+                        ''', iid)]
 
     def get_item_attachments(self, iid):
         return [(row['itemID'], row['value'], row['valueID'],
                  row['path'  ], row['key'  ], row['synced' ])
-                for row in self.query("""
+                for row in self.query('''
                         SELECT a.itemID, v.valueID, v.value, a.path, i.key,
                                i.synced
                         FROM   itemAttachments a
@@ -360,15 +380,15 @@ class ZoteroDB(object):
                         JOIN   itemData        d ON d.itemID  = a.itemID
                         JOIN   itemDataValues  v ON v.valueID = d.valueID
                         WHERE  a.parentItemID = ? AND d.fieldID = ?
-                        """, iid, self.fields['title'])]
+                        ''', iid, self.fields['title'])]
 
     def get_item_notes(self, iid):
         return [(row['itemID'], row['title'], row['note'])
-                for row in self.query("""
+                for row in self.query('''
                         SELECT itemID, title, note
                         FROM   itemNotes
                         WHERE  parentItemID = ?
-                        """, iid)]
+                        ''', iid)]
 
     def get_item_marker(self, top, key, dic):
         name = dic['path'].replace('storage:', '')
@@ -394,7 +414,7 @@ class ZoteroDB(object):
         curr = []
         toks = 0
 
-        for i, (tag, segs) in enumerate(mark.generate()):
+        for i, (tag, segs) in enumerate(mark.get()):
             # further split depending on tokens
             j = 0
             m = len(segs) - 1
@@ -431,11 +451,11 @@ class ZoteroDB(object):
     def get_items(self):
         res = {}
 
-        for row in self.query("""
+        for row in self.query('''
                 SELECT itemID, itemTypeID, key
                 FROM   items
                 WHERE  itemTypeID NOT IN (?, ?, ?)
-                """, self.items['annotation'],
+                ''', self.items['annotation'],
                      self.items['attachment'],
                      self.items['note']):
             iid = row["itemID"]
@@ -443,8 +463,10 @@ class ZoteroDB(object):
 
             etc = self.get_item_fields(iid)
 
-            sub['date'       ] = etc.get('date', '')
             sub['title'      ] = etc.get('title')
+            sub['venue'      ] = etc.get('conferenceName', '')
+            sub['series'     ] = etc.get('series',         '')
+            sub['year'       ] = self.get_item_year(etc.get('date', ''))
             sub['authors'    ] = self.get_item_authors(iid)
             sub['type'       ] = self.items[row['itemTypeID']]
 
@@ -475,11 +497,16 @@ class ZoteroDB(object):
 
         return base
 
+    def get_random_key(self):
+        return ''.join(random.choices('23456789ABCDEFGHIJKLMNPQRSTUVWXYZ',
+                                      k = 8))
+
     def output_items(self):
         for iid, dic in self.get_items().items():
             print(f'#{iid}')
-            print(f'  Date:    {dic["date" ]}')
+            print(f'  Year:    {dic["year" ]}')
             print(f'  Title:   {dic["title"]}')
+            print(f'  Venue:   {dic["venue"]}')
             print(f'  Authors: {", ".join(dic["authors"])}')
 
             for nid, d in dic['notes'].items():
@@ -504,24 +531,24 @@ class ZoteroDB(object):
     def update_attachment_title(self, vid, t, aid):
         # the vid (and the associated value) is unique, but there can be
         # multiple references to it
-        row = self.query("""
-                SELECT COUNT(*) as cnt
+        row = self.query('''
+                SELECT COUNT(*) AS cnt
                 FROM   itemData
                 WHERE  valueID = ?
-                """, vid, one = True)
+                ''', vid, one = True)
 
         if row['cnt'] == 1:
-            self.query("""
+            self.query('''
                     DELETE
                     FROM   itemDataValues
                     WHERE  valueID = ?
-                    """, vid)
+                    ''', vid)
 
-        self.query("""
+        self.query('''
                 UPDATE itemData
                 SET    valueID = ?
                 WHERE  fieldID = ? AND itemID = ?
-                """, self.pdf, self.fields['title'], aid)
+                ''', self.pdf, self.fields['title'], aid)
 
     def rename_attachment_all(self, ref):
         for iid, dic in self.get_items().items():
@@ -551,11 +578,11 @@ class ZoteroDB(object):
                     sync = True
                     file = f
 
-                    self.query("""
+                    self.query('''
                             UPDATE itemAttachments
                             SET    path   = ?
                             WHERE  itemID = ?
-                            """, f'storage:{f}', aid)
+                            ''', f'storage:{f}', aid)
                     break
 
             if d['vid'] != self.pdf:
@@ -563,60 +590,181 @@ class ZoteroDB(object):
                 self.update_attachment_title(d['vid'], d['title'], aid)
 
             if sync and d['synced'] == 1:
-                self.query("""
+                self.query('''
                         UPDATE items
                         SET    synced = ?
                         WHERE  itemID = ?
-                        """, 0, aid)
+                        ''', 0, aid)
 
         # extra value cleanup
-        rows = self.query("""
+        rows = self.query('''
                 SELECT valueID, value
                 FROM   itemDataValues
                 WHERE  valueID NOT IN (SELECT valueID FROM itemData)
-                """)
+                ''')
 
         for row in rows:
             print(f'INFO: dangling value {row["valueID"]}: {row["value"]}')
 
         if rows:
-            self.query("""
+            self.query('''
                     DELETE
                     FROM  itemDataValues
                     WHERE valueID NOT IN (SELECT valueID FROM itemData)
-                    """)
+                    ''')
 
-        if not self.dry:
-            self.commit()
+        self.commit()
 
     def rename_attachment_one(self, key, file):
-        row = self.query("""
+        row = self.query('''
                 SELECT i.itemID, d.valueID, a.path, i.synced
                 FROM   items           i
                 JOIN   itemData        d ON d.itemID = i.itemID
                 JOIN   itemAttachments a ON a.itemID = i.itemID
                 WHERE  i.key = ? AND d.fieldID = ?
-                """, key, self.fields['title'], one = True)
+                ''', key, self.fields['title'], one = True)
 
         if row['path'].replace('storage:', '') != file:
-            self.query("""
+            self.query('''
                     UPDATE itemAttachments
                     SET    path   = ?
                     WHERE  itemID = ?
-                    """, f'storage:{file}', row['itemID'])
+                    ''', f'storage:{file}', row['itemID'])
 
         if row['valueID'] != self.pdf:
             self.update_attachment_title(row['valueID'], '', row['itemID'])
 
         if row['synced']:
-            self.query("""
+            self.query('''
                     UPDATE items
                     SET    synced = ?
                     WHERE  itemID = ?
-                    """, 0, row['itemID'])
+                    ''', 0, row['itemID'])
 
-        if not self.dry:
+        self.commit()
+
+    def ensure_venue(self, upd, ven, cid):
+        if ven:
+            row = self.query('''
+                    SELECT collectionID
+                    FROM   collections
+                    WHERE  collectionName = ? AND parentCollectionID = ?
+                    ''', ven, cid, one = True)
+
+            if row:
+                return row['collectionID']
+
+            self.query('''
+                    INSERT
+                    INTO   collections (collectionName, parentCollectionID,
+                                        libraryID, key, version, synced)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ''', ven, cid, 1, self.get_random_key(), 1, 0)
+
             self.commit()
+
+        if cid not in upd:
+            upd.add(cid)
+
+            self.query('''
+                    UPDATE collections
+                    SET    synced = ?
+                    WHERE  collectionID = ?
+                    ''', 0, cid)
+
+        return self.curr.lastrowid
+
+    def venue(self, exts):
+        cat = {
+            'ISCA':
+                '''Symposium on Computer Architecture''',
+            'ASPLOS':
+                '''Conference on Architectural Support for Programming Languages
+                   and Operating Systems''',
+            'MICRO':
+                '''Symposium on Microarchitecture''',
+            'HPCA':
+                '''Symposium on High-Performance Computer Architecture''',
+            'SOSP':
+                '''Symposium on Operating Systems Principles''',
+            'OSDI':
+                '''Symposium on Operating Systems Design and Implementation''',
+            'EuroSys':
+                '''European Conference on Computer Systems''',
+            'USENIX ATC':
+                '''USENIX Annual Technical Conference''',
+            'SIGCOMM':
+                '''''',
+            'NSDI':
+                '''Symposium on Networked SYstems Design and Implementation''',
+            'IISWC':
+                '''Symposium on Workload Characterization''',
+            'ISPASS':
+                '''Symposium on Performance Analysis of Systems and Software'''
+        }
+
+        ves = {}
+        upd = set()
+
+        cat = {k: ' '.join(v.split()).lower() for k, v in cat.items()}
+        cat.update({e: '' for e in exts})
+
+        top = self.query('''
+                SELECT collectionID
+                FROM   collections
+                WHERE  collectionName = ?
+                ''', 'Venue', one = True)['collectionID']
+
+        for c in cat:
+            ves[c] = self.ensure_venue(upd, c, top)
+
+        for iid, dic in self.get_items().items():
+            if dic['type'] != 'conferencePaper':
+                continue
+
+            ven = dic['venue']
+            ser = dic['series']
+            vel = ven.lower()
+            now = ''
+
+            for c, f in cat.items():
+                if c in ven or c in ser or (f and f in vel):
+                    ven = c
+                    now = dic['year']
+                    break
+
+            if not now:
+                continue
+
+            print(f'INFO: adding {dic["title"]} to {ven}/{now}')
+
+            van = f'{ven}_{now}'
+            cid = ves.get(van, 0)
+
+            if not cid:
+                cid = ves[van] = self.ensure_venue(upd, now, ves[ven])
+
+            if not self.query('''
+                    SELECT COUNT(*) AS cnt
+                    FROM   collectionItems
+                    WHERE  collectionID = ? AND itemID = ?
+                    ''', cid, iid, one = True)['cnt']:
+                idx = self.query('''
+                        SELECT IFNULL(MAX(orderIndex) + 1, 0) AS idx
+                        FROM   collectionItems
+                        WHERE  collectionID = ?
+                        ''', cid, one = True)['idx']
+
+                self.query('''
+                        INSERT
+                        INTO   collectionItems (collectionID, itemID,
+                                                orderIndex)
+                        VALUES (?, ?, ?)
+                        ''', cid, iid, idx)
+
+                self.ensure_venue(upd, '', cid)
+
+        self.commit()
 
     def marker(self, exts):
         new = set()
@@ -659,10 +807,11 @@ class ZoteroDB(object):
                 cur = new.setdefault(att.pop('key'), {})
 
                 cur['type'   ] = dic['type' ]
-                cur['date'   ] = dic['date' ]
+                cur['year'   ] = dic['year' ]
                 cur['title'  ] = dic['title']
-                cur['path'   ] = att['path' ]
+                cur['venue'  ] = dic['venue']
                 cur['authors'] = ', '.join(dic['authors'])
+                cur['path'   ] = att['path' ]
 
         add = Node()
         sub = Node()
@@ -698,19 +847,21 @@ class ZoteroDB(object):
 
 def parse_args():
     parser = argparse.ArgumentParser(description = 'zotidy')
-    parser.add_argument('-z', required =  True)
-    parser.add_argument('-d', action   = 'store_true')
+    parser.add_argument('-z', required = True)
 
     s = parser.add_subparsers(dest = 'command', required = True)
 
     l = s.add_parser('list')
     r = s.add_parser('rename')
+    v = s.add_parser('venue')
     c = s.add_parser('chroma')
 
     r.add_argument('-a', action = 'store_true')
     r.add_argument('-r', action = 'store_true')
     r.add_argument('-k')
     r.add_argument('-f')
+
+    v.add_argument('-c', nargs  = '*',  default = [])
 
     c.add_argument('-m', action = 'store_true')
     c.add_argument('-u', action = 'store_true')
@@ -726,7 +877,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    z = ZoteroDB(args.z, args.d)
+    z = ZoteroDB(args.z)
 
     match args.command:
         case 'list':
@@ -740,6 +891,9 @@ if __name__ == "__main__":
             else:
                 sys.exit('ERROR: invalid rename command')
 
+        case 'venue':
+            z.venue(args.c)
+
         case 'chroma':
             if args.m:
                 z.marker(args.c)
@@ -747,6 +901,7 @@ if __name__ == "__main__":
                 z.update_chroma(ChromaDB(z.path, args.n), args.t,
                                 args.a, args.d)
             else:
+                z.close()
                 ChromaDB(z.path, args.n).serve()
 
     z.close()
