@@ -316,14 +316,16 @@ def pool(core, task, cper = 1):
         r = os.waitpid(-1, 0)
         s = pids.pop(r[0])
 
+        affs.append(s[1])
+
         try:
             v = os.waitstatus_to_exitcode(r[1])
-            info(f'{s} done {v}')
+            info(f'{s[0]} done {v}')
         except:
-            info(f'{s} error')
+            info(f'{s[0]} error')
 
-        for d in dmap[s]:
-            umap[d].remove(s)
+        for d in dmap[s[0]]:
+            umap[d].remove(s[0])
 
             if not umap[d]:
                 curr.append(d)
@@ -331,11 +333,8 @@ def pool(core, task, cper = 1):
     for t in task:
         desc[t.desc] = t
 
-    for i in range(len(task)):
-        a = i % core
-        b = a + 1
-
-        affs.append(list(range(a * cper, b * cper)))
+    for i in range(core):
+        affs.append(list(range(i * cper, (i + 1) * cper)))
 
     for t in task:
         # dependency can be non-existing
@@ -372,7 +371,7 @@ def pool(core, task, cper = 1):
                 desc[s]()
                 os._exit(0)
 
-            pids[pid] = s
+            pids[pid] = (s, a)
             inum += 1
 
         # a finished task can wake up other tasks
