@@ -332,10 +332,10 @@ def pool(core, task, cper = 1):
         desc[t.desc] = t
 
     for i in range(len(task)):
-        a = i * cper
-        b = a + cper
+        a = i % core
+        b = a + 1
 
-        affs.append([j % core for j in range(a, b)])
+        affs.append(list(range(a * cper, b * cper)))
 
     for t in task:
         # dependency can be non-existing
@@ -361,13 +361,14 @@ def pool(core, task, cper = 1):
                 wait()
 
             s = curr.pop()
+            a = affs.pop()
 
             time.sleep(3)
 
             if not (pid := os.fork()):
                 info(f'{s} ({inum}/{len(desc)})')
 
-                os.sched_setaffinity(0, affs.pop())
+                os.sched_setaffinity(0, a)
                 desc[s]()
                 os._exit(0)
 
