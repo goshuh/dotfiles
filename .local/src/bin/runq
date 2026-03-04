@@ -285,12 +285,13 @@ def runq(env, *opts):
         return main(env, args)
 
 
-def pool(core, task):
+def pool(core, task, cper = 1):
     desc = {}
     umap = {}
     dmap = {}
     pids = {}
     curr = []
+    affs = []
 
     def info(s):
         while True:
@@ -330,6 +331,12 @@ def pool(core, task):
     for t in task:
         desc[t.desc] = t
 
+    for i in range(len(task)):
+        a = i * cper
+        b = a + cper
+
+        affs.append([j % core for j in range(a, b)])
+
     for t in task:
         # dependency can be non-existing
         t.deps = list(filter(lambda x: x in desc, t.deps))
@@ -359,6 +366,8 @@ def pool(core, task):
 
             if not (pid := os.fork()):
                 info(f'{s} ({inum}/{len(desc)})')
+
+                os.sched_setaffinity(0, affs.pop())
                 desc[s]()
                 os._exit(0)
 
