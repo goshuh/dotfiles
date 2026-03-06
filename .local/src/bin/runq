@@ -158,11 +158,11 @@ def main(env, args):
     prep(err)
 
     if out and not fdo:
-        fdo = os.open(out, os.O_RDWR | os.O_CREAT, 0o644)
+        fdo = os.open(out, os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o644)
     if err == '-':
         fde = fdo
     elif err and not fde:
-        fde = os.open(err, os.O_RDWR | os.O_CREAT, 0o644)
+        fde = os.open(err, os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o644)
 
     if not fdo:
         fdo = 1
@@ -285,7 +285,7 @@ def runq(env, *opts):
         return main(env, args)
 
 
-def pool(core, task, cper = 1):
+def pool(core, task, cper = None):
     desc = {}
     umap = {}
     dmap = {}
@@ -334,7 +334,10 @@ def pool(core, task, cper = 1):
         desc[t.desc] = t
 
     for i in range(core):
-        affs.append(list(range(i * cper, (i + 1) * cper)))
+        if cper:
+            affs.append(list(range(i * cper, (i + 1) * cper)))
+        else:
+            affs.append(None)
 
     for t in task:
         # dependency can be non-existing
@@ -367,7 +370,9 @@ def pool(core, task, cper = 1):
             if not (pid := os.fork()):
                 info(f'{s} ({inum}/{len(desc)})')
 
-                os.sched_setaffinity(0, a)
+                if a:
+                    os.sched_setaffinity(0, a)
+
                 desc[s]()
                 os._exit(0)
 
