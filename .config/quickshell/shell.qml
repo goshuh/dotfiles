@@ -1311,7 +1311,7 @@ ShellRoot {
         switch (res) {
           case PamResult.Success:
             master.locker.locked = false
-            return
+            break
           case PamResult.Error:
             reason = 'error'
             break
@@ -1382,6 +1382,17 @@ ShellRoot {
 
           pam.start()
         }
+      }
+    }
+
+    IpcHandler {
+      target: 'locker'
+
+      function unlock(): void {
+        if (pam.active)
+          pam.abort()
+
+        master.locker.locked = false
       }
     }
   }

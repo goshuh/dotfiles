@@ -2,7 +2,7 @@ font-family                = Fira Code
 font-size                  = 10
 
 adjust-cell-height         = 3
-adjust-cell-width          = -1
+adjust-cell-width          = 0
 
 freetype-load-flags        = no-hinting
 
