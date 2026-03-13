@@ -1656,6 +1656,9 @@ ShellRoot {
     property real selW: 0
     property real selH: 0
 
+    property real offX: 0
+    property real offY: 0
+
     property bool pressed: false
 
     property list<var> clients:
@@ -1674,6 +1677,9 @@ ShellRoot {
         w:  o.size[0]             / r,
         h:  o.size[1]             / r,
 
+        p:  screen.x,
+        q:  screen.y,
+
         t:  o.pinned ? 0 : o.floating ? 1 : 2
       }
     }
@@ -1685,6 +1691,8 @@ ShellRoot {
           selY = c.y
           selW = c.w
           selH = c.h
+          offX = c.p
+          offY = c.q
           break
         }
     }
@@ -1694,7 +1702,8 @@ ShellRoot {
     function exec(): void {
       Quickshell.execDetached([
           'grim',
-          '-g', `${smag(selX)},${smag(selY)} ${smag(selW)}x${smag(selH)}`,
+          '-g', `${smag(selX) + offX},${smag(selY) + offY} ` +
+                `${smag(selW)}x${smag(selH)}`,
           '-t', 'png',
            config.shotDir + `${helper.fmtDate('yyyy-MM-dd_hh-mm-ss.png')}`
       ])
