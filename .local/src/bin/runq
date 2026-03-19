@@ -285,7 +285,7 @@ def runq(env, *opts):
         return main(env, args)
 
 
-def pool(core, task, cper = None):
+def pool(core, task, cper = None, delay = 3):
     desc = {}
     umap = {}
     dmap = {}
@@ -365,7 +365,7 @@ def pool(core, task, cper = None):
             s = curr.pop()
             a = affs.pop()
 
-            time.sleep(3)
+            time.sleep(delay)
 
             if not (pid := os.fork()):
                 info(f'{s} ({inum}/{len(desc)})')
