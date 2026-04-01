@@ -1,5 +1,8 @@
 colorscheme onedark
 
+command link ln -s %f:p %D
+command nvim nvim  %f
+
 set fastrun
 set fusehome=/tmp/mnt
 set history=100
@@ -20,12 +23,14 @@ set vicmd="nvim --noplugin --cmd 'runtime plugin/gzip.vim'"
 set vifminfo=chistory,dhistory,phistory,shistory
 set wildmenu
 
-map <F2>     cw<c-u>
-map <F10>   :mkdir<space>
-map <S-F10> :touch<space>
+map <f2>     cw<c-u>
+map <f10>   :mkdir<space>
+map <s-f10> :touch<space>
 map  E      :empty<cr>
 map  C      :copy!<cr>
 map  X      :move!<cr>
 map  D      :delete!<cr>
 map  S      :sort<cr>
+map  L      :link<cr>
+map  V      :nvim<cr>
 map ;q      :quit<cr>
