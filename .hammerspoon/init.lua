@@ -124,7 +124,40 @@ Hotkey.bind('ctrl-alt', 'm', function() print(wheel:isEnabled()) end)
 
 
 -- xwm
-hs.loadSpoon('XWM'):start():bindHotkeys({
+xwm = hs.loadSpoon('XWM'):start()
+
+local persist = {
+  -- no suiside after closing the console
+  'org.hammerspoon.Hammerspoon',
+
+  -- unstable after killed and restarted multiple times
+  'com.apple.finder',
+
+  -- long-running stuff
+  'com.cisco.anyconnect.gui',
+  'com.microsoft.OneDrive',
+  'com.microsoft.Outlook',
+  'com.tencent.xinWeChat',
+  'com.tinyspeck.slackmacgap',
+  'ru.keepcode.Telegram'
+}
+
+local tabbed = {
+  'com.apple.finder',
+  'com.apple.Preview',
+  'com.mitchellh.ghostty'
+}
+
+for _, a in ipairs(persist) do
+  xwm.persist[a] = true
+end
+
+for _, a in ipairs(tabbed) do
+  xwm.tabbed [a] = true
+end
+
+
+xwm:bindHotkeys({
   reinit      = { { 'ctrl',  'alt' }, 'r'      },
   retile      = { { 'ctrl',  'alt' }, 't'      },
 

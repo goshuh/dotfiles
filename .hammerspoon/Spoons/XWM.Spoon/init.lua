@@ -12,6 +12,22 @@ local Window    = require 'hs.window'
 local Watcher   = require 'hs.uielement.watcher'
 
 
+-- helpers
+local function get_index(t, func)
+  if not t then
+    return nil, nil
+  end
+
+  for i, v in ipairs(t) do
+    if func(v) then
+      return i, v
+    end
+  end
+
+  return nil, nil
+end
+
+
 -- bad
 Window.animationDuration = 0
 
@@ -27,32 +43,50 @@ local _M = {
 
   spaces   =  {},
   windows  =  {},
+  entries  =  {},
 
   name     = 'XWM',
   version  = '0.1',
   author   = 'gosh',
-  license  = 'None'
+  license  = 'None',
+
+  persist  =  {},
+  tabbed   =  {}
 }
 
 _M.__index = _M
 
 
-function _M:reinit()
-  -- disable re-entrance from the screen watcher
-  if self.state == 2 then
-    return self
+function _M:clear()
+  for _, d in pairs(self.windows) do
+    if d.watcher then
+      d.watcher:stop()
+      d.watcher = nil
+    end
   end
 
   self.spaces  = {}
   self.windows = {}
+  self.entries = {}
+
+  return self
+end
+
+function _M:reinit()
+  if self.state > 0 then
+    return self
+  end
+
+  self.state = 1
+  self:clear()
 
   for _, r in ipairs(Screen.allScreens()) do
     local f = r:frame()
 
-    f.x = f.x + self.gap
-    f.y = f.y + self.gap
-    f.w = f.w - self.gap * 2
-    f.h = f.h - self.gap * 2
+    f.x = math.floor(f.x + self.gap)
+    f.y = math.floor(f.y + self.gap)
+    f.w = math.floor(f.w - self.gap * 2)
+    f.h = math.floor(f.h - self.gap * 2)
 
     for _, s in ipairs(Spaces.spacesForScreen(r)) do
       self.spaces[s] = {
@@ -70,7 +104,7 @@ function _M:reinit()
     self:retile(s)
   end
 
-  self.state = 3
+  self.state = 0
 
   return self
 end
@@ -85,7 +119,6 @@ function _M:start()
 
   if not self.screen then
     self.screen = Screen.watcher.new(function()
-      self.state = 2
       self:reinit()
     end)
 
@@ -101,6 +134,7 @@ function _M:start()
     })
 
     self.filter:subscribe({
+      Window.filter.windowFocused,
       Window.filter.windowVisible,
       Window.filter.windowNotVisible,
       Window.filter.windowFullscreened,
@@ -116,27 +150,15 @@ function _M:start()
       Window.filter.new():setCurrentSpace(true):setDefaultFilter({}))
   end
 
-  self.state = 1
-
   return self:reinit()
 end
 
 function _M:stop()
-  if self.state > 0 then
-    self.filter:unsubscribeAll()
-    self.screen:stop()
-  end
-
-  self.state    = 0
-
   self.screen   = nil
   self.filter   = nil
   self.switcher = nil
 
-  self.spaces   = {}
-  self.windows  = {}
-
-  return self
+  return self:clear()
 end
 
 function _M:bindHotkeys(mapping)
@@ -171,7 +193,8 @@ function _M:handler(window, event)
 
   local s = nil
 
-  if event == 'windowVisible' or
+  if event == 'windowFocused' or
+     event == 'windowVisible' or
      event == 'windowUnfullscreened' then
     s = self:insert(window)
 
@@ -183,34 +206,37 @@ function _M:handler(window, event)
       local n = Spaces.windowSpaces(window)[1]
 
       if n and n ~= s then
-        self:delete(window)
-        self.insert(window)
+        self:move(window, s, n)
+        return
       end
     end
 
   elseif event == 'windowNotVisible' then
     s = self:delete(window)
+    window = nil
 
   elseif event == 'windowFullscreened' then
     s = self:delete(window)
+    window = nil
 
   elseif event == 'AXWindowMoved' or
          event == 'AXWindowResized' then
     s = Spaces.windowSpaces(window)[1]
 
-    local d = self.windows[window:id()]
+    local i = window:id()
+    local d = self.windows[i]
 
     if s and d.space ~= s then
-      self:delete(window)
-      self:insert(window)
+      self:move(window, d.space, s)
+      return
     end
 
   elseif event == 'windowDestroyed' then
     self:delay(window)
   end
 
-  if s then
-    self:retile(s)
+  if s and s >= 0 then
+    self:retile(s, window)
   end
 end
 
@@ -225,25 +251,25 @@ function _M:layout(windows, i, frame)
 
   if i == 1 then
     return Geometry.rect(
-      frame.x,
-      frame.y,
-      w,
-      frame.h
+      math.floor(frame.x),
+      math.floor(frame.y),
+      math.floor(w),
+      math.floor(frame.h)
     )
   else
     local j =  i - 2
     local h = (frame.h + self.gap) / (n - 1)
 
     return Geometry.rect(
-      frame.x + w + self.gap,
-      frame.y + j * h,
-      frame.w - w - self.gap,
-      h - self.gap
+      math.floor(frame.x + w + self.gap),
+      math.floor(frame.y + j * h),
+      math.floor(frame.w - w - self.gap),
+      math.floor(h - self.gap)
     )
   end
 end
 
-function _M:retile(space)
+function _M:retile(space, ext)
   if not space then
     space = Spaces.focusedSpace()
   end
@@ -255,21 +281,27 @@ function _M:retile(space)
     return
   end
 
+  -- ext initiates the retile
+  local i = ext and ext:id() or nil
+  local d = self.windows[i]
+
+  -- the special handling only happens on tabs
+  if i and not d.entry then
+    i = nil
+  end
+
   repeat
-    -- best effort for multi-tab windows (where each tab can be reported as a
-    -- window): allow each app to be appeared only once
-    local pids = {}
+    -- some window might disappear during retile
     local wins = {}
 
     for _, w in ipairs(p.windows) do
-      local a = w:application()
+      local j = w:id()
 
-      if a then
-        local d = a:pid()
-
-        if not pids[d] then
-          pids[d] = true
-
+      if self.windows[j] and w:application() then
+        if i and d.entry == j then
+          -- use the tab in replacement of the window temporarily
+          table.insert(wins, ext)
+        else
           table.insert(wins, w)
         end
       end
@@ -277,8 +309,8 @@ function _M:retile(space)
 
     n = #wins
 
-    for i, w in ipairs(wins) do
-      local f = self:layout(wins, i, p.frame)
+    for j, w in ipairs(wins) do
+      local f = self:layout(wins, j, p.frame)
       local a = w:application()
 
       if not a then
@@ -303,65 +335,102 @@ function _M:retile(space)
   until n == 0
 end
 
-local whitelist = {
-  -- no suiside after closing the console
-  ['org.hammerspoon.Hammerspoon'] = true,
-  -- unstable after killed and restarted multiple times
-  ['com.apple.finder'           ] = true,
-  -- long-running stuff
-  ['com.tencent.xinWeChat'      ] = true,
-  ['com.tinyspeck.slackmacgap'  ] = true,
-  ['com.microsoft.Outlook'      ] = true,
-  ['com.microsoft.OneDrive'     ] = true,
-  ['com.cisco.anyconnect.gui'   ] = true,
-  ['ru.keepcode.Telegram'       ] = true
-}
-
-function _M:insert(window, sub)
+function _M:insert(window, ext)
   -- Windows.addWindow
-  local s = Spaces.windowSpaces(window)[1]
-  local c = window:tabCount()
+  local s = ext and ext or Spaces.windowSpaces(window)[1]
 
   if not s then
-    return
+    -- retry
+    return nil
   end
 
-  if c > 0 then
-    local a = window:application()
-
-    if a and not sub then
-      for _, w in ipairs(a:allWindows()) do
-        if w ~= window then
-          self:insert(w, true)
-        end
-      end
-    end
-  end
-
-  local d = self.windows[window:id()]
+  local i = window:id()
+  local d = self.windows[i]
 
   if d then
-    return d.space
+    -- already registered
+    d.space = s
+
+    return d.entry and -1 or d.space
   end
 
-  if not window:isStandard() then
+  if not self.spaces[s] or
+     not window:isStandard() or
+     not window:isMaximizable() then
     return -1
   end
 
+  -- tab management, can be bypassed
+  local c = ext and 0 or window:tabCount()
+
+  if c > 1 then
+    local a = window:application()
+    local b = a:bundleID()
+
+    if b and self.tabbed[b] then
+      -- track the association
+      local f = window:frame()
+
+      local _, w = get_index(self.spaces[s].windows, function(v)
+        return v:frame() == f
+      end)
+
+      -- we are pretty sure about the behavior
+      assert(w)
+
+      -- link the tab
+      local j = w:id()
+      local e = self.entries[j]
+
+      if not e then
+        e = {
+          num  = 0,
+          tabs = {}
+        }
+
+        self.entries[j] = e
+      end
+
+      e.num     = e.num + 1
+      e.tabs[i] = true
+
+      local t = window:newWatcher(function(w, e, _)
+        self:handler(w, e)
+      end)
+
+      t:start({
+        Watcher.windowMoved,
+        Watcher.windowResized
+      })
+
+      self.windows[i] = {
+        space   = s,
+        entry   = j,
+        window  = window,
+        watcher = t
+      }
+
+      -- then let it be
+      return -1
+    end
+  end
+
   -- State.uiWatcherCreate
-  local i = window:id()
-  local w = window:newWatcher(function(w, e, _)
+  local t = window:newWatcher(function(w, e, _)
     self:handler(w, e)
   end)
 
-  w:start({
+  t:start({
     Watcher.windowMoved,
     Watcher.windowResized
   })
 
+  -- record the creation order of tabs
   self.windows[i] = {
     space   = s,
-    watcher = w,
+    entry   = nil,
+    window  = window,
+    watcher = t
   }
 
   -- master by default
@@ -371,34 +440,87 @@ function _M:insert(window, sub)
 end
 
 function _M:delete(window)
-  -- Windows.removeWindow
-  local d = self.windows[window:id()]
+  local i = window:id()
+  local d = self.windows[i]
 
   if not d then
-    return
+    return nil
   end
-
-  self.windows[window:id()] = nil
 
   -- State.uiWatcherStop
   -- State.uiWatcherDelete
   d.watcher:stop()
   d.watcher = nil
 
-  local i = nil
+  if d.entry then
+    -- a tab, just deregister
+    local e = self.entries[d.entry]
 
-  for j, w in ipairs(self.spaces[d.space].windows) do
-    if w == window then
-      i = j
-      break
+    e.num     = e.num - 1
+    e.tabs[i] = nil
+
+    if e.num == 0 then
+      self.entries[d.entry] = nil
+    end
+
+    self.windows[i] = nil
+
+    -- even without :retile
+    return nil
+  end
+
+  local s = d.space
+  local p = self.spaces [s]
+  local e = self.entries[i]
+
+  self.windows[i] = nil
+
+  if not e then
+    local k, _ = get_index(p.windows, function(v)
+      return v == window
+    end)
+
+    table.remove(p.windows, k)
+    return s
+  end
+
+  -- the window contains at least one following tab
+  -- find the first child
+  local f = nil
+  local n = 0
+
+  for k, _ in pairs(e.tabs) do
+    if n == 0 then
+      f = k
+      n = 1
+    else
+      local v = self.windows[k]
+
+      v.space = s
+      v.entry = f
     end
   end
 
-  if i then
-    table.remove(self.spaces[d.space].windows, i)
-  end
+  -- update the new child
+  local g = self.windows[f]
 
-  return d.space
+  g.space = s
+  g.entry = nil
+
+  -- update the registration
+  e.num     = e.num - 1
+  e.tabs[f] = nil
+
+  self.entries[i] = nil
+  self.entries[f] = e.num > 0 and e or nil
+
+  -- replace the old position
+  local k, _ = get_index(p.windows, function(v)
+    return v == window
+  end)
+
+  p.windows[k] = w
+  return s
 end
 
 function _M:delay(window)
@@ -410,31 +532,42 @@ function _M:delay(window)
 
   local b = a:bundleID()
 
-  if not b or whitelist[b] then
+  if not b or self.persist[b] then
     return
   end
 
   Timer.doAfter(3, function()
-    if a and a:isRunning() then
-      -- not only in the current space
-      for _, w in ipairs(self.filter:getWindows()) do
-        if w:application():bundleID() == b then
-          return
-        end
-      end
+    if not a or not a:isRunning() then
+      return
+    end
 
-      -- no windows, kill
+    -- not only in the current space
+    local i, _ = get_index(self.filter:getWindows(), function(v)
+      return v:application():bundleID() == b
+    end)
+
+    if not i then
       a:kill()
     end
   end)
 end
 
-function _M:swap(forward)
+function _M:swap(fwd)
   local w = Window.focusedWindow()
   local s = Spaces.focusedSpace()
 
   if not w or not s then
     return
+  end
+
+  local d = self.windows[w:id()]
+
+  if not d then
+    return
+  end
+
+  if d.entry then
+    w = self.windows[d.entry].window
   end
 
   local p = self.spaces[s]
@@ -443,18 +576,12 @@ function _M:swap(forward)
     return
   end
 
-  -- ordered list
-  local i = nil
-
-  for j, v in ipairs(p.windows) do
-    if v == w then
-      i = j
-      break
-    end
-  end
+  local i, _ = get_index(p.windows, function(v)
+    return v == w
+  end)
 
   if i then
-    local j = forward == 0 and 1 or forward + i
+    local j = fwd == 0 and 1 or fwd + i
 
     if j >= 1 and j <= #p.windows then
       p.windows[i], p.windows[j] =
@@ -462,42 +589,73 @@ function _M:swap(forward)
     end
   end
 
-  self:retile(s)
+  self:retile(s, w)
 end
 
-function _M:move(window, curr, next, str)
+function _M:move(window, cur, nxt, str)
   if not window:isStandard() or window:isFullScreen() then
     return
   end
 
-  if not next or curr == next then
+  if not nxt or cur == nxt then
     return
   end
 
-  self:delete(window)
-  self:retile(curr)
+  -- we might be moving a tab. move the underlying window instead
+  local d = self.windows[window:id()]
+  local w = d.entry and self.windows[d.entry].window or window
 
-  local o = Mouse.getRelativePosition()
-  local p = Geometry.rect(window:zoomButtonRect()):move({ -1, -1 }).topleft
+  -- not actually deleting a window. we only need deregistering
+  local i = w:id()
+  local e = self.entries[i]
 
-  EventTap.event.newMouseEvent(
-    EventTap.event.types.leftMouseDown, p):post()
+  -- force the normal path in :delete
+  self.entries[i] = nil
 
-  -- only for me
-  EventTap.keyStroke({ 'ctrl' }, str)
+  -- deregister the window
+  self:delete(w)
+  self:retile(cur)
 
-  Timer.doAfter(0.5, function()
+  if e then
+    for k, _ in pairs(e.tabs) do
+      self.windows[k].space = nxt
+    end
+  end
+
+  if str then
+    local o = Mouse.getRelativePosition()
+    local p = Geometry.rect(w:zoomButtonRect()):move({ -1, -1 }).topleft
+
     EventTap.event.newMouseEvent(
-      EventTap.event.types.leftMouseUp, p):post()
+      EventTap.event.types.leftMouseDown, p):post()
 
-    Mouse.setRelativePosition(o)
+    -- only for me
+    EventTap.keyStroke({ 'ctrl' }, str)
 
-    self:insert(window)
-    self:retile(next)
-  end)
+    Timer.doAfter(0.5, function()
+      EventTap.event.newMouseEvent(
+        EventTap.event.types.leftMouseUp, p):post()
+
+      Mouse.setRelativePosition(o)
+
+      -- revert back
+      self.entries[i] = e
+
+      -- register the window and skip the tab handling
+      -- but we still need to set the frame for the tab
+      self:insert(w,   nxt)
+      self:retile(nxt, window)
+    end)
+
+  else
+    self.entries[i] = e
+
+    self:insert(w,   nxt)
+    self:retile(nxt, window)
+  end
 end
 
-function _M:jump(index)
+function _M:jump(i)
   local w = Window.focusedWindow()
   local s = Spaces.focusedSpace()
 
@@ -511,7 +669,7 @@ function _M:jump(index)
     return
   end
 
-  self:move(w, s, l[index], tostring(index))
+  self:move(w, s, l[i], tostring(i))
 end
 
 function _M:skid()
@@ -530,14 +688,9 @@ function _M:skid()
     return
   end
 
-  local i = nil
-
-  for j, t in ipairs(Spaces.spacesForScreen(c)) do
-    if t == s then
-      i = j
-      break
-    end
-  end
+  local i, _ = get_index(Spaces.spacesForScreen(c), function(v)
+    return v == s
+  end)
 
   if not i then
     return
