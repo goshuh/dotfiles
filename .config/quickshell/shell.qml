@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import Qt.labs.folderlistmodel
 
+import QtCore
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
@@ -140,7 +142,9 @@ ShellRoot {
 
     visible: false
 
-    property string wallDir:     'file:///home/gosh/.wall'
+    property string homeDir:      StandardPaths.writableLocation(
+                                  StandardPaths.HomeLocation)
+    property string wallDir:      homeDir + '/.wall'
     property string shotDir:     '/tmp/ram/shot_'
 
     property int    clientRadius: 8
@@ -1081,6 +1085,50 @@ ShellRoot {
     }
   }
 
+  component Quote: CustomWindow {
+    id: master
+
+    name: 'quote'
+
+    WlrLayershell.exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer:         WlrLayer.Overlay
+
+    anchors.right:  true
+    anchors.bottom: true
+
+    margins.right:  config.clientGap
+    margins.bottom: config.clientGap
+
+    implicitWidth:  160
+    implicitHeight: 140
+
+    color: 'transparent'
+    mask:   Region {}
+
+    Text {
+      id: text
+
+      anchors.verticalCenter:   parent.verticalCenter
+      anchors.horizontalCenter: parent.horizontalCenter
+
+      color: '#80ffffff'
+
+      font.pointSize: 32
+
+      Component.onCompleted: {
+        const req = new XMLHttpRequest()
+
+        req.onreadystatechange = function() {
+          if (req.readyState === XMLHttpRequest.DONE)
+            text.text = req.responseText
+        }
+
+        req.open('GET', config.homeDir + '/.quote')
+        req.send()
+      }
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -1090,6 +1138,10 @@ ShellRoot {
       required property var modelData
 
       Panel {
+        screen: scope.modelData
+      }
+
+      Quote {
         screen: scope.modelData
       }
 
