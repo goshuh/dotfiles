@@ -155,12 +155,12 @@ local function showOverlayText(str)
     type = 'text',
     text =  StyledText.new(str, {
       font  = {
-        name  = 'Menlo-Bold',
+        name  = 'Menlo',
         size  =  48
       },
       color = {
-        white =  0.6,
-        alpha =  1
+        white =  1,
+        alpha =  0.5
       },
       paragraphStyle = {
         alignment = 'center',
