@@ -695,6 +695,7 @@ require('lazy').setup({
   },
 
   { 'saghen/blink.cmp',
+    branch = 'v1',
     dependencies = { 'xzbdmw/colorful-menu.nvim' },
     opts = {
       keymap = { preset = 'none',
