@@ -1113,6 +1113,7 @@ ShellRoot {
 
       color: '#80ffffff'
 
+      font.family:   'Source Han Sans CN'
       font.pointSize: 32
 
       Component.onCompleted: {
