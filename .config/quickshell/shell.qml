@@ -1458,12 +1458,37 @@ ShellRoot {
     required property var popout
 
     onLockedChanged: {
-      if (!locked)
+      if (!locked) {
+        timer.stop()
+
+        Quickshell.execDetached([
+         'hyprctl', 'dispatch', 'dpms', 'on'
+        ])
+
         popout.done()
+      }
     }
 
     LockerSurface {
       locker: master
+    }
+
+    Timer {
+      id: timer
+
+      interval: 100 * 1000
+
+      onTriggered: {
+        Quickshell.execDetached([
+         'hyprctl', 'dispatch', 'dpms', 'off'
+        ])
+      }
+    }
+
+    Component.onCompleted: {
+      Quickshell.execDetached([
+       'loginctl', 'lock-session'
+      ])
     }
   }
 
@@ -1483,6 +1508,15 @@ ShellRoot {
 
     onPressed: {
       locker.init()
+    }
+  }
+
+  IdleMonitor {
+    timeout: 600
+
+    onIsIdleChanged: {
+      if (isIdle)
+        locker.init()
     }
   }
 
@@ -1754,11 +1788,11 @@ ShellRoot {
     }
     function exec(): void {
       Quickshell.execDetached([
-          'grim',
-          '-g', `${smag(selX) + offX},${smag(selY) + offY} ` +
-                `${smag(selW)}x${smag(selH)}`,
-          '-t', 'png',
-           config.shotDir + `${helper.fmtDate('yyyy-MM-dd_hh-mm-ss.png')}`
+       'grim',
+       '-g', `${smag(selX) + offX},${smag(selY) + offY} ` +
+             `${smag(selW)}x${smag(selH)}`,
+       '-t', 'png',
+        config.shotDir + `${helper.fmtDate('yyyy-MM-dd_hh-mm-ss.png')}`
       ])
 
       master.popout.done()
