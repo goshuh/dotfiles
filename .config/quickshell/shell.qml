@@ -14,6 +14,7 @@ import QtQml.Models
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import Quickshell.Networking
 import Quickshell.Services.Notifications
 import Quickshell.Services.Pam
 import Quickshell.Services.Pipewire
@@ -244,9 +245,9 @@ ShellRoot {
     // apps
     readonly property var apps:
       DesktopEntries.applications.values
-        .filter( a     => !a.noDisplay)
-        .sort  ((a, b) =>  a.name.localeCompare(b.name))
-        .map   ( a     => ({
+        .filter(a     => !a.noDisplay)
+        .sort ((a, b) =>  a.name.localeCompare(b.name))
+        .map   (a     => ({
           name:    Fuzzy.prepare(a.name),
           comment: Fuzzy.prepare(a.comment),
           entry:   a
@@ -292,8 +293,8 @@ ShellRoot {
       bodyMarkupSupported:     true
       imageSupported:          true
 
-      onNotification: ent => {
-        ent.tracked = true
+      onNotification: e => {
+        e.tracked = true
         shower.init()
       }
     }
@@ -355,6 +356,69 @@ ShellRoot {
 
     function putHypr(req: string): void {
       Hyprland.dispatch(req)
+    }
+
+    // idle
+    property int idleState: 0
+
+    Timer {
+      id: idleTimer
+
+      interval: 100 * 1000
+
+      onTriggered: {
+        helper.lock()
+      }
+    }
+
+    IdleMonitor {
+      id: idleMon
+
+      timeout: 600
+
+      onIsIdleChanged: {
+        if (isIdle) {
+          switch (helper.idleState) {
+          case 0:
+            helper.idle()
+            locker.init()
+            break
+
+          case 3:
+            helper.idle()
+          }
+
+        } else {
+          switch (helper.idleState) {
+          case 2:
+            helper.putHypr('hl.dsp.dpms("on")')
+
+          case 1:
+            helper.reidle()
+            break
+          }
+        }
+      }
+    }
+
+    function idle(): void {
+      idleState = 1
+      idleTimer.start()
+    }
+    function reidle(): void {
+      idleState = 3
+      idleTimer.restart()
+    }
+    function lock(): void {
+      idleState = 2
+      putHypr('hl.dsp.dpms("on")')
+    }
+    function unlock(): void {
+      if (idleState == 2)
+        putHypr('hl.dsp.dpms("off")')
+
+      idleTimer.stop()
+      idleState = 0
     }
   }
 
@@ -430,7 +494,8 @@ ShellRoot {
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
       onClicked: {
-        helper.putHypr(`vdesk ${modelData.i}`)
+        // TODO: not working now
+        helper.putHypr(`hl.dsp.window.vdesk(${modelData.i})`)
       }
     }
   }
@@ -555,7 +620,7 @@ ShellRoot {
 
               elideWidth: item.width
 
-              text:  master.modelData.text
+              text: master.modelData.text
             }
           }
 
@@ -730,8 +795,8 @@ ShellRoot {
 
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-      onClicked: evt => {
-        if (evt.button === Qt.LeftButton)
+      onClicked: e => {
+        if (e.button === Qt.LeftButton)
           master.modelData.activate()
 
         else if (master.modelData.menu)
@@ -789,8 +854,8 @@ ShellRoot {
         volume.init(0, screen)
       }
 
-      onWheel: evt => {
-        volume.init(evt.angleDelta.y > 0 ? 10 : -10, screen)
+      onWheel: e => {
+        volume.init(e.angleDelta.y > 0 ? 10 : -10, screen)
       }
     }
   }
@@ -1358,10 +1423,10 @@ ShellRoot {
         respond(widget.text)
       }
 
-      onCompleted: res => {
+      onCompleted: r => {
         widget.text = ''
 
-        switch (res) {
+        switch (r) {
           case PamResult.Success:
             master.locker.locked = false
             break
@@ -1459,30 +1524,13 @@ ShellRoot {
 
     onLockedChanged: {
       if (!locked) {
-        timer.stop()
-
-        Quickshell.execDetached([
-         'hyprctl', 'dispatch', 'dpms', 'on'
-        ])
-
+        helper.unlock()
         popout.done()
       }
     }
 
     LockerSurface {
       locker: master
-    }
-
-    Timer {
-      id: timer
-
-      interval: 100 * 1000
-
-      onTriggered: {
-        Quickshell.execDetached([
-         'hyprctl', 'dispatch', 'dpms', 'off'
-        ])
-      }
     }
 
     Component.onCompleted: {
@@ -1499,24 +1547,6 @@ ShellRoot {
       Locker {
         popout: locker
       }
-    }
-  }
-
-  CustomShortcut {
-    name:        'locker'
-    description: 'Start locker'
-
-    onPressed: {
-      locker.init()
-    }
-  }
-
-  IdleMonitor {
-    timeout: 600
-
-    onIsIdleChanged: {
-      if (isIdle)
-        locker.init()
     }
   }
 
@@ -1969,7 +1999,7 @@ ShellRoot {
       target: helper
 
       function onVolChanged(): void {
-          timer.restart()
+        timer.restart()
       }
     }
 
@@ -1980,7 +2010,7 @@ ShellRoot {
       running:  true
 
       onTriggered: {
-          master.popout.done()
+        master.popout.done()
       }
     }
 

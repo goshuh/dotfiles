@@ -226,7 +226,7 @@ function vdesk_news(f, n)
   local a = vdesk_mon_fake[f]
   local w = vdesk_max_wid
 
-  a.ws[#a.ws + 1] = wid
+  a.ws[#a.ws + 1] = w
 
   hl.workspace_rule({
     workspace  = tostring(w),
