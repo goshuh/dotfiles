@@ -42,17 +42,17 @@ ShellRoot {
 
     required property var popout
 
-    property alias hoverCheck: hover.enabled
-    property bool  hovered:    false
+    HyprlandFocusGrab {
+      id: grab
 
-    HoverHandler {
-      id: hover
+      windows: [master]
 
-      onHoveredChanged: {
-        if (hovered)
-          master.hovered = true
-        else if (master.hovered)
-          master.popout.done()
+      onCleared: {
+        master.popout.done()
+      }
+
+      Component.onCompleted: {
+        grab.active = true
       }
     }
   }
@@ -300,45 +300,104 @@ ShellRoot {
     }
 
     // audio
-    readonly property var pwas: Pipewire.defaultAudioSink
+    readonly property var audSink: Pipewire.defaultAudioSink
+
+    readonly property var audSinks:   Pipewire.nodes.values.filter(n =>
+      n.audio && !n.isStream &&  n.isSink
+    )
+    readonly property var audSources: Pipewire.nodes.values.filter(n =>
+      n.audio && !n.isStream && !n.isSink
+    )
 
     function setVol(val: int): void {
-      if (pwas?.ready && pwas?.audio) {
-        pwas.audio.muted = !pwas.audio.muted && (val === 0)
+      if (!audSink?.ready || !audSink?.audio)
+        return
 
-        const inc = pwas.audio.volume + (val / 100)
+      audSink.audio.muted = !audSink.audio.muted && (val === 0)
 
-        if (inc >= 1)
-          pwas.audio.volume = 1
-        else if (inc <= 0)
-          pwas.audio.volume = 0
-        else
-          pwas.audio.volume = inc
-      }
+      const inc = audSink.audio.volume + (val / 100)
+
+      if (inc >= 1)
+        audSink.audio.volume = 1
+      else if (inc <= 0)
+        audSink.audio.volume = 0
+      else
+        audSink.audio.volume = inc
     }
 
     readonly property real vol: {
-      if (pwas?.ready && pwas?.audio)
-        return pwas.audio.muted ? 0 : pwas.audio.volume
-      else
+      if (!audSink?.ready || !audSink?.audio)
         return 0
+
+      return audSink.audio.muted ? 0 : audSink.audio.volume
     }
 
     PwObjectTracker {
-      objects: [pwas]
+      objects: [audSink]
+    }
+
+    function getAudIcon(v: var): string {
+      if (v == 0)
+        return 'audio-volume-muted'
+      if (v <  0.33)
+        return 'audio-volume-low'
+      if (v <  0.66)
+        return 'audio-volume-medium'
+
+      return 'audio-volume-high'
+    }
+
+    // network
+    readonly property var netDevsWired: Networking.devices.values.filter(d =>
+      d.type === DeviceType.Wired
+    )
+
+    readonly property var netWifiCons: {
+      const arr = []
+
+      for (const d of Networking.devices.values)
+        if (d.type === DeviceType.Wifi)
+          for (const n of d.networks.values)
+            arr.push(n)
+
+      return arr
+    }
+
+    property var netPending: null
+
+    Connections {
+      target: helper.netPending
+
+      function onConnectionFailed(r: var): void {
+        if (r === ConnectionFailReason.NoSecrets)
+          passwd.init()
+      }
+    }
+
+    function getWifiIcon(s: var): string {
+      if (s >= 0.8)
+        return 'network-wireless-signal-excellent'
+      if (s >= 0.6)
+        return 'network-wireless-signal-good'
+      if (s >= 0.4)
+        return 'network-wireless-signal-ok'
+      if (s >= 0.2)
+        return 'network-wireless-signal-weak'
+
+      return 'network-wireless-signal-none'
     }
 
     // hypr
     Connections {
       target: Hyprland
 
-      function onRawEvent(evt: HyprlandEvent): void {
-        if (evt.name.endsWith('v2'))
+      function onRawEvent(e: HyprlandEvent): void {
+        if (e.name.endsWith('v2'))
           return
 
-        if (evt.name.includes('mon'))
+        if (e.name.includes('mon'))
           Hyprland.refreshMonitors()
-        else if (evt.name.includes('workspace'))
+        else if (e.name.includes('workspace'))
           Hyprland.refreshWorkspaces()
         else
           Hyprland.refreshToplevels()
@@ -505,6 +564,8 @@ ShellRoot {
 
     required property var screen
 
+    spacing: config.padding
+
     // vdesk's ws numbering scheme
     readonly property var select:
       helper.workspaces.values.filter(w =>
@@ -537,6 +598,8 @@ ShellRoot {
 
     required property var modelData
     required property var popout
+
+    property bool expanded: false
 
     Loader {
       id: widget
@@ -620,7 +683,7 @@ ShellRoot {
 
               elideWidth: item.width
 
-              text: master.modelData.text
+              text:  master.modelData.text
             }
           }
 
@@ -632,7 +695,8 @@ ShellRoot {
             sourceComponent: IconImage {
               implicitSize: config.iconSize
 
-              source: helper.getIcon('arrow-down')
+              source: helper.getIcon(master.expanded ? 'arrow-up' :
+                                                       'arrow-down')
             }
           }
         }
@@ -650,11 +714,20 @@ ShellRoot {
         master.color = config.colorBackgroundLightTrans
       }
       onExited: {
-        master.color = 'transparent'
+        if (!master.expanded)
+          master.color = 'transparent'
       }
       onClicked: {
-        if (!master.modelData.enabled || master.modelData.hasChildren)
+        if (!master.modelData.enabled)
           return
+
+        if (master.modelData.hasChildren) {
+          master.expanded = !master.expanded
+
+          master.color = master.expanded ? config.colorBackgroundLightTrans :
+                                          'transparent'
+          return
+        }
 
         master.modelData.triggered()
         master.popout.done()
@@ -686,11 +759,15 @@ ShellRoot {
         required property var modelData
 
         PanelMenuItem {
+          id: leader
+
           modelData: column.modelData
           popout:    master.popout
         }
 
         PanelMenu {
+          visible:   leader.expanded
+
           modelData: column.modelData
           delegator: master
         }
@@ -821,7 +898,232 @@ ShellRoot {
     }
   }
 
-  component PanelAudio: Item {
+  component PanelNetworkMenu: CustomPopoutWindow {
+    id: master
+
+    anchors.left:   true
+    anchors.bottom: true
+
+    margins.left:   config.clientGap / screen.devicePixelRatio
+    margins.bottom: config.clientGap / screen.devicePixelRatio
+
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
+
+    Column {
+      id: widget
+
+      focus: true
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: config.itemHeight
+
+        color: 'transparent'
+
+        CustomText {
+          anchors.left:           parent.left
+          anchors.leftMargin:     config.padding
+          anchors.verticalCenter: parent.verticalCenter
+
+          color: config.colorForegroundDarker
+
+          text: 'Wired'
+        }
+      }
+
+      Repeater {
+        model: ScriptModel {
+          values: helper.netDevsWired
+        }
+
+        delegate: Rectangle {
+          id: wired
+
+          required property var modelData
+
+          implicitWidth:  config.windowWidth
+          implicitHeight: config.itemHeight
+
+          color: 'transparent'
+
+          WrapperItem {
+            implicitWidth:  config.windowWidth
+            implicitHeight: config.itemHeight
+
+            leftMargin:  config.padding
+            rightMargin: config.padding
+
+            RowLayout {
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                RadioButton {
+                  anchors.centerIn: parent
+
+                  checked: wired.modelData.connected
+                }
+              }
+
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+
+                implicitHeight: config.iconSize
+
+                CustomText {
+                  anchors.verticalCenter: parent.verticalCenter
+
+                  text: wired.modelData.network ? wired.modelData.network.name :
+                                                  wired.modelData.name
+                }
+              }
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+
+            hoverEnabled: true
+
+            onEntered: {
+              wired.color = config.colorBackgroundLightTrans
+            }
+            onExited: {
+              wired.color = 'transparent'
+            }
+            onClicked: {
+              if (!wired.modelData.connected &&
+                   wired.modelData.hasLink   &&
+                   wired.modelData.network) {
+                helper.netPending = wired.modelData.network
+                helper.netPending.connect()
+              }
+            }
+          }
+        }
+      }
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: 1
+
+        color: config.colorBackgroundLightTrans
+      }
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: config.itemHeight
+
+        color: 'transparent'
+
+        CustomText {
+          anchors.left:           parent.left
+          anchors.leftMargin:     config.padding
+          anchors.verticalCenter: parent.verticalCenter
+
+          color: config.colorForegroundDarker
+
+          text: 'Wireless'
+        }
+      }
+
+      Repeater {
+        model: ScriptModel {
+          values: helper.netWifiCons
+        }
+
+        delegate: Rectangle {
+          id: wifi
+
+          required property var modelData
+
+          implicitWidth:  config.windowWidth
+          implicitHeight: config.itemHeight
+
+          color: 'transparent'
+
+          WrapperItem {
+            implicitWidth:  config.windowWidth
+            implicitHeight: config.itemHeight
+
+            leftMargin:  config.padding
+            rightMargin: config.padding
+
+            RowLayout {
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                RadioButton {
+                  anchors.centerIn: parent
+
+                  checked: wifi.modelData.connected
+                }
+              }
+
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+
+                implicitHeight: config.iconSize
+
+                CustomText {
+                  anchors.verticalCenter: parent.verticalCenter
+
+                  text: wifi.modelData.name
+                }
+              }
+
+              Loader {
+                Layout.alignment: Qt.AlignVCenter
+
+                active: !wifi.modelData.connected
+
+                sourceComponent: IconImage {
+                  implicitSize: config.iconSize
+
+                  source: helper.getIcon(
+                    helper.getWifiIcon(wifi.modelData.signalStrength))
+                }
+              }
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+
+            hoverEnabled: true
+
+            onEntered: {
+              wifi.color = config.colorBackgroundLightTrans
+            }
+            onExited: {
+              wifi.color = 'transparent'
+            }
+            onClicked: {
+              if (!wifi.modelData.connected &&
+                  !wifi.modelData.stateChanging) {
+                helper.netPending = wifi.modelData
+                helper.netPending.connect()
+              }
+            }
+          }
+        }
+      }
+
+      Keys.onEscapePressed: {
+        master.popout.done()
+      }
+    }
+  }
+
+  component PanelNetwork: Item {
     id: master
 
     required property var screen
@@ -835,13 +1137,25 @@ ShellRoot {
       implicitSize: config.iconSize
 
       source: {
-        const vol =  helper.vol
-        const src = (vol === 0   ) ? 'audio-volume-muted'  :
-                    (vol  <  0.33) ? 'audio-volume-low'    :
-                    (vol  <  0.66) ? 'audio-volume-medium' :
-                                     'audio-volume-high'
+        for (const d of helper.netDevsWired)
+          if (d.connected)
+            return helper.getIcon('network-wired')
 
-        return helper.getIcon(src)
+        for (const n of helper.netWifiCons)
+          if (n.connected)
+            return helper.getIcon(helper.getWifiIcon(n.signalStrength))
+
+        return helper.getIcon('network-offline')
+      }
+    }
+
+    CustomPopout {
+      id: custom
+
+      delegate: Component {
+        PanelNetworkMenu {
+          popout: custom
+        }
       }
     }
 
@@ -850,8 +1164,268 @@ ShellRoot {
 
       acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-      onClicked: {
-        volume.init(0, screen)
+      onClicked: e => {
+        if (e.button === Qt.RightButton)
+          custom.init()
+      }
+    }
+  }
+
+  component PanelAudioMenu: CustomPopoutWindow {
+    id: master
+
+    anchors.left:   true
+    anchors.bottom: true
+
+    margins.left:   config.clientGap / screen.devicePixelRatio
+    margins.bottom: config.clientGap / screen.devicePixelRatio
+
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
+
+    Column {
+      id: widget
+
+      focus: true
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: config.itemHeight
+
+        color: 'transparent'
+
+        CustomText {
+          anchors.left:           parent.left
+          anchors.leftMargin:     config.padding
+          anchors.verticalCenter: parent.verticalCenter
+
+          color: config.colorForegroundDarker
+
+          text: 'Output'
+        }
+      }
+
+      Repeater {
+        model: ScriptModel {
+          values: helper.audSinks
+        }
+
+        delegate: Rectangle {
+          id: sink
+
+          required property var modelData
+
+          implicitWidth:  config.windowWidth
+          implicitHeight: config.itemHeight
+
+          color: 'transparent'
+
+          WrapperItem {
+            implicitWidth:  config.windowWidth
+            implicitHeight: config.itemHeight
+
+            leftMargin:  config.padding
+            rightMargin: config.padding
+
+            RowLayout {
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                RadioButton {
+                  anchors.centerIn: parent
+
+                  checked: sink.modelData === Pipewire.defaultAudioSink
+                }
+              }
+
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+
+                implicitHeight: config.iconSize
+
+                CustomText {
+                  anchors.verticalCenter: parent.verticalCenter
+
+                  text: metric.elidedText
+                }
+
+                CustomTextMetrics {
+                  id: metric
+
+                  text: sink.modelData.description ||
+                        sink.modelData.nickname    ||
+                        sink.modelData.name
+                }
+              }
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+
+            hoverEnabled: true
+
+            onEntered: {
+              sink.color = config.colorBackgroundLightTrans
+            }
+            onExited: {
+              sink.color = 'transparent'
+            }
+            onClicked: {
+              Pipewire.preferredDefaultAudioSink = sink.modelData
+            }
+          }
+        }
+      }
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: 1
+
+        color: config.colorBackgroundLightTrans
+      }
+
+      Rectangle {
+        implicitWidth:  config.windowWidth
+        implicitHeight: config.itemHeight
+
+        color: 'transparent'
+
+        CustomText {
+          anchors.left:           parent.left
+          anchors.leftMargin:     config.padding
+          anchors.verticalCenter: parent.verticalCenter
+
+          color: config.colorForegroundDarker
+
+          text: 'Input'
+        }
+      }
+
+      Repeater {
+        model: ScriptModel {
+          values: helper.audSources
+        }
+
+        delegate: Rectangle {
+          id: source
+
+          required property var modelData
+
+          implicitWidth:  config.windowWidth
+          implicitHeight: config.itemHeight
+
+          color: 'transparent'
+
+          WrapperItem {
+            implicitWidth:  config.windowWidth
+            implicitHeight: config.itemHeight
+
+            leftMargin:  config.padding
+            rightMargin: config.padding
+
+            RowLayout {
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+
+                implicitWidth:  config.iconSize
+                implicitHeight: config.iconSize
+
+                RadioButton {
+                  anchors.centerIn: parent
+
+                  checked: source.modelData === Pipewire.defaultAudioSource
+                }
+              }
+
+              Item {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+
+                implicitHeight: config.iconSize
+
+                CustomText {
+                  anchors.verticalCenter: parent.verticalCenter
+
+                  text: metric.elidedText
+                }
+
+                CustomTextMetrics {
+                  id: metric
+
+                  text: source.modelData.description ||
+                        source.modelData.nickname    ||
+                        source.modelData.name
+                }
+              }
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+
+            hoverEnabled: true
+
+            onEntered: {
+              source.color = config.colorBackgroundLightTrans
+            }
+            onExited: {
+              source.color = 'transparent'
+            }
+            onClicked: {
+              Pipewire.preferredDefaultAudioSource = source.modelData
+            }
+          }
+        }
+      }
+
+      Keys.onEscapePressed: {
+        master.popout.done()
+      }
+    }
+  }
+
+  component PanelAudio: Item {
+    id: master
+
+    required property var screen
+
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
+
+    IconImage {
+      id: widget
+
+      implicitSize: config.iconSize
+
+      source: helper.getIcon(helper.getAudIcon(helper.vol))
+    }
+
+    CustomPopout {
+      id: custom
+
+      delegate: Component {
+        PanelAudioMenu {
+          popout: custom
+        }
+      }
+    }
+
+    MouseArea {
+      anchors.fill: parent
+
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+      onClicked: e => {
+        if (e.button === Qt.LeftButton)
+          volume.init(0, screen)
+
+        else if (e.button === Qt.RightButton)
+          custom.init()
       }
 
       onWheel: e => {
@@ -970,9 +1544,7 @@ ShellRoot {
           implicitHeight: config.iconSizeLarge
 
           radius: width / 2
-          color:  model.today ?
-                    config.colorBackgroundLight :
-                   'transparent'
+          color:  model.today ? config.colorBackgroundLight : 'transparent'
 
           CustomText {
             anchors.centerIn: parent
@@ -1078,13 +1650,17 @@ ShellRoot {
         Layout.alignment:    Qt.AlignHCenter
       }
 
-      PanelAudio {
+      PanelNetwork {
         Layout.alignment:    Qt.AlignHCenter
 
         screen: master.screen
       }
 
-      // network will soon happen
+      PanelAudio {
+        Layout.alignment:    Qt.AlignHCenter
+
+        screen: master.screen
+      }
 
       PanelCalendar {
         Layout.alignment:    Qt.AlignHCenter
@@ -1596,7 +2172,7 @@ ShellRoot {
       }
 
       RowLayout {
-        spacing: config.padding
+        spacing: config.paddingGigantic
 
         Loader {
           Layout.alignment: Qt.AlignVCenter
@@ -1715,8 +2291,6 @@ ShellRoot {
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
-
-    hoverCheck: false
 
     ShowerItemList {
       id: widget
@@ -1926,8 +2500,6 @@ ShellRoot {
     anchors.left:   true
     anchors.right:  true
 
-    hoverCheck: false
-
     ShoterArea {
       screen: master.screen
       popout: master.popout
@@ -1970,6 +2542,49 @@ ShellRoot {
     }
   }
 
+  component Passwd: CustomPopoutWindow {
+    id: master
+
+    required property var panel
+
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+    anchors.bottom: true
+
+    margins.bottom: config.clientGap / screen.devicePixelRatio
+
+    implicitWidth:  config.windowWidth
+    implicitHeight: config.itemHeightLarge
+
+    CustomTextField {
+      id: field
+
+      anchors.centerIn: parent
+
+      implicitWidth:  config.windowWidth - config.padding * 2
+      implicitHeight: config.itemHeightLarge / 1.6
+
+      echoMode: TextInput.Password
+
+      onAccepted: {
+        if (helper.netPending)
+          helper.netPending.connectWithPsk(field.text)
+
+        helper.netPending = null
+        master.popout.done()
+      }
+    }
+
+    Keys.onEscapePressed: {
+      master.popout.done()
+    }
+
+    Component.onCompleted: {
+      if (master.panel)
+        master.screen = master.panel
+    }
+  }
+
   component Volume: CustomPopoutWindow {
     id: master
 
@@ -1983,8 +2598,6 @@ ShellRoot {
 
     implicitWidth:  config.windowWidth
     implicitHeight: config.itemHeightLarge
-
-    hoverCheck: false
 
     property real margin: screen.height * 0.1 - height / 2
 
@@ -2017,6 +2630,24 @@ ShellRoot {
     Component.onCompleted: {
       if (master.panel)
         master.screen = master.panel
+    }
+  }
+
+  CustomPopout {
+    id: passwd
+
+    property var screen
+
+    function init(screen: var): void {
+      passwd.screen = screen
+      loader.active = true
+    }
+
+    delegate: Component {
+      Passwd {
+        popout: passwd
+        panel:  passwd.screen
+      }
     }
   }
 
