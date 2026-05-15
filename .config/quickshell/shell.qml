@@ -362,17 +362,6 @@ ShellRoot {
       return arr
     }
 
-    property var netPending: null
-
-    Connections {
-      target: helper.netPending
-
-      function onConnectionFailed(r: var): void {
-        if (r === ConnectionFailReason.NoSecrets)
-          passwd.init()
-      }
-    }
-
     function getWifiIcon(s: var): string {
       if (s >= 0.8)
         return 'network-wireless-signal-excellent'
@@ -915,18 +904,6 @@ ShellRoot {
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
 
-    Component.onCompleted: {
-      for (const d of Networking.devices.values)
-        if (d.type === DeviceType.Wifi)
-          d.scannerEnabled = true
-    }
-
-    Component.onDestruction: {
-      for (const d of Networking.devices.values)
-        if (d.type === DeviceType.Wifi)
-          d.scannerEnabled = false
-    }
-
     Column {
       id: widget
 
@@ -1016,8 +993,8 @@ ShellRoot {
               if (!wired.modelData.connected &&
                    wired.modelData.hasLink   &&
                    wired.modelData.network) {
-                helper.netPending = wired.modelData.network
-                helper.netPending.connect()
+                pending.target = wired.modelData.network
+                wired.modelData.network.connect()
               }
             }
           }
@@ -1126,8 +1103,8 @@ ShellRoot {
             onClicked: {
               if (!wifi.modelData.connected &&
                   !wifi.modelData.stateChanging) {
-                helper.netPending = wifi.modelData
-                helper.netPending.connect()
+                pending.target = wifi.modelData
+                wifi.modelData.connect()
               }
             }
           }
@@ -1137,6 +1114,32 @@ ShellRoot {
       Keys.onEscapePressed: {
         master.popout.done()
       }
+    }
+
+    Connections {
+      id: pending
+
+      target:  null
+      enabled: target !== null
+
+      function onConnectionFailed(r: var): void {
+        if (r === ConnectionFailReason.NoSecrets) {
+          passwd.init(master.screen, target)
+          target = null
+        }
+      }
+    }
+
+    Component.onCompleted: {
+      for (const d of Networking.devices.values)
+        if (d.type === DeviceType.Wifi)
+          d.scannerEnabled = true
+    }
+
+    Component.onDestruction: {
+      for (const d of Networking.devices.values)
+        if (d.type === DeviceType.Wifi)
+          d.scannerEnabled = false
     }
   }
 
@@ -1910,6 +1913,13 @@ ShellRoot {
     Column {
       id: widget
 
+      PickerList {
+        id: list
+
+        name:   text.text
+        popout: master.popout
+      }
+
       Item {
         implicitWidth:  config.windowWidthLarge
         implicitHeight: config.itemHeightGigantic
@@ -1930,14 +1940,11 @@ ShellRoot {
               master.popout.done()
             }
           }
+
+          Component.onCompleted: {
+            forceActiveFocus()
+          }
         }
-      }
-
-      PickerList {
-        id: list
-
-        name:   text.text
-        popout: master.popout
       }
 
       Keys.onUpPressed: {
@@ -2573,37 +2580,40 @@ ShellRoot {
     id: master
 
     required property var panel
+    required property var network
 
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
     anchors.bottom: true
 
     margins.bottom: config.clientGap / screen.devicePixelRatio
 
-    implicitWidth:  config.windowWidth
-    implicitHeight: config.itemHeightLarge
+    implicitWidth:  config.windowWidthLarge
+    implicitHeight: config.itemHeightGigantic
 
     CustomTextField {
       id: field
 
       anchors.centerIn: parent
 
-      implicitWidth:  config.windowWidth - config.padding * 2
-      implicitHeight: config.itemHeightLarge / 1.6
+      implicitWidth:  config.windowWidth
+      implicitHeight: config.itemHeightGigantic / 1.6
 
       echoMode: TextInput.Password
 
-      onAccepted: {
-        if (helper.netPending)
-          helper.netPending.connectWithPsk(field.text)
+      placeholderText:     "Password for " + (master.network?.name ?? "WiFi")
+      placeholderTextColor: config.colorForegroundDarker
 
-        helper.netPending = null
+      onAccepted: {
+        if (master.network)
+          master.network.connectWithPsk(field.text)
+
         master.popout.done()
       }
-    }
 
-    Keys.onEscapePressed: {
-      master.popout.done()
+      Keys.onEscapePressed: {
+        master.popout.done()
+      }
     }
 
     Component.onCompleted: {
@@ -2664,16 +2674,19 @@ ShellRoot {
     id: passwd
 
     property var screen
+    property var network
 
-    function init(screen: var): void {
-      passwd.screen = screen
-      loader.active = true
+    function init(screen: var, network: var): void {
+      passwd.screen  = screen
+      passwd.network = network
+      loader.active  = true
     }
 
     delegate: Component {
       Passwd {
-        popout: passwd
-        panel:  passwd.screen
+        popout:  passwd
+        panel:   passwd.screen
+        network: passwd.network
       }
     }
   }
