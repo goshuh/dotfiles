@@ -819,6 +819,9 @@ require('lazy').setup({
     end
   },
 
+  { 'folke/snacks.nvim',
+  },
+
   { 'nvim-mini/mini.nvim',
     lazy   = false,
     config = function()

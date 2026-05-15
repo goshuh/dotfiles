@@ -47,12 +47,11 @@ ShellRoot {
 
       windows: [master]
 
+      active: master.WlrLayershell.keyboardFocus ===
+                WlrKeyboardFocus.OnDemand
+
       onCleared: {
         master.popout.done()
-      }
-
-      Component.onCompleted: {
-        grab.active = true
       }
     }
   }
@@ -431,7 +430,7 @@ ShellRoot {
     }
 
     IdleMonitor {
-      id: idleMon
+      id: idleMonit
 
       timeout: 600
 
@@ -450,7 +449,7 @@ ShellRoot {
         } else {
           switch (helper.idleState) {
           case 2:
-            helper.putHypr('hl.dsp.dpms("on")')
+            helper.light()
 
           case 1:
             helper.reidle()
@@ -458,6 +457,11 @@ ShellRoot {
           }
         }
       }
+    }
+
+    function light(): void {
+      idleMonit.timeout = 600
+      helper.putHypr('hl.dsp.dpms("on")')
     }
 
     function idle(): void {
@@ -470,11 +474,12 @@ ShellRoot {
     }
     function lock(): void {
       idleState = 2
-      putHypr('hl.dsp.dpms("on")')
+      idleMonit.timeout = 1
+      putHypr('hl.dsp.dpms("off")')
     }
     function unlock(): void {
       if (idleState == 2)
-        putHypr('hl.dsp.dpms("off")')
+        light()
 
       idleTimer.stop()
       idleState = 0
@@ -909,6 +914,18 @@ ShellRoot {
 
     implicitWidth:  widget.implicitWidth
     implicitHeight: widget.implicitHeight
+
+    Component.onCompleted: {
+      for (const d of Networking.devices.values)
+        if (d.type === DeviceType.Wifi)
+          d.scannerEnabled = true
+    }
+
+    Component.onDestruction: {
+      for (const d of Networking.devices.values)
+        if (d.type === DeviceType.Wifi)
+          d.scannerEnabled = false
+    }
 
     Column {
       id: widget
@@ -2123,6 +2140,16 @@ ShellRoot {
       Locker {
         popout: locker
       }
+    }
+  }
+
+  CustomShortcut {
+    name:        'locker'
+    description: 'Lock the screen'
+
+    onPressed: {
+      helper.idle()
+      locker.init()
     }
   }
 

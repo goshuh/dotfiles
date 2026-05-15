@@ -179,7 +179,7 @@ hl.window_rule({
 -- vdesk
 local vdesk_mon_fake = {}
 local vdesk_mon_real = {}
-local vdesk_max_wid  = 0
+local vdesk_wid_max  = 0
 
 function vdesk_init()
   local M = hl.get_monitors()
@@ -187,7 +187,7 @@ function vdesk_init()
 
   vdesk_mon_fake = {}
   vdesk_mon_real = {}
-  vdesk_max_wid  = 0
+  vdesk_wid_max  = 0
 
   for i, m in ipairs(M) do
     local f = i
@@ -201,8 +201,8 @@ function vdesk_init()
   end
 
   for i, w in ipairs(W) do
-    if w.id > vdesk_max_wid then
-      vdesk_max_wid = w.id
+    if w.id > vdesk_wid_max then
+      vdesk_wid_max = w.id
     end
 
     local m = 1 + (i - 1) % #M
@@ -221,10 +221,10 @@ function vdesk_init()
 end
 
 function vdesk_news(f, n)
-  vdesk_max_wid = vdesk_max_wid + 1
+  vdesk_wid_max = vdesk_wid_max + 1
 
   local a = vdesk_mon_fake[f]
-  local w = vdesk_max_wid
+  local w = vdesk_wid_max
 
   a.ws[#a.ws + 1] = w
 
@@ -289,7 +289,7 @@ function vdesk_move(n)
     return
   end
 
-  vdesk_move_fake(vdesk_mon_real[c.id])
+  vdesk_move_fake(vdesk_mon_real[c.id], n)
 end
 
 hl.on('hyprland.start',   vdesk_init)
