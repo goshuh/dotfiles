@@ -820,6 +820,9 @@ require('lazy').setup({
   },
 
   { 'folke/snacks.nvim',
+    opts = {
+      input = {}
+    }
   },
 
   { 'nvim-mini/mini.nvim',
