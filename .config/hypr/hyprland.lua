@@ -148,6 +148,7 @@ hl.bind('SUPER + A',            hl.dsp.exec_raw('firefox'))
 
 hl.bind('SUPER + Q',            hl.dsp.global('quickshell:picker'))
 hl.bind('SUPER + ALT + L',      hl.dsp.global('quickshell:locker'))
+hl.bind('SUPER + ALT + D',      hl.dsp.dpms('on'))
 
 hl.bind('Print',                hl.dsp.global('quickshell:shoter'))
 hl.bind('XF86AudioRaiseVolume', hl.dsp.global('quickshell:incvol'))

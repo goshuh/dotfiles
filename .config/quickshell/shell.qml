@@ -438,7 +438,7 @@ ShellRoot {
         } else {
           switch (helper.idleState) {
           case 2:
-            helper.light()
+            helper.lightOn()
 
           case 1:
             helper.reidle()
@@ -448,9 +448,11 @@ ShellRoot {
       }
     }
 
-    function light(): void {
-      idleMonit.timeout = 600
-      helper.putHypr('hl.dsp.dpms("on")')
+    function lightOn(): void {
+      putHypr('hl.dsp.dpms("on")')
+    }
+    function lightOff(): void {
+      putHypr('hl.dsp.dpms("off")')
     }
 
     function idle(): void {
@@ -463,13 +465,10 @@ ShellRoot {
     }
     function lock(): void {
       idleState = 2
-      idleMonit.timeout = 1
-      putHypr('hl.dsp.dpms("off")')
+      lightOff()
     }
     function unlock(): void {
-      if (idleState == 2)
-        light()
-
+      lightOn()
       idleTimer.stop()
       idleState = 0
     }
