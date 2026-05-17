@@ -419,6 +419,8 @@ ShellRoot {
     }
 
     IdleMonitor {
+      id: idleMonit
+
       timeout: 600
 
       onIsIdleChanged: {
@@ -437,6 +439,7 @@ ShellRoot {
 
     function idle(): void {
       idleLock = true
+      idleMonit.timeout = 3
       idleTimer.start()
     }
     function reidle(): void {
@@ -444,6 +447,7 @@ ShellRoot {
     }
     function unlock(): void {
       idleTimer.stop()
+      idleMonit.timeout = 600
       idleLock = false
     }
   }
