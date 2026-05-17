@@ -414,7 +414,7 @@ ShellRoot {
       interval: 100 * 1000
 
       onTriggered: {
-        helper.lightOff()
+        helper.putHypr('hl.dsp.dpms("off")')
       }
     }
 
@@ -429,19 +429,10 @@ ShellRoot {
           }
 
         } else {
-          helper.lightOn()
-
           if (helper.idleLock == true)
             helper.reidle()
         }
       }
-    }
-
-    function lightOn(): void {
-      putHypr('hl.dsp.dpms("on")')
-    }
-    function lightOff(): void {
-      putHypr('hl.dsp.dpms("off")')
     }
 
     function idle(): void {
@@ -452,8 +443,6 @@ ShellRoot {
       idleTimer.restart()
     }
     function unlock(): void {
-      lightOn()
-
       idleTimer.stop()
       idleLock = false
     }
