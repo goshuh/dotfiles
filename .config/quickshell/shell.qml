@@ -406,7 +406,7 @@ ShellRoot {
     }
 
     // idle
-    property int idleState: 0
+    property bool idleLock: false
 
     Timer {
       id: idleTimer
@@ -414,36 +414,25 @@ ShellRoot {
       interval: 100 * 1000
 
       onTriggered: {
-        helper.lock()
+        helper.lightOff()
       }
     }
 
     IdleMonitor {
-      id: idleMonit
-
       timeout: 600
 
       onIsIdleChanged: {
         if (isIdle) {
-          switch (helper.idleState) {
-          case 0:
+          if (helper.idleLock == false) {
             helper.idle()
             locker.init()
-            break
-
-          case 3:
-            helper.idle()
           }
 
         } else {
-          switch (helper.idleState) {
-          case 2:
-            helper.lightOn()
+          helper.lightOn()
 
-          case 1:
+          if (helper.idleLock == true)
             helper.reidle()
-            break
-          }
         }
       }
     }
@@ -456,21 +445,17 @@ ShellRoot {
     }
 
     function idle(): void {
-      idleState = 1
+      idleLock = true
       idleTimer.start()
     }
     function reidle(): void {
-      idleState = 3
       idleTimer.restart()
-    }
-    function lock(): void {
-      idleState = 2
-      lightOff()
     }
     function unlock(): void {
       lightOn()
+
       idleTimer.stop()
-      idleState = 0
+      idleLock = false
     }
   }
 
@@ -2154,8 +2139,10 @@ ShellRoot {
     description: 'Lock the screen'
 
     onPressed: {
-      helper.idle()
-      locker.init()
+      if (helper.idleLock == false) {
+        helper.idle()
+        locker.init()
+      }
     }
   }
 
