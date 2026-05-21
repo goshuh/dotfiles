@@ -419,9 +419,7 @@ ShellRoot {
     }
 
     IdleMonitor {
-      id: idleMonit
-
-      timeout: 600
+      timeout: idleLock ? 0 : 600
 
       onIsIdleChanged: {
         if (isIdle) {
@@ -439,15 +437,13 @@ ShellRoot {
 
     function idle(): void {
       idleLock = true
-      idleMonit.timeout = 3
       idleTimer.start()
     }
     function reidle(): void {
       idleTimer.restart()
     }
-    function unlock(): void {
+    function unidle(): void {
       idleTimer.stop()
-      idleMonit.timeout = 600
       idleLock = false
     }
   }
@@ -2101,7 +2097,7 @@ ShellRoot {
 
     onLockedChanged: {
       if (!locked) {
-        helper.unlock()
+        helper.unidle()
         popout.done()
       }
     }

@@ -10,7 +10,6 @@ import subprocess
 
 
 class Updater(object):
-
     SNAP     = ['data-dir',
                 'gnome-platform',
                 'lib',
@@ -35,6 +34,8 @@ class Updater(object):
                 'snapshot_blob.bin',
                 'v8_context_snapshot.bin',
                 'vk_swiftshader_icd.json']
+
+    SONAME = re.compile(r'lib.*\.so(?:[\.0-9]+)?')
 
     def __init__(self):
         self.curr = ''
@@ -114,17 +115,26 @@ class Updater(object):
             for r, ds, fs in os.walk(dst):
                 p = os.path.relpath(r, dst)
                 for d in ds:
-                    post(p, d)
+                    post(p, d, True)
                 for f in fs:
-                    post(p, f)
+                    post(p, f, False)
 
-    def post_electron(d, f):
-        fn = os.path.join(self.curr, d, f)
-        if (d == 'locales'   or
-            d == 'resources' or
-            d == '.'         and f in Updater.ELECTRON):
+    def post_electron(self, p, n, d):
+        fn = os.path.join(self.curr, p, n)
+        if (p == 'locales'   or
+            p == 'resources' or
+            p == '.'         and n in Updater.ELECTRON):
             self.chmod(fn)
         return fn
+
+    def post_rpath(self, p, n, d):
+        a = ['$ORIGIN']
+
+        for i in range(p.count('/')):
+            a.append(f'{a[-1]}/..')
+
+        self.spawn('patchelf', '--set-rpath', ':'.join(a),
+                    os.path.join(self.curr, p, n))
 
     def reg(p):
         def dec(f):
@@ -194,18 +204,34 @@ class Updater(object):
         self.sync('usr/share/typora')
         self.copy('usr/share/icons/hicolor/256x256/apps/typora.png')
 
+    @reg(r'Webull Desktop_.*\.deb')
+    def upd_webull(self):
+        def post(p, n, d):
+            if self.SONAME.match(n) and not d:
+                self.post_rpath(p, n, d)
+
+            if p == '.' and n == 'WebullDesktop' and not d:
+                self.post_rpath(p, n, d)
+
+                os.rename(os.path.join(self.curr, p, n),
+                          os.path.join(self.curr, p, 'webull-bin'))
+
+        self.sync('usr/local/WebullDesktop',
+                   excl = ['libgnutls.so.30',
+                           'libnghttp2.so.14',
+                           'webull'],
+                   post = post)
+        self.copy('usr/share/icons/hicolor/64x64/apps/WebullDesktop.png',
+                   func = lambda x: 'webull.png')
+
     @reg(r'WeChatLinux_x86_64.deb')
     def upd_wechat(self):
-        self.spawn('patchelf', '--set-rpath', '$ORIGIN',
-                   'opt/wechat/libwxtrans.so')
+        def post(p, n, d):
+            if self.SONAME.match(n) and not d:
+                self.post_rpath(p, n, d)
 
-        for r, _, fs in os.walk('opt/wechat/vlc_plugins'):
-            for f in fs:
-                if f.endswith('.so'):
-                    self.spawn('patchelf', '--set-rpath', '$ORIGIN:$ORIGIN/../..',
-                                os.path.join(r, f))
-
-        self.sync('opt/wechat')
+        self.sync('opt/wechat',
+                   post = post)
         self.copy('usr/share/icons/hicolor/256x256/apps/wechat.png')
 
     @reg(r'wps-office.*\.deb')

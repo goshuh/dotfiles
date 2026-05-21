@@ -23,6 +23,11 @@ resize-overlay             = never
 
 focus-follows-mouse        = true
 
+clipboard-read             = allow
+clipboard-write            = allow
+
+copy-on-select             = clipboard
+
 shell-integration-features = no-cursor
 
 gtk-wide-tabs              = false
