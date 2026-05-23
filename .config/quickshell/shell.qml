@@ -419,7 +419,7 @@ ShellRoot {
     }
 
     IdleMonitor {
-      timeout: idleLock ? 0 : 600
+      timeout: idleLock ? 1 : 600
 
       onIsIdleChanged: {
         if (isIdle) {
