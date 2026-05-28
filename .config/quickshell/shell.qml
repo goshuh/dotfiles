@@ -419,14 +419,12 @@ ShellRoot {
     }
 
     IdleMonitor {
-      timeout: idleLock ? 1 : 600
+      timeout: 600
 
       onIsIdleChanged: {
         if (isIdle) {
-          if (helper.idleLock == false) {
-            helper.idle()
+          if (helper.idleLock == false)
             locker.init()
-          }
 
         } else {
           if (helper.idleLock == true)
@@ -1963,8 +1961,9 @@ ShellRoot {
 
       captureSource: master.screen
 
-      Component.onCompleted: {
-        captureFrame()
+      onHasContentChanged: {
+        if (hasContent)
+          captureFrame()
       }
     }
 
@@ -2096,10 +2095,8 @@ ShellRoot {
     required property var popout
 
     onLockedChanged: {
-      if (!locked) {
-        helper.unidle()
+      if (!locked)
         popout.done()
-      }
     }
 
     LockerSurface {
@@ -2107,9 +2104,15 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+      helper.idle()
+
       Quickshell.execDetached([
        'loginctl', 'lock-session'
       ])
+    }
+
+    Component.onDestruction: {
+      helper.unidle()
     }
   }
 
@@ -2128,10 +2131,8 @@ ShellRoot {
     description: 'Lock the screen'
 
     onPressed: {
-      if (helper.idleLock == false) {
-        helper.idle()
+      if (helper.idleLock == false)
         locker.init()
-      }
     }
   }
 
