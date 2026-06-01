@@ -25,6 +25,7 @@ focus-follows-mouse        = true
 
 clipboard-read             = allow
 clipboard-write            = allow
+clipboard-paste-protection = true
 
 copy-on-select             = clipboard
 
@@ -55,5 +56,7 @@ keybind                    = ctrl+up=scroll_page_up
 keybind                    = ctrl+down=scroll_page_down
 keybind                    = ctrl+shift+up=scroll_to_top
 keybind                    = ctrl+shift+down=scroll_to_bottom
+
+app-notifications          = false
 
 macos-titlebar-style       = tabs

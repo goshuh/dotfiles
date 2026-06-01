@@ -153,6 +153,11 @@ ShellRoot {
     readonly property color  colorForeground:           '#abb2bf'
     readonly property color  colorForegroundDark:       '#848b98'
     readonly property color  colorForegroundDarker:     '#5f6571'
+
+    readonly property color  colorForegroundNorm:       '#80ffffff'
+    readonly property color  colorForegroundRise:       '#80e06c75'
+    readonly property color  colorForegroundFall:       '#8098c379'
+
     readonly property color  colorBackgroundLight:      '#31353f'
     readonly property color  colorBackground:           '#23272e'
 
@@ -176,6 +181,7 @@ ShellRoot {
     readonly property int    fontSizeSmall:         9
     readonly property int    fontSize:              10
     readonly property int    fontSizeLarge:         12
+    readonly property int    fontSizeLarger:        32
     readonly property int    fontSizeHuge:          64
 
     readonly property int    lineWidth:             1
@@ -197,12 +203,29 @@ ShellRoot {
     readonly property int    windowWidthLarge:      480
     readonly property real   windowInactiveOpacity: 0.75
     readonly property int    windowTimeout:         2
+
+    readonly property string finnhubQuote:
+     'https://finnhub.io/api/v1/quote?symbol=%1&token=%2'
   }
 
   component GlobalHelper: Item {
     id: helper
 
     visible: false
+
+    // misc
+    function padLeft(str: string, len: int): string {
+      if (str.length >= len)
+        return str
+      else
+        return ' '.repeat(len - str.length) + str
+    }
+    function padRight(str: string, len: int): string {
+      if (str.length >= len)
+        return str.slice(0, len)
+      else
+        return str + ' '.repeat(len - str.length)
+    }
 
     // icon
     readonly property string iconDefault:
@@ -443,6 +466,108 @@ ShellRoot {
     function unidle(): void {
       idleTimer.stop()
       idleLock = false
+    }
+
+    // stock
+    property string stockKey:   ''
+    property string stockQuote: ''
+    property var    stockSyms:  []
+    property var    stockReqs:  []
+    property var    stocks:     []
+
+    Timer {
+      running:  helper.stockKey.length && helper.stocks.length
+
+      repeat:   true
+      interval: 60 * 1000
+
+      onTriggered: {
+        helper.stockUpdate()
+      }
+    }
+
+    function getStockColor(val: real): color {
+      if (val > 0)
+        return config.colorForegroundRise
+      else if (val < 0)
+        return config.colorForegroundFall
+      else
+        return config.colorForegroundNorm
+    }
+
+    function stockInit(): void {
+      const req = new XMLHttpRequest
+
+      req.onreadystatechange = function() {
+        if (req.readyState !== XMLHttpRequest.DONE)
+          return
+
+        const quote = []
+        const lines = req.responseText.split(/\r?\n/)
+
+        for (const line of lines) {
+          const item = line.trim()
+
+          if (!item.length || item.startsWith('#'))
+            continue
+          else if (item.startsWith('key: '))
+            stockKey = item.slice(5).trim()
+          else if (item.startsWith('sym: '))
+            stockSyms.push(item.slice(5).trim())
+          else
+            quote.push(line)
+        }
+
+        stockQuote = quote.join('\n')
+        stockReqs  = stockSyms.map(() => new XMLHttpRequest())
+        stocks     = stockSyms.map(s => ({
+          symbol:  s,
+          change:  0,
+          percent: 0,
+          ready:   false
+        }))
+
+        stockUpdate()
+      }
+
+      req.open('GET', config.homeDir + '/.quote')
+      req.send()
+    }
+
+    function stockUpdate(): void {
+      for (const i in stockSyms) {
+        const req = stockReqs[i]
+        const sym = stockSyms[i]
+
+        req.onreadystatechange = function() {
+          if (req.readyState !== XMLHttpRequest.DONE)
+            return
+
+          let ret = {}
+
+          try {
+            ret = JSON.parse(req.responseText)
+          } catch (e) {
+            return
+          }
+
+          stocks[i] = {
+            symbol:  sym,
+            price:   ret.c  ?? 0,
+            change:  ret.d  ?? 0,
+            percent: ret.dp ?? 0,
+            ready:   true
+          }
+
+          // manual but fine
+          stocksChanged()
+        }
+
+        req.open('GET', config.finnhubQuote
+                         .arg(encodeURIComponent(sym))
+                         .arg(encodeURIComponent(stockKey)))
+        req.send()
+      }
     }
   }
 
@@ -1731,33 +1856,70 @@ ShellRoot {
     margins.right:  config.clientGap
     margins.bottom: config.clientGap
 
-    implicitWidth:  160
-    implicitHeight: 140
+    implicitWidth:  widget.implicitWidth
+    implicitHeight: widget.implicitHeight
 
     color: 'transparent'
     mask:   Region {}
 
-    Text {
-      id: text
+    Column {
+      id: widget
 
-      anchors.verticalCenter:   parent.verticalCenter
-      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.right:  parent.right
+      anchors.bottom: parent.bottom
 
-      color: '#80ffffff'
+      spacing: config.padding
 
-      font.family:   'Source Han Sans CN'
-      font.pointSize: 32
-
-      Component.onCompleted: {
-        const req = new XMLHttpRequest()
-
-        req.onreadystatechange = function() {
-          if (req.readyState === XMLHttpRequest.DONE)
-            text.text = req.responseText
+      Repeater {
+        model: ScriptModel {
+          values: helper.stocks
         }
 
-        req.open('GET', config.homeDir + '/.quote')
-        req.send()
+        Row {
+          anchors.right: parent.right
+
+          required property var modelData
+
+          CustomText {
+            font.family:    config.fontFamilyMono
+            font.pointSize: config.fontSizeSmall
+
+            color: config.colorForegroundNorm
+
+            text: helper.padRight(modelData.symbol, 4)
+          }
+
+          CustomText {
+            font.family:    config.fontFamilyMono
+            font.pointSize: config.fontSizeSmall
+
+            color: helper.getStockColor(modelData.change)
+
+            text: {
+              if (!modelData.ready)
+                return '--.-- --.--%'
+
+              return helper.padLeft(modelData.change .toFixed(2), 6) +
+                     helper.padLeft(modelData.percent.toFixed(2), 6) + '%'
+            }
+          }
+        }
+      }
+
+      Text {
+        anchors.right: parent.right
+
+        horizontalAlignment: Text.AlignRight
+
+        color: config.colorForegroundNorm
+
+        font.family:   'Source Han Sans CN'
+        font.pointSize: config.fontSizeLarger
+
+        lineHeightMode: Text.ProportionalHeight
+        lineHeight:     0.8
+
+        text: helper.stockQuote
       }
     }
   }
@@ -1781,6 +1943,10 @@ ShellRoot {
       Wallpaper {
         screen: scope.modelData
       }
+    }
+
+    Component.onCompleted: {
+      helper.stockInit()
     }
   }
 
