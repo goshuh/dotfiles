@@ -181,9 +181,9 @@ function _M:update()
     }
 
     if s.ready then
-      pr = pad_left(string.format('%.2f', s.price),   8) ..
-           pad_left(string.format('%.2f', s.change),  6) ..
-           pad_left(string.format('%.2f', s.percent), 6) .. '%'
+      pr = pad_left(string.format('%.2f', math.abs(s.price  )), 8) ..
+           pad_left(string.format('%.2f', math.abs(s.change )), 6) ..
+           pad_left(string.format('%.2f', math.abs(s.percent)), 6) .. '%'
 
       if s.change > 0 then
         pc = self.rise

@@ -1897,12 +1897,14 @@ ShellRoot {
             }
 
             text: {
-              if (!modelData.ready)
+              const s = modelData
+
+              if (!s.ready)
                 return '----.-- --.-- --.--%'
 
-              return helper.padLeft(modelData.price  .toFixed(2), 8) +
-                     helper.padLeft(modelData.change .toFixed(2), 6) +
-                     helper.padLeft(modelData.percent.toFixed(2), 6) + '%'
+              return helper.padLeft(Math.abs(s.price  ).toFixed(2), 8) +
+                     helper.padLeft(Math.abs(s.change ).toFixed(2), 6) +
+                     helper.padLeft(Math.abs(s.percent).toFixed(2), 6) + '%'
             }
           }
         }
