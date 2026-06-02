@@ -1,17 +1,10 @@
+-- local EventTap    = require 'hs.eventtap'
 -- local Host        = require 'hs.host'
 -- local Socket      = require 'hs.socket'
--- local Spaces      = require 'hs.spaces'
 -- local Task        = require 'hs.task'
 
 local Application = require 'hs.application'
-local Canvas      = require 'hs.canvas'
-local EventTap    = require 'hs.eventtap'
 local Hotkey      = require 'hs.hotkey'
-local Mouse       = require 'hs.mouse'
-local Screen      = require 'hs.screen'
-local StyledText  = require 'hs.styledtext'
-local Timer       = require 'hs.timer'
-local Window      = require 'hs.window'
 
 
 --[[
@@ -126,80 +119,6 @@ Hotkey.bind('ctrl-alt', 'm', function() print(wheel:isEnabled()) end)
 --]]
 
 
--- overlay
-overlay = nil
-
-local function showOverlayText(str)
-  if overlay == nil then
-    local f = Screen.mainScreen():frame()
-
-    overlay = Canvas.new({
-      x = f.x + f.w - 208,
-      y = f.y + f.h - 128,
-      w = 200,
-      h = 120
-    })
-
-    overlay:behavior({
-      'canJoinAllSpaces',
-      'stationary',
-      'fullScreenAuxiliary'
-    })
-
-    overlay:clickActivating(false)
-    overlay:bringToFront(false)
-    overlay:show()
-  end
-
-  overlay:insertElement({
-    type = 'text',
-    text =  StyledText.new(str, {
-      font  = {
-        name  = 'Menlo',
-        size  =  48
-      },
-      color = {
-        white =  1,
-        alpha =  0.5
-      },
-      paragraphStyle = {
-        alignment = 'center',
-        linebreak = 'charWrap'
-      }
-    }),
-    frame = {
-      x = 0,
-      y = 0,
-      w = 200,
-      h = 120
-    }
-  })
-end
-
-local function readFile(fn)
-  local f = io.open(fn, 'r')
-
-  if not f then
-    return nil
-  end
-
-  local c = f:read('*a')
-  f:close()
-
-  if c == '' then
-    return nil
-  end
-
-  return c
-end
-
-local quote = readFile(os.getenv('HOME') .. '/.quote')
-
-if quote then
-  showOverlayText(quote)
-end
-
-
 -- xwm
 local xwm = hs.loadSpoon('XWM'):start()
 
@@ -257,3 +176,7 @@ xwm:bindHotkeys({
   jump_8      = { { 'ctrl',  'alt' }, '8'      },
   jump_9      = { { 'ctrl',  'alt' }, '9'      }
 })
+
+
+-- osq
+local osq = hs.loadSpoon('OSQ'):start('.quote')

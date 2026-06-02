@@ -486,15 +486,6 @@ ShellRoot {
       }
     }
 
-    function getStockColor(val: real): color {
-      if (val > 0)
-        return config.colorForegroundRise
-      else if (val < 0)
-        return config.colorForegroundFall
-      else
-        return config.colorForegroundNorm
-    }
-
     function stockInit(): void {
       const req = new XMLHttpRequest
 
@@ -522,6 +513,7 @@ ShellRoot {
         stockReqs  = stockSyms.map(() => new XMLHttpRequest())
         stocks     = stockSyms.map(s => ({
           symbol:  s,
+          price:   0,
           change:  0,
           percent: 0,
           ready:   false
@@ -1893,13 +1885,23 @@ ShellRoot {
             font.family:    config.fontFamilyMono
             font.pointSize: config.fontSizeSmall
 
-            color: helper.getStockColor(modelData.change)
+            color: {
+              const c = modelData.change
+
+              if (c > 0)
+                return config.colorForegroundRise
+              else if (c < 0)
+                return config.colorForegroundFall
+              else
+                return config.colorForegroundNorm
+            }
 
             text: {
               if (!modelData.ready)
-                return '--.-- --.--%'
+                return '----.-- --.-- --.--%'
 
-              return helper.padLeft(modelData.change .toFixed(2), 6) +
+              return helper.padLeft(modelData.price  .toFixed(2), 8) +
+                     helper.padLeft(modelData.change .toFixed(2), 6) +
                      helper.padLeft(modelData.percent.toFixed(2), 6) + '%'
             }
           }

@@ -33,6 +33,11 @@ Window.animationDuration = 0
 
 
 local _M = {
+  name     = 'XWM',
+  version  = '0.1',
+  author   = 'gosh',
+  license  = 'None',
+
   gap      =  8,
   ratio    =  0.64,
   state    =  0,
@@ -44,11 +49,6 @@ local _M = {
   spaces   =  {},
   windows  =  {},
   entries  =  {},
-
-  name     = 'XWM',
-  version  = '0.1',
-  author   = 'gosh',
-  license  = 'None',
 
   persist  =  {},
   tabbed   =  {}
@@ -365,6 +365,12 @@ function _M:insert(window, ext)
 
   if c > 1 then
     local a = window:application()
+
+    if not a then
+      -- i have no idea
+      return -1
+    end
+
     local b = a:bundleID()
 
     if b and self.tabbed[b] then
