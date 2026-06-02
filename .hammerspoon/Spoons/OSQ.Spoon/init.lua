@@ -54,9 +54,10 @@ local _M = {
   license = 'None',
 
   gap     =  8,
-  period  =  60,
+  period  =  3,
   font    = 'Menlo',
   state   =  0,
+  iter    =  1,
 
   rise    =  {
     red   =  0xe0 / 0xff,
@@ -137,25 +138,27 @@ function _M:start(fn)
 end
 
 function _M:fetch()
-  for i, s in ipairs(self.stocks) do
-    local url = 'https://finnhub.io/api/v1/quote?symbol=' .. s.symbol ..
-                '&token=' .. self.key
+  local s = self.stocks[self.iter]
 
-    Http.asyncGet(url, nil, function(_, res, _)
-      local ok, ret = pcall(Json.decode, res)
+  local url = 'https://finnhub.io/api/v1/quote?symbol=' .. s.symbol ..
+              '&token=' .. self.key
 
-      if not ok or not ret then
-        return
-      end
+  Http.asyncGet(url, nil, function(_, res, _)
+    local ok, ret = pcall(Json.decode, res)
 
-      s.price   = ret.c  or 0
-      s.change  = ret.d  or 0
-      s.percent = ret.dp or 0
-      s.ready   = true
+    if not ok or not ret then
+      return
+    end
 
-      self:update()
-    end)
-  end
+    s.price   = ret.c  or 0
+    s.change  = ret.d  or 0
+    s.percent = ret.dp or 0
+    s.ready   = true
+
+    self:update()
+  end)
+
+  self.iter = self.iter == #self.stocks and 1 or (self.iter + 1)
 end
 
 function _M:update()
@@ -174,16 +177,16 @@ function _M:update()
     local cx = 0
     local ch = 0
 
-    local pr = '----.-- --.-- --.--%'
+    local pr = ' ----.-- ---.-- ---.--%'
     local pc = {
       white = 1,
       alpha = 0.5
     }
 
     if s.ready then
-      pr = pad_left(string.format('%.2f', math.abs(s.price  )), 8) ..
-           pad_left(string.format('%.2f', math.abs(s.change )), 6) ..
-           pad_left(string.format('%.2f', math.abs(s.percent)), 6) .. '%'
+      pr = pad_left(string.format('%.2f', s.price),   8) ..
+           pad_left(string.format('%.2f', s.change),  7) ..
+           pad_left(string.format('%.2f', s.percent), 7) .. '%'
 
       if s.change > 0 then
         pc = self.rise

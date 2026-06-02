@@ -474,12 +474,13 @@ ShellRoot {
     property var    stockSyms:  []
     property var    stockReqs:  []
     property var    stocks:     []
+    property int    stockIter:  0
 
     Timer {
       running:  helper.stockKey.length && helper.stocks.length
 
       repeat:   true
-      interval: 60 * 1000
+      interval: 3 * 1000
 
       onTriggered: {
         helper.stockUpdate()
@@ -518,8 +519,6 @@ ShellRoot {
           percent: 0,
           ready:   false
         }))
-
-        stockUpdate()
       }
 
       req.open('GET', config.homeDir + '/.quote')
@@ -527,39 +526,41 @@ ShellRoot {
     }
 
     function stockUpdate(): void {
-      for (const i in stockSyms) {
-        const req = stockReqs[i]
-        const sym = stockSyms[i]
+      const i = stockIter
 
-        req.onreadystatechange = function() {
-          if (req.readyState !== XMLHttpRequest.DONE)
-            return
+      const req = stockReqs[i]
+      const sym = stockSyms[i]
 
-          let ret = {}
+      req.onreadystatechange = function() {
+        if (req.readyState !== XMLHttpRequest.DONE)
+          return
 
-          try {
-            ret = JSON.parse(req.responseText)
-          } catch (e) {
-            return
-          }
+        let ret = {}
 
-          stocks[i] = {
-            symbol:  sym,
-            price:   ret.c  ?? 0,
-            change:  ret.d  ?? 0,
-            percent: ret.dp ?? 0,
-            ready:   true
-          }
-
-          // manual but fine
-          stocksChanged()
+        try {
+          ret = JSON.parse(req.responseText)
+        } catch (e) {
+          return
         }
 
-        req.open('GET', config.finnhubQuote
-                         .arg(encodeURIComponent(sym))
-                         .arg(encodeURIComponent(stockKey)))
-        req.send()
+        stocks[i] = {
+          symbol:  sym,
+          price:   ret.c  ?? 0,
+          change:  ret.d  ?? 0,
+          percent: ret.dp ?? 0,
+          ready:   true
+        }
+
+        // manual but fine
+        stocksChanged()
       }
+
+      req.open('GET', config.finnhubQuote
+                       .arg(encodeURIComponent(sym))
+                       .arg(encodeURIComponent(stockKey)))
+      req.send()
+
+      stockIter = (stockIter + 1) % stocks.length
     }
   }
 
@@ -1897,14 +1898,12 @@ ShellRoot {
             }
 
             text: {
-              const s = modelData
+              if (!modelData.ready)
+                return ' ----.-- ---.-- ---.--%'
 
-              if (!s.ready)
-                return '----.-- --.-- --.--%'
-
-              return helper.padLeft(Math.abs(s.price  ).toFixed(2), 8) +
-                     helper.padLeft(Math.abs(s.change ).toFixed(2), 6) +
-                     helper.padLeft(Math.abs(s.percent).toFixed(2), 6) + '%'
+              return helper.padLeft(modelData.price  .toFixed(2), 8) +
+                     helper.padLeft(modelData.change .toFixed(2), 7) +
+                     helper.padLeft(modelData.percent.toFixed(2), 7) + '%'
             }
           }
         }
