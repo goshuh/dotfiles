@@ -1,10 +1,13 @@
 local Canvas     = require 'hs.canvas'
 local Drawing    = require 'hs.drawing'
+local FnUtils    = require 'hs.fnutils'
 local Http       = require 'hs.http'
 local Json       = require 'hs.json'
 local Screen     = require 'hs.screen'
+local Spoons     = require 'hs.spoons'
 local StyledText = require 'hs.styledtext'
 local Timer      = require 'hs.timer'
+local WebSocket  = require 'hs.websocket'
 
 
 -- helpers
@@ -54,9 +57,7 @@ local _M = {
   license = 'None',
 
   gap     =  8,
-  period  =  3,
   font    = 'Menlo',
-  iter    =  1,
 
   rise    =  {
     red   =  0xe0 / 0xff,
@@ -77,8 +78,13 @@ local _M = {
 
   canvas  =  nil,
   timer   =  nil,
+  socket  =  nil,
 
-  key     =  '',
+  to_cid  =  {},
+  to_idx  =  {},
+
+  key     =  '5432',
+  token   =  '',
   quotes  =  '',
   stocks  =  {}
 }
@@ -86,8 +92,16 @@ local _M = {
 _M.__index = _M
 
 
+function _M:ep_https(u)
+  return 'https://localhost:' .. self.key .. '/v1/api' .. u
+end
+
+function _M:ep_wss()
+  return 'wss://localhost:' .. self.key .. '/v1/api/ws?api=' .. self.token
+end
+
 function _M:start(fn)
-  if self.key ~= '' or self.quotes ~= '' or #self.stocks > 0 then
+  if self.quotes ~= '' or #self.stocks > 0 then
     return self
   end
 
@@ -120,44 +134,135 @@ function _M:start(fn)
   self.stocks = syms
 
   self:draw()
-
-  if self.key ~= '' and #self.stocks > 0 then
-    self.timer = Timer.doEvery(self.period, function()
-      self:fetch()
-    end)
-  end
+  self:init()
 
   return self
 end
 
-function _M:fetch()
-  local s = self.stocks[self.iter]
-  local t = self.canvas[self.iter]
+function _M:bindHotKeys(mapping)
+  local spec = {
+    reinit = FnUtils.partial(self.init, self)
+  }
 
-  local url = 'https://finnhub.io/api/v1/quote?symbol=' .. s ..
-              '&token=' .. self.key
+  Spoons.bindHotkeysToSpec(spec, mapping)
 
-  Http.asyncGet(url, nil, function(_, res, _)
+  return self
+end
+
+function _M:subs(s)
+  local i = self.to_cid[s]
+
+  if i then
+    self.socket:send('smd+' .. i .. '+{"fields":["31","82","83"]}')
+    return
+  end
+
+  local url = self:ep_https('/iserver/secdef/search?symbol=' .. s ..
+                            '&name=true&secType=STK')
+
+  Http.asyncGet(url, nil, function(c, res)
+    if c ~= 200 then
+      -- symbol may be invalid
+      return
+    end
+
     local ok, ret = pcall(Json.decode, res)
 
     if not ok or not ret then
       return
     end
 
-    t.text = pad_left(string.format('%.2f', ret.c),  8) ..
-             pad_left(string.format('%.2f', ret.d),  7) ..
-             pad_left(string.format('%.2f', ret.dp), 7) .. '%'
+    local i = tonumber(ret[1].conid)
 
-    if ret.d > 0 then
-      t.textColor = self.rise
-    elseif ret.d < 0 then
-      t.textColor = self.fall
-    else
-      t.textColor = self.norm
-    end
+    self.to_cid[s] = tostring(i)
+    self.to_idx[i] = self.to_idx[s]
+
+    self.socket:send('smd+' .. i .. '+{"fields":["31","82","83"]}')
   end)
+end
 
-  self.iter = self.iter == #self.stocks and 1 or (self.iter + 1)
+function _M:subs_all()
+  for _, s in ipairs(self.stocks) do
+    self:subs(s)
+  end
+end
+
+function _M:init()
+  -- can fail. we just let the user reinit
+  Http.asyncGet(self:ep_https('/tickle'), nil, function(c, res)
+    if c ~= 200 then
+      return
+    end
+
+    local ok, ret = pcall(Json.decode, res)
+
+    if not ok or not ret then
+      return
+    end
+
+    if not ret.iserver.authStatus.authenticated then
+      return
+    end
+
+    self.token = ret.session or ''
+
+    if self.token == '' then
+      return
+    end
+
+    -- ready to start the ws
+    self.socket = WebSocket.new(self:ep_wss(), function(c, msg)
+      if c == 'open' then
+        self:subs_all()
+
+        -- re-subscribe every 10 min as the server expires every 15 mins
+        self.timer = Timer.doEvery(600, function()
+          self:subs_all()
+        end)
+
+      elseif c == 'received' then
+        self:recv(msg)
+
+      elseif c == 'closed'  or
+             c == 'closing' then
+        if self.timer then
+          self.timer:stop()
+          self.timer = nil
+        end
+      end
+    end)
+  end)
+end
+
+function _M:recv(msg)
+  local ok, ret = pcall(Json.decode, msg)
+
+  if not ok or not ret then
+    return
+  end
+
+  if not head_as(ret.topic or '', 'smd+') then
+    return
+  end
+
+  local s = self.canvas[self.to_idx[ret.conid]]
+
+  local price   = tonumber(ret['31'])
+  local change  = tonumber(ret['82'] or '0')
+  local percent = tonumber(ret['83'] or '0')
+
+  s.text =
+    pad_left(string.format('%.2f', price),   8) ..
+    pad_left(string.format('%.2f', change),  7) ..
+    pad_left(string.format('%.2f', percent), 7) .. '%'
+
+  if change > 0 then
+    s.textColor = self.rise
+  elseif change < 0 then
+    s.textColor = self.fall
+  else
+    s.textColor = self.norm
+  end
 end
 
 function _M:draw()
@@ -167,7 +272,9 @@ function _M:draw()
   local p = {}
   local t = {}
 
-  for _, s in ipairs(self.stocks) do
+  for i, s in ipairs(self.stocks) do
+    self.to_idx[s] = i
+
     local pt = ' ----.-- ---.-- ---.--%'
     local st =  pad_right(s, 4)
 

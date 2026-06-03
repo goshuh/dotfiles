@@ -180,3 +180,7 @@ xwm:bindHotkeys({
 
 -- osq
 local osq = hs.loadSpoon('OSQ'):start('.quote')
+
+osq:bindHotKeys({
+  reinit      = { { 'ctrl',  'alt' }, 's'      }
+})
