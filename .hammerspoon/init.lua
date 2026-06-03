@@ -182,5 +182,5 @@ xwm:bindHotkeys({
 local osq = hs.loadSpoon('OSQ'):start('.quote')
 
 osq:bindHotKeys({
-  reinit      = { { 'ctrl',  'alt' }, 's'      }
+  reinit      = { { 'ctrl',  'alt' }, 'w'      }
 })
