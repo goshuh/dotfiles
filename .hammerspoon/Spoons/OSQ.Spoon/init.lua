@@ -56,7 +56,6 @@ local _M = {
   gap     =  8,
   period  =  3,
   font    = 'Menlo',
-  state   =  0,
   iter    =  1,
 
   rise    =  {
@@ -71,12 +70,16 @@ local _M = {
     blue  =  0x79 / 0xff,
     alpha =  0.5
   },
+  norm    =  {
+    white =  1,
+    alpha =  0.5
+  },
 
-  overlay =  nil,
+  canvas  =  nil,
   timer   =  nil,
 
   key     =  '',
-  text    =  '',
+  quotes  =  '',
   stocks  =  {}
 }
 
@@ -84,7 +87,7 @@ _M.__index = _M
 
 
 function _M:start(fn)
-  if self.key ~= '' or self.text ~= '' or #self.stocks > 0 then
+  if self.key ~= '' or self.quotes ~= '' or #self.stocks > 0 then
     return self
   end
 
@@ -113,22 +116,12 @@ function _M:start(fn)
 
   f:close()
 
-  self.text = table.concat(segs, '\n')
+  self.quotes = table.concat(segs, '\n')
+  self.stocks = syms
 
-  for _, s in ipairs(syms) do
-    table.insert(self.stocks, {
-      symbol  = s,
-      price   = 0,
-      change  = 0,
-      percent = 0,
-      ready   = false
-    })
-  end
-
-  self:update()
+  self:draw()
 
   if self.key ~= '' and #self.stocks > 0 then
-    self:fetch()
     self.timer = Timer.doEvery(self.period, function()
       self:fetch()
     end)
@@ -139,8 +132,9 @@ end
 
 function _M:fetch()
   local s = self.stocks[self.iter]
+  local t = self.canvas[self.iter]
 
-  local url = 'https://finnhub.io/api/v1/quote?symbol=' .. s.symbol ..
+  local url = 'https://finnhub.io/api/v1/quote?symbol=' .. s ..
               '&token=' .. self.key
 
   Http.asyncGet(url, nil, function(_, res, _)
@@ -150,67 +144,47 @@ function _M:fetch()
       return
     end
 
-    s.price   = ret.c  or 0
-    s.change  = ret.d  or 0
-    s.percent = ret.dp or 0
-    s.ready   = true
+    t.text = pad_left(string.format('%.2f', ret.c),  8) ..
+             pad_left(string.format('%.2f', ret.d),  7) ..
+             pad_left(string.format('%.2f', ret.dp), 7) .. '%'
 
-    self:update()
+    if ret.d > 0 then
+      t.textColor = self.rise
+    elseif ret.d < 0 then
+      t.textColor = self.fall
+    else
+      t.textColor = self.norm
+    end
   end)
 
   self.iter = self.iter == #self.stocks and 1 or (self.iter + 1)
 end
 
-function _M:update()
-  if self.state > 0 then
-    return
-  end
-
-  self.state = 1
-
+function _M:draw()
   local w = 0
   local h = 0
 
-  local elements = {}
+  local p = {}
+  local t = {}
 
   for _, s in ipairs(self.stocks) do
-    local cx = 0
-    local ch = 0
+    local pt = ' ----.-- ---.-- ---.--%'
+    local st =  pad_right(s, 4)
 
-    local pr = ' ----.-- ---.-- ---.--%'
-    local pc = {
-      white = 1,
-      alpha = 0.5
-    }
+    local cx =  0
+    local ch =  0
 
-    if s.ready then
-      pr = pad_left(string.format('%.2f', s.price),   8) ..
-           pad_left(string.format('%.2f', s.change),  7) ..
-           pad_left(string.format('%.2f', s.percent), 7) .. '%'
-
-      if s.change > 0 then
-        pc = self.rise
-      elseif s.change < 0 then
-        pc = self.fall
-      end
-    end
-
-    local pt = StyledText.new(pr, {
-      font  = {
-        name = self.font,
-        size = 12
-      },
-      color = pc
-    })
-    -- pretty bad it asks for a different style
     local pf = Drawing.getTextDrawingSize(pt, {
       font = self.font,
       size = 12
     })
 
-    table.insert(elements, {
-      type  = 'text',
-      text  =  pt,
+    table.insert(p, {
+      type      = 'text',
+      text      =  pt,
+      textColor =  self.norm,
+      textFont  =  self.font,
+      textSize  =  12,
       frame = {
         x = cx,
         y = h,
@@ -222,24 +196,17 @@ function _M:update()
     cx = cx + pf.w
     ch = math.max(ch, pf.h)
 
-    local st = StyledText.new(pad_right(s.symbol, 4), {
-      font  = {
-        name  = self.font,
-        size  = 12
-      },
-      color = {
-        white = 1,
-        alpha = 0.5
-      }
-    })
     local sf = Drawing.getTextDrawingSize(st, {
       font = self.font,
       size = 12
     })
 
-    table.insert(elements, {
-      type  = 'text',
-      text  =  st,
+    table.insert(t, {
+      type      = 'text',
+      text      =  st,
+      textColor =  self.norm,
+      textFont  =  self.font,
+      textSize  =  12,
       frame = {
         x = cx,
         y = h,
@@ -252,30 +219,21 @@ function _M:update()
     h = math.max(ch, sf.h) + h + self.gap
   end
 
-  local qt = StyledText.new(self.text, {
-    font  = {
-      name  = self.font,
-      size  = 48
-    },
-    color = {
-      white = 1,
-      alpha = 0.5
-    },
-    paragraphStyle = {
-      alignment = 'right',
-      linebreak = 'charWrap'
-    }
-  })
-  local qf = Drawing.getTextDrawingSize(qt, {
+  local qf = Drawing.getTextDrawingSize(self.quotes, {
     font      =  self.font,
     size      =  48,
     alignment = 'right',
     lineBreak = 'charWrap'
   })
 
-  table.insert(elements, {
-    type  = 'text',
-    text  =  qt,
+  table.insert(t, {
+    type          = 'text',
+    text          =  self.quotes,
+    textColor     =  self.norm,
+    textFont      =  self.font,
+    textSize      =  48,
+    textAlignment = 'right',
+    textLineBreak = 'charWrap',
     frame = {
       x = 0,
       y = h,
@@ -287,9 +245,20 @@ function _M:update()
   w = math.max(w, qf.w)
   h = h + qf.h
 
+  -- create the final list
+  local e = {}
+
+  for _, a in ipairs(p) do
+    table.insert(e, a)
+  end
+
+  for _, a in ipairs(t) do
+    table.insert(e, a)
+  end
+
   -- post process to make everything right-aligned
-  for _, e in ipairs(elements) do
-    e.frame.x = w - e.frame.x - e.frame.w
+  for _, a in ipairs(e) do
+    a.frame.x = w - a.frame.x - a.frame.w
   end
 
   local f = Screen.mainScreen():frame()
@@ -300,25 +269,18 @@ function _M:update()
     h = h
   }
 
-  if not self.overlay then
-    self.overlay = Canvas.new(r)
+  self.canvas = Canvas.new(r)
 
-    self.overlay:behavior({
-      'canJoinAllSpaces',
-      'stationary',
-      'fullScreenAuxiliary'
-    })
+  self.canvas:behavior({
+    'canJoinAllSpaces',
+    'stationary',
+    'fullScreenAuxiliary'
+  })
 
-    self.overlay:clickActivating(false)
-    self.overlay:bringToFront(false)
-    self.overlay:show()
-  else
-    self.overlay:frame(r)
-  end
-
-  self.overlay:replaceElements(elements)
-
-  self.state = 0
+  self.canvas:clickActivating(false)
+  self.canvas:bringToFront(false)
+  self.canvas:replaceElements(e)
+  self.canvas:show()
 end
 
 
