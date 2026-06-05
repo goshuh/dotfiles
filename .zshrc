@@ -193,32 +193,32 @@ autoload -Uz compinit
 
 compinit
 
-zstyle ":completion:*" completer _complete _prefix _correct _prefix _match _approximate
-zstyle ":completion:*" expand "yes"
-zstyle ":completion:*" group-name ""
-zstyle ":completion:*" matcher-list "" "m:{a-zA-Z}={A-Za-z}"
-zstyle ":completion:*" menu select
-zstyle ":completion:*" squeeze-slashes "yes"
-zstyle ":completion:*" verbose yes
-zstyle ":completion:*:approximate:*" max-errors 1 numeric
-zstyle ":completion:*:matches" group "yes"
-zstyle ":completion:*:match:*" original only
-zstyle ":completion:*:options" auto-description "%d"
-zstyle ":completion:*:options" description "yes"
-zstyle ":completion:*:processes" command "ps -au$USER"
-zstyle ":completion:*:*:default" force-list always
-zstyle ":completion:*:*:kill:*" menu yes select
-zstyle ":completion:*:*:*:default" menu yes select
-zstyle ":completion:*:*:*:*:processes" force-list always
-zstyle ":completion::complete:*" "\\"
-zstyle ":completion::prefix-1:*" completer _complete
-zstyle ":completion:incremental:*" completer _complete _correct
-zstyle ":completion:predict:*" completer _complete
-zstyle ":completion:*:corrections" format $"[38;5;147m >>> [38;5;68m%d (%e)[0m"
-zstyle ":completion:*:descriptions" format $"[38;5;147m >>> [38;5;68m%d[0m"
-zstyle ":completion:*:messages" format $"[38;5;147m >>> [38;5;68m%d[0m"
-zstyle ":completion:*:warnings" format $"[38;5;147m >>> [38;5;68mnot found[0m"
-zstyle ":completion:*:*:kill:*:processes" list-colors "=(#b) #([0-9]#)*=0=38;5;147"
+zstyle ":completion:*"                    completer _complete _prefix _correct _prefix _match _approximate
+zstyle ":completion:*"                    expand            yes
+zstyle ":completion:*"                    group-name        ""
+zstyle ":completion:*"                    matcher-list      "" "m:{a-zA-Z}={A-Za-z}"
+zstyle ":completion:*"                    menu              select
+zstyle ":completion:*"                    squeeze-slashes   yes
+zstyle ":completion:*"                    verbose           yes
+zstyle ":completion:*:approximate:*"      max-errors        1 numeric
+zstyle ":completion:*:matches"            group             yes
+zstyle ":completion:*:match:*"            original          only
+zstyle ":completion:*:options"            auto-description "%d"
+zstyle ":completion:*:options"            description       yes
+zstyle ":completion:*:processes"          command          "ps -au$USER"
+zstyle ":completion:*:*:default"          force-list        always
+zstyle ":completion:*:*:kill:*"           menu yes          select
+zstyle ":completion:*:*:*:default"        menu yes          select
+zstyle ":completion:*:*:*:*:processes"    force-list        always
+zstyle ":completion::complete:*"         "\\"
+zstyle ":completion::prefix-1:*"          completer        _complete
+zstyle ":completion:incremental:*"        completer        _complete _correct
+zstyle ":completion:predict:*"            completer        _complete
+zstyle ":completion:*:corrections"        format           $"[38;2;97;175;239m >>> [0m%d (%e)"
+zstyle ":completion:*:descriptions"       format           $"[38;2;97;175;239m >>> [0m%d"
+zstyle ":completion:*:messages"           format           $"[38;2;97;175;239m >>> [0m%d"
+zstyle ":completion:*:warnings"           format           $"[38;2;97;175;239m >>> [0mnot found"
+zstyle ":completion:*:*:kill:*:processes" list-colors       "=(#b) #([0-9]#)*=0=38;2;152;195;121"
 
 
 # functions
