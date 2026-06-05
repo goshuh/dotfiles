@@ -1,12 +1,12 @@
 local Canvas     = require 'hs.canvas'
 local Drawing    = require 'hs.drawing'
 local FnUtils    = require 'hs.fnutils'
+local Host       = require 'hs.host'
 local Http       = require 'hs.http'
 local Json       = require 'hs.json'
 local Screen     = require 'hs.screen'
 local Spoons     = require 'hs.spoons'
 local StyledText = require 'hs.styledtext'
-local Timer      = require 'hs.timer'
 local WebSocket  = require 'hs.websocket'
 
 
@@ -76,15 +76,15 @@ local _M = {
     alpha =  0.5
   },
 
-  canvas  =  nil,
-  timer   =  nil,
-  socket  =  nil,
+  remote  = 'wss://data.tradingview.com/' ..
+                  'socket.io/websocket?from=chart&type=chart',
 
-  to_cid  =  {},
+  canvas  =  nil,
+  socket  =  nil,
+  session =  '',
+
   to_idx  =  {},
 
-  key     =  '5432',
-  token   =  '',
   quotes  =  '',
   stocks  =  {}
 }
@@ -92,18 +92,13 @@ local _M = {
 _M.__index = _M
 
 
-function _M:ep_https(u)
-  return 'https://localhost:' .. self.key .. '/v1/api' .. u
-end
-
-function _M:ep_wss()
-  return 'wss://localhost:' .. self.key .. '/v1/api/ws?api=' .. self.token
-end
-
 function _M:start(fn)
-  if self.quotes ~= '' or #self.stocks > 0 then
-    return self
-  end
+  self:stop()
+
+  self.canvas = nil
+
+  self.quotes = ''
+  self.stocks = {}
 
   local f = io.open(os.getenv('HOME') .. '/' .. fn, 'r')
 
@@ -119,8 +114,6 @@ function _M:start(fn)
 
     if i == '' or head_as(i, '#') then
       -- skip
-    elseif head_as(i, 'key: ') then
-      self.key = strip(tail(i, 6))
     elseif head_as(i, 'sym: ') then
       table.insert(syms, strip(tail(i, 6)))
     else
@@ -131,17 +124,58 @@ function _M:start(fn)
   f:close()
 
   self.quotes = table.concat(segs, '\n')
-  self.stocks = syms
+
+  for _, s in ipairs(syms) do
+    table.insert(self.stocks, {
+      symbol  = s,
+      price   = 0,
+      change  = 0,
+      percent = 0
+    })
+  end
 
   self:draw()
-  self:init()
+  self:sess()
+
+  self.socket = WebSocket.new(self.remote, function(c, msg)
+    if c == 'open' then
+      self:open()
+
+    elseif c == 'received' then
+      self:recv(msg)
+
+    elseif c == 'closed'  or
+           c == 'closing' then
+      if self.socket then
+        self.socket:close()
+        self.socket = nil
+      end
+    end
+  end)
 
   return self
 end
 
+function _M:stop()
+  if not self.socket then
+    return
+  end
+
+  self:send({
+    m = 'quote_delete_session',
+    p = {
+      self.session
+    }
+  })
+  self.socket:close()
+
+  self.socket = nil
+end
+
 function _M:bindHotKeys(mapping)
   local spec = {
-    reinit = FnUtils.partial(self.init, self)
+    start = FnUtils.partial(self.start, self),
+    stop  = FnUtils.partial(self.stop,  self)
   }
 
   Spoons.bindHotkeysToSpec(spec, mapping)
@@ -149,119 +183,113 @@ function _M:bindHotKeys(mapping)
   return self
 end
 
-function _M:subs(s)
-  local i = self.to_cid[s]
+function _M:sess()
+  math.randomseed(os.time() ~ Host.idleTime())
 
-  if i then
-    self.socket:send('smd+' .. i .. '+{"fields":["31","82","83"]}')
+  local c = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  local r = {}
+
+  for i = 1, 12 do
+    local j = math.random(1, #c)
+
+    r[i] = string.sub(c, j, j)
+  end
+
+  self.session = 'qs_' .. table.concat(r)
+end
+
+function _M:open()
+  self:send({
+    m = 'set_auth_token',
+    p = {
+      'unauthorized_user_token'
+    }
+  })
+
+  self:send({
+    m = 'quote_create_session',
+    p = {
+      self.session
+    }
+  })
+
+  self:send({
+    m = 'quote_set_fields',
+    p = {
+      self.session,
+     'lp',
+     'ch',
+     'chp'
+    }
+  })
+
+  for _, q in ipairs(self.stocks) do
+    self:send({
+      m = 'quote_add_symbols',
+      p = {
+        self.session,
+       '=' .. Json.encode({
+          session = 'regular',
+          symbol  =  q.symbol
+        })
+      }
+    })
+  end
+end
+
+function _M:send(msg)
+  if not self.socket then
     return
   end
 
-  local url = self:ep_https('/iserver/secdef/search?symbol=' .. s ..
-                            '&name=true&secType=STK')
+  local m = type(msg) == 'string' and msg or Json.encode(msg)
 
-  Http.asyncGet(url, nil, function(c, res)
-    if c ~= 200 then
-      -- symbol may be invalid
-      return
-    end
-
-    local ok, ret = pcall(Json.decode, res)
-
-    if not ok or not ret then
-      return
-    end
-
-    local i = tonumber(ret[1].conid)
-
-    self.to_cid[s] = tostring(i)
-    self.to_idx[i] = self.to_idx[s]
-
-    self.socket:send('smd+' .. i .. '+{"fields":["31","82","83"]}')
-  end)
-end
-
-function _M:subs_all()
-  for _, s in ipairs(self.stocks) do
-    self:subs(s)
-  end
-end
-
-function _M:init()
-  -- can fail. we just let the user reinit
-  Http.asyncGet(self:ep_https('/tickle'), nil, function(c, res)
-    if c ~= 200 then
-      return
-    end
-
-    local ok, ret = pcall(Json.decode, res)
-
-    if not ok or not ret then
-      return
-    end
-
-    if not ret.iserver.authStatus.authenticated then
-      return
-    end
-
-    self.token = ret.session or ''
-
-    if self.token == '' then
-      return
-    end
-
-    -- ready to start the ws
-    self.socket = WebSocket.new(self:ep_wss(), function(c, msg)
-      if c == 'open' then
-        self:subs_all()
-
-        -- re-subscribe every 10 min as the server expires every 15 mins
-        self.timer = Timer.doEvery(600, function()
-          self:subs_all()
-        end)
-
-      elseif c == 'received' then
-        self:recv(msg)
-
-      elseif c == 'closed'  or
-             c == 'closing' then
-        if self.timer then
-          self.timer:stop()
-          self.timer = nil
-        end
-      end
-    end)
-  end)
+  self.socket:send('~m~' .. tostring(#m) .. '~m~' .. m)
 end
 
 function _M:recv(msg)
-  local ok, ret = pcall(Json.decode, msg)
-
-  if not ok or not ret then
+  if not self.socket then
     return
   end
 
-  if not head_as(ret.topic or '', 'smd+') then
-    return
-  end
+  local r = FnUtils.split(msg, '~m~%d+~m~')
 
-  local s = self.canvas[self.to_idx[ret.conid]]
+  for _, s in ipairs(r) do
+    if head_as(s, '~h~') then
+      self:send(s)
 
-  local price   = tonumber(ret['31'])
-  local change  = tonumber(ret['82'] or '0')
-  local percent = tonumber(ret['83'] or '0')
+    elseif #s > 0 then
+      local ok, ret = pcall(Json.decode, s)
 
-  s.text =
-    pad_left(string.format('%.2f', price),   8) ..
-    pad_left(string.format('%.2f', change),  7) ..
-    pad_left(string.format('%.2f', percent), 7) .. '%'
+      if ok and ret and ret.m == 'qsd' then
+        local p = ret.p[2]
 
-  if change > 0 then
-    s.textColor = self.rise
-  elseif change < 0 then
-    s.textColor = self.fall
-  else
-    s.textColor = self.norm
+        if p.s == 'ok' then
+          local ok, ses = pcall(Json.decode, tail(p.n, 2))
+
+          local i = self.to_idx[ses.symbol]
+          local s = self.stocks[i]
+          local t = self.canvas[i]
+
+          s.price   = p.v.lp  and p.v.lp  or s.price
+          s.change  = p.v.ch  and p.v.ch  or s.change
+          s.percent = p.v.chp and p.v.chp or s.percent
+
+          t.text =
+            pad_left(string.format('%.2f', s.price),   8) ..
+            pad_left(string.format('%.2f', s.change),  7) ..
+            pad_left(string.format('%.2f', s.percent), 7) .. '%'
+
+          if s.change > 0 then
+            t.textColor = self.rise
+          elseif s.change < 0 then
+            t.textColor = self.fall
+          else
+            t.textColor = self.norm
+          end
+        end
+      end
+    end
   end
 end
 
@@ -273,10 +301,12 @@ function _M:draw()
   local t = {}
 
   for i, s in ipairs(self.stocks) do
-    self.to_idx[s] = i
+    local ss =  FnUtils.split(s.symbol, ':')
+
+    self.to_idx[s.symbol] = i
 
     local pt = ' ----.-- ---.-- ---.--%'
-    local st =  pad_right(s, 4)
+    local st =  pad_right(ss[#ss], 4)
 
     local cx =  0
     local ch =  0
