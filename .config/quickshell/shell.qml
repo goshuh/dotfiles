@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import Qt.labs.folderlistmodel
 
 import QtCore
+import QtWebSocketsExt
 
 import QtQuick
 import QtQuick.Controls
@@ -204,8 +205,8 @@ ShellRoot {
     readonly property real   windowInactiveOpacity: 0.75
     readonly property int    windowTimeout:         2
 
-    readonly property string finnhubQuote:
-     'https://finnhub.io/api/v1/quote?symbol=%1&token=%2'
+    readonly property string tradingView:
+     'wss://data.tradingview.com/socket.io/websocket?from=chart&type=chart'
   }
 
   component GlobalHelper: Item {
@@ -359,7 +360,7 @@ ShellRoot {
     }
 
     function getAudIcon(v: var): string {
-      if (v == 0)
+      if (v === 0)
         return 'audio-volume-muted'
       if (v <  0.33)
         return 'audio-volume-low'
@@ -446,11 +447,11 @@ ShellRoot {
 
       onIsIdleChanged: {
         if (isIdle) {
-          if (helper.idleLock == false)
+          if (helper.idleLock === false)
             locker.init()
 
         } else {
-          if (helper.idleLock == true)
+          if (helper.idleLock === true)
             helper.reidle()
         }
       }
@@ -469,98 +470,200 @@ ShellRoot {
     }
 
     // stock
-    property string stockKey:   ''
-    property string stockQuote: ''
-    property var    stockSyms:  []
-    property var    stockReqs:  []
-    property var    stocks:     []
-    property int    stockIter:  0
+    property string stockQuote:   ''
+    property string stockSession: ''
+    property var    stockMap:    ({})
+    property var    stocks:       []
 
-    Timer {
-      running:  helper.stockKey.length && helper.stocks.length
+    QtWebSocketsExt {
+      id: socket
 
-      repeat:   true
-      interval: 3 * 1000
+      active: false
+      url:    config.tradingView
 
-      onTriggered: {
-        helper.stockUpdate()
+      onStatusChanged: s => {
+        switch (s) {
+          case QtWebSocketsExt.Open:
+            helper.stockOpen()
+            break
+
+          case QtWebSocketsExt.Closed:
+          case QtWebSocketsExt.Error:
+            helper.stockClose()
+            break
+        }
+      }
+
+      onTextMessageReceived: msg => {
+        helper.stockRecv(msg)
+      }
+
+      Component.onCompleted: {
+        // the reason is here
+        setHeader('Origin', 'https://www.tradingview.com')
       }
     }
 
     function stockInit(): void {
+      if (socket.active)
+        stockClose()
+
       const req = new XMLHttpRequest
 
       req.onreadystatechange = function() {
         if (req.readyState !== XMLHttpRequest.DONE)
           return
 
-        const quote = []
-        const lines = req.responseText.split(/\r?\n/)
+        const segs = []
+        const syms = []
 
-        for (const line of lines) {
+        for (const line of req.responseText.split(/\r?\n/)) {
           const item = line.trim()
 
           if (!item.length || item.startsWith('#'))
             continue
-          else if (item.startsWith('key: '))
-            stockKey = item.slice(5).trim()
           else if (item.startsWith('sym: '))
-            stockSyms.push(item.slice(5).trim())
+            syms.push(item.slice(5).trim())
           else
-            quote.push(line)
+            segs.push(line)
         }
 
-        stockQuote = quote.join('\n')
-        stockReqs  = stockSyms.map(() => new XMLHttpRequest())
-        stocks     = stockSyms.map(s => ({
+        stockQuote = segs.join('\n')
+        stocks     = syms.map(s => ({
           symbol:  s,
           price:   0,
           change:  0,
           percent: 0,
           ready:   false
         }))
+
+        for (let i = 0; i < syms.length; i++)
+          stockMap[syms[i]] = i
+
+        stockSess()
+
+        socket.active = true
       }
 
       req.open('GET', config.homeDir + '/.quote')
       req.send()
     }
 
-    function stockUpdate(): void {
-      const i = stockIter
+    function stockSess(): void {
+      const c = 'abcdefghijklmnopqrstuvwxyz' +
+                'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+                '0123456789'
 
-      const req = stockReqs[i]
-      const sym = stockSyms[i]
+      stockSession = 'qs_'
 
-      req.onreadystatechange = function() {
-        if (req.readyState !== XMLHttpRequest.DONE)
-          return
+      for (let i = 0; i < 12; i++)
+        stockSession += c[Math.floor(Math.random() * c.length)]
+    }
 
-        let ret = {}
+    function stockOpen(): void {
+      helper.stockSend({
+        m: 'set_auth_token',
+        p: [
+         'unauthorized_user_token'
+        ]
+      })
+
+      helper.stockSend({
+        m: 'quote_create_session',
+        p: [
+          stockSession
+        ]
+      })
+
+      helper.stockSend({
+        m: 'quote_set_fields',
+        p: [
+          stockSession,
+         'lp',
+         'ch',
+         'chp'
+        ]
+      })
+
+      for (const s of stocks) {
+        helper.stockSend({
+          m: 'quote_add_symbols',
+          p: [
+            stockSession,
+           '=' + JSON.stringify({
+              session: 'regular',
+              symbol:   s.symbol
+            })
+          ]
+        })
+
+        s.symbol = s.symbol.split(':')[1]
+      }
+    }
+
+    function stockSend(msg: var): void {
+      if (!socket.active)
+        return
+
+      const m = typeof msg === 'string' ? msg : JSON.stringify(msg)
+
+      socket.sendTextMessage('~m~' + m.length + '~m~' + m)
+    }
+
+    function stockRecv(msg: string): void {
+      if (!socket.active)
+        return
+
+      for (const s of msg.split(/~m~\d+~m~/)) {
+        if (s.startsWith('~h~')) {
+          helper.stockSend(s)
+          continue
+        }
+
+        if (!s.length)
+          continue
 
         try {
-          ret = JSON.parse(req.responseText)
+          const r = JSON.parse(s)
+
+          if (!r || (r.m !== 'qsd'))
+            continue
+
+          const p = r.p[1]
+
+          if (!p || (p.s !== 'ok'))
+            continue
+
+          const q = stocks[stockMap[JSON.parse(p.n.slice(1)).symbol]]
+
+          if (!q)
+            continue
+
+          q.price   = p.v.lp  ?? q.price
+          q.change  = p.v.ch  ?? q.change
+          q.percent = p.v.chp ?? q.percent
+          q.ready   = true
+
+          stocksChanged()
+
         } catch (e) {
-          return
+          // ignore parse errors
         }
-
-        stocks[i] = {
-          symbol:  sym,
-          price:   ret.c  ?? 0,
-          change:  ret.d  ?? 0,
-          percent: ret.dp ?? 0,
-          ready:   true
-        }
-
-        // manual but fine
-        stocksChanged()
       }
+    }
 
-      req.open('GET', config.finnhubQuote
-                       .arg(encodeURIComponent(sym))
-                       .arg(encodeURIComponent(stockKey)))
-      req.send()
+    function stockClose(): void {
+      if (!socket.active)
+        return
 
-      stockIter = (stockIter + 1) % stocks.length
+      helper.stockSend({
+        m: 'quote_delete_session',
+        p: [
+          stockSession
+        ]
+      })
+
+      socket.active = false
     }
   }
 
@@ -1577,7 +1680,7 @@ ShellRoot {
             anchors.fill: parent
 
             onClicked: {
-              if (grid.month === 0) {
+              if (!grid.month) {
                 grid.month  = 11
                 grid.year  -= 1
               } else
@@ -1953,6 +2056,24 @@ ShellRoot {
     }
   }
 
+  CustomShortcut {
+    name:        'qstart'
+    description: 'Start quote'
+
+    onPressed: {
+      helper.stockInit()
+    }
+  }
+
+  CustomShortcut {
+    name:        'qstop'
+    description: 'Stop quote'
+
+    onPressed: {
+      helper.stockStop()
+    }
+  }
+
   component PickerItem: WrapperMouseArea {
     id: master
 
@@ -2300,7 +2421,7 @@ ShellRoot {
     description: 'Lock the screen'
 
     onPressed: {
-      if (helper.idleLock == false)
+      if (helper.idleLock === false)
         locker.init()
     }
   }
@@ -2844,7 +2965,7 @@ ShellRoot {
     function init(val: int, screen: var): void {
       helper.setVol(val)
 
-      if (loader.active == false)
+      if (!loader.active)
         volume.screen = screen
 
       loader.active = true
