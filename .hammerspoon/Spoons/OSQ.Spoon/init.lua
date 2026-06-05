@@ -76,6 +76,7 @@ local _M = {
     alpha =  0.5
   },
 
+  file    = '',
   remote  = 'wss://data.tradingview.com/' ..
                   'socket.io/websocket?from=chart&type=chart',
 
@@ -100,7 +101,9 @@ function _M:start(fn)
   self.quotes = ''
   self.stocks = {}
 
-  local f = io.open(os.getenv('HOME') .. '/' .. fn, 'r')
+  self.file   = fn and fn or self.file
+
+  local f = io.open(os.getenv('HOME') .. '/' .. self.file, 'r')
 
   if not f then
     return self
