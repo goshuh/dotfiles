@@ -96,7 +96,10 @@ _M.__index = _M
 function _M:start(fn)
   self:stop()
 
-  self.canvas = nil
+  if self.canvas then
+    self.canvas:delete()
+    self.canvas = nil
+  end
 
   self.quotes = ''
   self.stocks = {}
