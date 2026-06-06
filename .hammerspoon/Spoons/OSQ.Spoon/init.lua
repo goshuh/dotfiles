@@ -2,11 +2,9 @@ local Canvas     = require 'hs.canvas'
 local Drawing    = require 'hs.drawing'
 local FnUtils    = require 'hs.fnutils'
 local Host       = require 'hs.host'
-local Http       = require 'hs.http'
 local Json       = require 'hs.json'
 local Screen     = require 'hs.screen'
 local Spoons     = require 'hs.spoons'
-local StyledText = require 'hs.styledtext'
 local WebSocket  = require 'hs.websocket'
 
 
