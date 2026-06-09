@@ -67,4 +67,4 @@ if __name__ == '__main__':
     do_link(os.path.expanduser('~/.config/cache'),
             os.path.expanduser('~/.cache'))
 
-    do_init('Code', 'Slack')
+    do_init('Code', 'Slack', 'TradingView')

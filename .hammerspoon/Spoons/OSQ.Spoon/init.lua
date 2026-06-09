@@ -232,10 +232,7 @@ function _M:open()
       m = 'quote_add_symbols',
       p = {
         self.session,
-       '=' .. Json.encode({
-          session = 'regular',
-          symbol  =  q.symbol
-        })
+        q.symbol
       }
     })
   end
@@ -269,9 +266,7 @@ function _M:recv(msg)
         local p = ret.p[2]
 
         if p.s == 'ok' then
-          local ok, ses = pcall(Json.decode, tail(p.n, 2))
-
-          local i = self.to_idx[ses.symbol]
+          local i = self.to_idx[p.n]
           local s = self.stocks[i]
           local t = self.canvas[i]
 

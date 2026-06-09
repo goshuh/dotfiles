@@ -590,10 +590,7 @@ ShellRoot {
           m: 'quote_add_symbols',
           p: [
             stockSession,
-           '=' + JSON.stringify({
-              session: 'regular',
-              symbol:   s.symbol
-            })
+            s.symbol
           ]
         })
 
@@ -634,7 +631,7 @@ ShellRoot {
           if (!p || (p.s !== 'ok'))
             continue
 
-          const q = stocks[stockMap[JSON.parse(p.n.slice(1)).symbol]]
+          const q = stocks[stockMap[p.n]]
 
           if (!q)
             continue
