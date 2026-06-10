@@ -221,9 +221,9 @@ function _M:open()
     m = 'quote_set_fields',
     p = {
       self.session,
-     'lp',
-     'ch',
-     'chp'
+     'rtc',
+     'rch',
+     'rchp'
     }
   })
 
@@ -270,9 +270,9 @@ function _M:recv(msg)
           local s = self.stocks[i]
           local t = self.canvas[i]
 
-          s.price   = p.v.lp  and p.v.lp  or s.price
-          s.change  = p.v.ch  and p.v.ch  or s.change
-          s.percent = p.v.chp and p.v.chp or s.percent
+          s.price   = p.v.rtc  and p.v.rtc  or s.price
+          s.change  = p.v.rch  and p.v.rch  or s.change
+          s.percent = p.v.rchp and p.v.rchp or s.percent
 
           t.text =
             pad_left(string.format('%.2f', s.price),   8) ..

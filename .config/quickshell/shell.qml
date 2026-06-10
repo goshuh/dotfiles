@@ -579,9 +579,9 @@ ShellRoot {
         m: 'quote_set_fields',
         p: [
           stockSession,
-         'lp',
-         'ch',
-         'chp'
+         'rtc',
+         'rch',
+         'rchp'
         ]
       })
 
@@ -636,9 +636,9 @@ ShellRoot {
           if (!q)
             continue
 
-          q.price   = p.v.lp  ?? q.price
-          q.change  = p.v.ch  ?? q.change
-          q.percent = p.v.chp ?? q.percent
+          q.price   = p.v.rtc  ?? q.price
+          q.change  = p.v.rch  ?? q.change
+          q.percent = p.v.rchp ?? q.percent
           q.ready   = true
 
           stocksChanged()
