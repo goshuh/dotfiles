@@ -323,6 +323,12 @@ class Cleaner(object):
                     exts = 'desktop',
                     pats = 's/^Exec=nm-applet$/Exec=nm-applet --indicator/g')
 
+        # fontconfig 2.18 messes up everything with genericfamily, and strong
+        # alias doesn't work
+        self.clean('48-guessfamily',
+                    dirs = '/etc/fonts/conf.d',
+                    exts = 'conf')
+
         # waydroid is unhappy with nft
         self.update('/usr/lib/waydroid/data/scripts/waydroid-net.sh',
                     'sed -i "/use_nft() {/!b;n;c\\    false" {file}')
